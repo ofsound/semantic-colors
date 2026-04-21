@@ -160,27 +160,7 @@
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
   let bridgeTimer: ReturnType<typeof setTimeout> | null = null;
 
-  async function publishToBridge(): Promise<void> {
-    try {
-      await fetch('/api/bridge/publish', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          configPath,
-          manifest: $state.snapshot(manifest),
-          origin: 'ui'
-        })
-      });
-    } catch {
-      // Bridge is a best-effort channel; ignore publish failures.
-    }
-  }
-
-  $effect(() => {
-    void JSON.stringify($state.snapshot(manifest));
-    void JSON.stringify($state.snapshot(config));
-    void configPath;
-
+  function markPersistDirty(): void {
     if (!booted) {
       return;
     }
@@ -199,7 +179,23 @@
     bridgeTimer = setTimeout(() => {
       void publishToBridge();
     }, 80);
-  });
+  }
+
+  async function publishToBridge(): Promise<void> {
+    try {
+      await fetch('/api/bridge/publish', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          configPath,
+          manifest: $state.snapshot(manifest),
+          origin: 'ui'
+        })
+      });
+    } catch {
+      // Bridge is a best-effort channel; ignore publish failures.
+    }
+  }
 
   $effect(() => {
     document.documentElement.dataset.theme = activeMode;
@@ -220,6 +216,7 @@
           return;
         }
         manifest = ensureManifest(message.snapshot.manifest as never);
+        markPersistDirty();
         saveMessage = `Applied live update from ${message.snapshot.origin} via bridge.`;
       } catch {
         // Ignore malformed snapshots.
@@ -301,6 +298,7 @@
 
     if (event.key.toLowerCase() === 'l') {
       manifest.alt.grayscalePreview = !manifest.alt.grayscalePreview;
+      markPersistDirty();
     }
   }
 
@@ -322,10 +320,12 @@
         tokenId: selectedTokenId
       }
     ];
+    markPersistDirty();
   }
 
   function removeAlias(index: number): void {
     manifest.aliases = manifest.aliases.filter((_, aliasIndex) => aliasIndex !== index);
+    markPersistDirty();
   }
 
   function updateAlias(index: number, patch: Partial<LocalAlias>): void {
@@ -333,6 +333,7 @@
       ...manifest.aliases[index],
       ...patch
     };
+    markPersistDirty();
   }
 
   function warningNotes(tokenIds: TokenId[]): string[] {
@@ -368,6 +369,7 @@
     }
 
     resetManifest();
+    markPersistDirty();
     saveMessage = 'Reset the manifest to the default semantic color set.';
   }
 
@@ -438,6 +440,7 @@
     }
 
     importProposal = null;
+    markPersistDirty();
     saveMessage = 'Applied reviewed import mappings into the canonical manifest.';
   }
 
@@ -464,6 +467,7 @@
     <ProjectPanel
       bind:config
       bind:configPath
+      onPersistChange={markPersistDirty}
       {saveHeading}
       {saveHint}
       {saveMessage}
@@ -472,11 +476,18 @@
       onReload={reloadProject}
       onRetrySave={retrySave}
     />
-    <ModeControls bind:manifest {activeMode} {setTheme} {updateAltDelta} />
+    <ModeControls
+      bind:manifest
+      onPersistChange={markPersistDirty}
+      {activeMode}
+      {setTheme}
+      {updateAltDelta}
+    />
     <TokenEditor
       bind:manifest
       {activeMode}
       {currentTokenAlt}
+      onPersistChange={markPersistDirty}
       {selectedTokenId}
       {selectedTokenNotes}
       {setTheme}
@@ -490,6 +501,7 @@
       {confirmResetManifest}
       {importProposal}
       {isImporting}
+      onPersistChange={markPersistDirty}
       {runImport}
       {tokenLabel}
     />

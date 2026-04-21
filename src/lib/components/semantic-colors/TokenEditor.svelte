@@ -7,6 +7,7 @@
     selectedTokenId,
     activeMode,
     currentTokenAlt,
+    onPersistChange,
     selectedTokenNotes,
     setTheme,
     tokenLabel
@@ -15,6 +16,7 @@
     selectedTokenId: TokenId;
     activeMode: ThemeMode;
     currentTokenAlt: OklchColor;
+    onPersistChange: () => void;
     selectedTokenNotes: string[];
     setTheme: (mode: ThemeMode) => void;
     tokenLabel: (tokenId: TokenId) => string;
@@ -75,11 +77,19 @@
     <div class="channel-grid">
       <label class="channel">
         <span>L</span>
-        <input max="1" min="0" step="0.005" type="range" bind:value={selectedToken.light.l} />
+        <input
+          bind:value={selectedToken.light.l}
+          max="1"
+          min="0"
+          oninput={onPersistChange}
+          step="0.005"
+          type="range"
+        />
         <input
           class="number-field"
           max="1"
           min="0"
+          oninput={onPersistChange}
           step="0.005"
           type="number"
           bind:value={selectedToken.light.l}
@@ -87,11 +97,19 @@
       </label>
       <label class="channel">
         <span>C</span>
-        <input max="0.37" min="0" step="0.005" type="range" bind:value={selectedToken.light.c} />
+        <input
+          bind:value={selectedToken.light.c}
+          max="0.37"
+          min="0"
+          oninput={onPersistChange}
+          step="0.005"
+          type="range"
+        />
         <input
           class="number-field"
           max="0.37"
           min="0"
+          oninput={onPersistChange}
           step="0.005"
           type="number"
           bind:value={selectedToken.light.c}
@@ -99,11 +117,19 @@
       </label>
       <label class="channel">
         <span>H</span>
-        <input max="360" min="0" step="1" type="range" bind:value={selectedToken.light.h} />
+        <input
+          bind:value={selectedToken.light.h}
+          max="360"
+          min="0"
+          oninput={onPersistChange}
+          step="1"
+          type="range"
+        />
         <input
           class="number-field"
           max="360"
           min="0"
+          oninput={onPersistChange}
           step="1"
           type="number"
           bind:value={selectedToken.light.h}
@@ -120,11 +146,19 @@
     <div class="channel-grid">
       <label class="channel">
         <span>L</span>
-        <input max="1" min="0" step="0.005" type="range" bind:value={selectedToken.dark.l} />
+        <input
+          bind:value={selectedToken.dark.l}
+          max="1"
+          min="0"
+          oninput={onPersistChange}
+          step="0.005"
+          type="range"
+        />
         <input
           class="number-field"
           max="1"
           min="0"
+          oninput={onPersistChange}
           step="0.005"
           type="number"
           bind:value={selectedToken.dark.l}
@@ -132,11 +166,19 @@
       </label>
       <label class="channel">
         <span>C</span>
-        <input max="0.37" min="0" step="0.005" type="range" bind:value={selectedToken.dark.c} />
+        <input
+          bind:value={selectedToken.dark.c}
+          max="0.37"
+          min="0"
+          oninput={onPersistChange}
+          step="0.005"
+          type="range"
+        />
         <input
           class="number-field"
           max="0.37"
           min="0"
+          oninput={onPersistChange}
           step="0.005"
           type="number"
           bind:value={selectedToken.dark.c}
@@ -144,11 +186,19 @@
       </label>
       <label class="channel">
         <span>H</span>
-        <input max="360" min="0" step="1" type="range" bind:value={selectedToken.dark.h} />
+        <input
+          bind:value={selectedToken.dark.h}
+          max="360"
+          min="0"
+          oninput={onPersistChange}
+          step="1"
+          type="range"
+        />
         <input
           class="number-field"
           max="360"
           min="0"
+          oninput={onPersistChange}
           step="1"
           type="number"
           bind:value={selectedToken.dark.h}
@@ -161,7 +211,7 @@
     <div class="field-grid">
       <label class="field-block">
         <span>Alt behavior</span>
-        <select bind:value={selectedToken.exception.altBehavior}>
+        <select bind:value={selectedToken.exception.altBehavior} onchange={onPersistChange}>
           <option value="derive">Derive</option>
           <option value="pin">Pin to source anchor</option>
           <option value="exclude">Exclude from Alt</option>
@@ -173,6 +223,7 @@
           bind:value={selectedToken.exception.maxChroma}
           max="0.37"
           min="0"
+          oninput={onPersistChange}
           step="0.005"
           type="number"
         />

@@ -4,6 +4,7 @@
   let {
     config = $bindable(),
     configPath = $bindable(),
+    onPersistChange,
     saveState,
     saveHeading,
     saveMessage,
@@ -14,6 +15,7 @@
   }: {
     config: ProjectConfig;
     configPath: string;
+    onPersistChange: () => void;
     saveState: 'idle' | 'saving' | 'saved' | 'error';
     saveHeading: string;
     saveMessage: string;
@@ -35,27 +37,31 @@
 
   <label class="field-block">
     <span>Project config path</span>
-    <input bind:value={configPath} />
+    <input bind:value={configPath} oninput={onPersistChange} />
   </label>
 
   <label class="field-block">
     <span>Project root</span>
-    <input bind:value={config.projectRoot} placeholder="/absolute/path/to/project" />
+    <input
+      bind:value={config.projectRoot}
+      oninput={onPersistChange}
+      placeholder="/absolute/path/to/project"
+    />
   </label>
 
   <div class="field-grid">
     <label class="field-block">
       <span>Manifest path</span>
-      <input bind:value={config.manifestPath} />
+      <input bind:value={config.manifestPath} oninput={onPersistChange} />
     </label>
     <label class="field-block">
       <span>CSS output path</span>
-      <input bind:value={config.cssOutputPath} />
+      <input bind:value={config.cssOutputPath} oninput={onPersistChange} />
     </label>
   </div>
 
   <label class="checkbox-row">
-    <input bind:checked={config.bridgeEnabled} type="checkbox" />
+    <input bind:checked={config.bridgeEnabled} onchange={onPersistChange} type="checkbox" />
     <span>Write generated CSS into the target project</span>
   </label>
 

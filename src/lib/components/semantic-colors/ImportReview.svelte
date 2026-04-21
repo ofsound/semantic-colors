@@ -8,6 +8,7 @@
     importProposal,
     importSelection = $bindable(),
     isImporting,
+    onPersistChange,
     tokenLabel,
     runImport,
     applyImportReview,
@@ -17,6 +18,7 @@
     importProposal: ImportProposal | null;
     importSelection: Record<string, TokenId | ''>;
     isImporting: boolean;
+    onPersistChange: () => void;
     tokenLabel: (tokenId: TokenId) => string;
     runImport: () => void | Promise<void>;
     applyImportReview: () => void;
@@ -36,7 +38,11 @@
 
   <label class="field-block">
     <span>Source CSS path</span>
-    <input bind:value={config.importSourcePath} placeholder="../project/src/app.css" />
+    <input
+      bind:value={config.importSourcePath}
+      oninput={onPersistChange}
+      placeholder="../project/src/app.css"
+    />
   </label>
 
   <div class="action-row">

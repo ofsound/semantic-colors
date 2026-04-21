@@ -3,15 +3,25 @@
 
   let {
     manifest = $bindable(),
+    onPersistChange,
     activeMode,
     setTheme,
     updateAltDelta
   }: {
     manifest: ThemeManifest;
+    onPersistChange: () => void;
     activeMode: ThemeMode;
     setTheme: (mode: ThemeMode) => void;
     updateAltDelta: (channel: 'l' | 'c' | 'h', value: number) => void;
   } = $props();
+
+  function handleAltDeltaInput(
+    channel: 'l' | 'c' | 'h',
+    event: Event & { currentTarget: EventTarget & HTMLInputElement }
+  ): void {
+    updateAltDelta(channel, Number(event.currentTarget.value));
+    onPersistChange();
+  }
 </script>
 
 <section class="panel">
@@ -50,20 +60,24 @@
   </div>
 
   <label class="checkbox-row">
-    <input bind:checked={manifest.alt.grayscalePreview} type="checkbox" />
+    <input
+      bind:checked={manifest.alt.grayscalePreview}
+      onchange={onPersistChange}
+      type="checkbox"
+    />
     <span>Greyscale hierarchy overlay (`L`)</span>
   </label>
 
   <div class="field-grid alt-grid">
     <label class="field-block">
       <span>Alt base</span>
-      <select bind:value={manifest.alt.source}>
+      <select bind:value={manifest.alt.source} onchange={onPersistChange}>
         <option value="light">Derive from Light</option>
         <option value="dark">Derive from Dark</option>
       </select>
     </label>
     <label class="checkbox-row compact">
-      <input bind:checked={manifest.alt.harmonyLock} type="checkbox" />
+      <input bind:checked={manifest.alt.harmonyLock} onchange={onPersistChange} type="checkbox" />
       <span>Lock harmony</span>
     </label>
   </div>
@@ -74,11 +88,10 @@
       <input
         max="180"
         min="-180"
+        value={manifest.alt.delta.h}
+        oninput={(event) => handleAltDeltaInput('h', event)}
         step="1"
         type="range"
-        value={manifest.alt.delta.h}
-        oninput={(event) =>
-          updateAltDelta('h', Number((event.currentTarget as HTMLInputElement).value))}
       />
       <input
         class="number-field"
@@ -87,6 +100,7 @@
         step="1"
         type="number"
         bind:value={manifest.alt.delta.h}
+        oninput={onPersistChange}
       />
     </div>
 
@@ -95,11 +109,10 @@
       <input
         max="0.16"
         min="-0.16"
+        value={manifest.alt.delta.c}
+        oninput={(event) => handleAltDeltaInput('c', event)}
         step="0.005"
         type="range"
-        value={manifest.alt.delta.c}
-        oninput={(event) =>
-          updateAltDelta('c', Number((event.currentTarget as HTMLInputElement).value))}
       />
       <input
         class="number-field"
@@ -108,6 +121,7 @@
         step="0.005"
         type="number"
         bind:value={manifest.alt.delta.c}
+        oninput={onPersistChange}
       />
     </div>
 
@@ -116,11 +130,10 @@
       <input
         max="0.2"
         min="-0.2"
+        value={manifest.alt.delta.l}
+        oninput={(event) => handleAltDeltaInput('l', event)}
         step="0.01"
         type="range"
-        value={manifest.alt.delta.l}
-        oninput={(event) =>
-          updateAltDelta('l', Number((event.currentTarget as HTMLInputElement).value))}
       />
       <input
         class="number-field"
@@ -129,6 +142,7 @@
         step="0.01"
         type="number"
         bind:value={manifest.alt.delta.l}
+        oninput={onPersistChange}
       />
     </div>
   </div>
