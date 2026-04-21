@@ -1,9 +1,9 @@
-import { c as slot } from "../../chunks/dev.js";
+import "../../chunks/dev.js";
 //#region src/routes/+layout.svelte
 function _layout($$renderer, $$props) {
-	$$renderer.push(`<!--[-->`);
-	slot($$renderer, $$props, "default", {}, null);
-	$$renderer.push(`<!--]-->`);
+	let { children } = $$props;
+	children($$renderer);
+	$$renderer.push(`<!---->`);
 }
 //#endregion
 export { _layout as default };

@@ -1,5 +1,78 @@
 import { APCAcontrast, sRGBtoY } from "apca-w3";
 import { clampRgb, converter, displayable, formatCss, parse } from "culori";
+//#region src/lib/theme/schema.ts
+var TOKEN_GROUP_ORDER = [
+	"surfaces",
+	"text",
+	"borders",
+	"accent",
+	"status",
+	"controls"
+];
+var TOKENS_BY_GROUP = {
+	surfaces: [
+		"app",
+		"shell",
+		"surface",
+		"surface-raised",
+		"surface-muted",
+		"surface-subtle",
+		"surface-overlay",
+		"field"
+	],
+	text: [
+		"text",
+		"text-secondary",
+		"text-muted",
+		"text-faint",
+		"text-inverse"
+	],
+	borders: [
+		"border",
+		"border-subtle",
+		"border-strong",
+		"focus-ring"
+	],
+	accent: [
+		"accent",
+		"accent-strong",
+		"accent-surface",
+		"link",
+		"link-hover"
+	],
+	status: [
+		"success",
+		"success-surface",
+		"warning",
+		"warning-surface",
+		"danger",
+		"danger-surface",
+		"info",
+		"info-surface"
+	],
+	controls: [
+		"control-primary",
+		"control-primary-text",
+		"control-secondary",
+		"control-secondary-text",
+		"control-secondary-border",
+		"control-ghost-hover",
+		"input",
+		"input-border",
+		"input-placeholder"
+	]
+};
+var ALL_TOKEN_IDS = TOKEN_GROUP_ORDER.flatMap((group) => TOKENS_BY_GROUP[group]);
+var DEFAULT_PROJECT_CONFIG = {
+	version: 1,
+	projectRoot: "",
+	bridgeEnabled: false,
+	manifestPath: "semantic-colors/theme.manifest.json",
+	cssOutputPath: "src/lib/styles/semantic-theme.generated.css",
+	importSourcePath: "",
+	selectorStrategy: "data-theme"
+};
+//#endregion
 //#region src/lib/theme/defaults.ts
 function token(definition) {
 	const { altBehavior = "derive", ...rest } = definition;
@@ -802,79 +875,6 @@ function clampToDisplayable(color, maxChroma) {
 	});
 }
 //#endregion
-//#region src/lib/theme/schema.ts
-var TOKEN_GROUP_ORDER = [
-	"surfaces",
-	"text",
-	"borders",
-	"accent",
-	"status",
-	"controls"
-];
-var TOKENS_BY_GROUP = {
-	surfaces: [
-		"app",
-		"shell",
-		"surface",
-		"surface-raised",
-		"surface-muted",
-		"surface-subtle",
-		"surface-overlay",
-		"field"
-	],
-	text: [
-		"text",
-		"text-secondary",
-		"text-muted",
-		"text-faint",
-		"text-inverse"
-	],
-	borders: [
-		"border",
-		"border-subtle",
-		"border-strong",
-		"focus-ring"
-	],
-	accent: [
-		"accent",
-		"accent-strong",
-		"accent-surface",
-		"link",
-		"link-hover"
-	],
-	status: [
-		"success",
-		"success-surface",
-		"warning",
-		"warning-surface",
-		"danger",
-		"danger-surface",
-		"info",
-		"info-surface"
-	],
-	controls: [
-		"control-primary",
-		"control-primary-text",
-		"control-secondary",
-		"control-secondary-text",
-		"control-secondary-border",
-		"control-ghost-hover",
-		"input",
-		"input-border",
-		"input-placeholder"
-	]
-};
-var ALL_TOKEN_IDS = TOKEN_GROUP_ORDER.flatMap((group) => TOKENS_BY_GROUP[group]);
-var DEFAULT_PROJECT_CONFIG = {
-	version: 1,
-	projectRoot: "",
-	bridgeEnabled: false,
-	manifestPath: "semantic-colors/theme.manifest.json",
-	cssOutputPath: "src/lib/styles/semantic-theme.generated.css",
-	importSourcePath: "",
-	selectorStrategy: "data-theme"
-};
-//#endregion
 //#region src/lib/theme/engine.ts
 function ensureManifest(manifest) {
 	if (!manifest) return createDefaultManifest();
@@ -1053,4 +1053,4 @@ function themeCssVariables(resolved) {
 	return ALL_TOKEN_IDS.map((tokenId) => `  --theme-${tokenId}: ${toCssColor(resolved.colors[tokenId])};`).join("\n");
 }
 //#endregion
-export { validateManifest as a, TOKENS_BY_GROUP as c, toCssColor as d, createDefaultManifest as f, themeCssVariables as i, TOKEN_GROUP_ORDER as l, resolveTheme as n, ALL_TOKEN_IDS as o, summarizeTokenValidation as r, DEFAULT_PROJECT_CONFIG as s, ensureManifest as t, parseColor as u };
+export { validateManifest as a, createDefaultManifest as c, TOKENS_BY_GROUP as d, TOKEN_GROUP_ORDER as f, themeCssVariables as i, ALL_TOKEN_IDS as l, resolveTheme as n, parseColor as o, summarizeTokenValidation as r, toCssColor as s, ensureManifest as t, DEFAULT_PROJECT_CONFIG as u };

@@ -1,8 +1,7 @@
-Semantic Colors
-================
+# Semantic Colors
 
-Purpose
--------
+## Purpose
+
 This repo is a SvelteKit-based theme editing tool for a semantic color system.
 It lets an operator edit Light and Dark anchor tokens, derive an Alt theme from
 either anchor with OKLCH delta shifts, preview the result in a built-in fixture
@@ -13,28 +12,28 @@ Current scope is the tool itself. The preview stage is a local fixture harness,
 not an imported external app. The bridge can write generated CSS to another
 path, but the tool UI and stage live in this repo.
 
-Quick Start
------------
+## Quick Start
+
 Install dependencies:
-  npm install
+npm install
 
 Run the dev server:
-  npm run dev
+npm run dev
 
 Run tests:
-  npm test
+npm test
 
 Run type and Svelte checks:
-  npm run check
+npm run check
 
 Build production output:
-  npm run build
+npm run build
 
 Preview the production build locally:
-  npm run preview
+npm run preview
 
-High-Level Architecture
------------------------
+## High-Level Architecture
+
 The app is organized around a small set of modules:
 
 1. SvelteKit UI
@@ -66,8 +65,8 @@ The app is organized around a small set of modules:
    - src/lib/server/project-files.ts resolves file paths, loads state,
      writes state, and stores the last-used config path in a session file.
 
-Data Model and Persisted Files
-------------------------------
+## Data Model and Persisted Files
+
 The tool persists state across three files:
 
 1. semantic-colors.project.json
@@ -94,8 +93,8 @@ Token structure is defined in src/lib/theme/schema.ts. Each token has an id,
 label, description, group, role, light anchor, dark anchor, and exception data.
 Some tokens also define altParent or harmonyGroup metadata.
 
-Runtime Workflow
-----------------
+## Runtime Workflow
+
 At runtime the tool behaves as follows:
 
 1. +page.server.ts loads workspace state through project-files.ts.
@@ -110,8 +109,8 @@ At runtime the tool behaves as follows:
 7. save/+server.ts writes config and manifest.
 8. If bridgeEnabled is true, generated CSS is also written to cssOutputPath.
 
-UI and Operator Workflow
-------------------------
+## UI and Operator Workflow
+
 Main UI behaviors:
 
 - Theme modes: Light, Dark, Alt
@@ -134,30 +133,30 @@ Main UI behaviors:
   - when enabled, saves also regenerate the target CSS file
   - when disabled, the tool still saves config and manifest state
 
-Important Implementation Notes
-------------------------------
+## Important Implementation Notes
+
 APCA validation
-  Validation is implemented in src/lib/theme/engine.ts using apca-w3. The tool
-  checks a fixed set of foreground/background token pairs and surfaces warnings
-  in the sidebar for the active mode.
+Validation is implemented in src/lib/theme/engine.ts using apca-w3. The tool
+checks a fixed set of foreground/background token pairs and surfaces warnings
+in the sidebar for the active mode.
 
 Gamut clamping
-  Color math uses OKLCH through culori. If a derived color is outside the
-  displayable gamut, chroma is reduced until the color becomes displayable.
-  Max chroma can also be capped per token.
+Color math uses OKLCH through culori. If a derived color is outside the
+displayable gamut, chroma is reduced until the color becomes displayable.
+Max chroma can also be capped per token.
 
 Alt derivation behavior
-  Alt derivation is driven by manifest.alt.source and manifest.alt.delta.
-  Tokens marked pin or exclude keep their source anchor in Alt. Tokens with
-  altParent reuse another token's resolved Alt color.
+Alt derivation is driven by manifest.alt.source and manifest.alt.delta.
+Tokens marked pin or exclude keep their source anchor in Alt. Tokens with
+altParent reuse another token's resolved Alt color.
 
 Alias generation
-  Generated CSS maps canonical --color-* bridge variables to theme variables,
-  then emits alias variables from manifest.aliases so a consuming project can
-  keep local custom property names.
+Generated CSS maps canonical --color-\* bridge variables to theme variables,
+then emits alias variables from manifest.aliases so a consuming project can
+keep local custom property names.
 
-Repo Map: Read These First
---------------------------
+## Repo Map: Read These First
+
 If you need to change behavior, start here:
 
 - src/routes/+page.svelte
@@ -184,8 +183,8 @@ Useful secondary files:
 - src/lib/theme/defaults.ts
   Default manifest and seeded token definitions.
 
-Known Cautions for Maintainers
-------------------------------
+## Known Cautions for Maintainers
+
 - Bridge writes are disabled by default in semantic-colors.project.json.
 - The stage is a built-in fixture harness, not a real imported product UI.
 - Generated CSS output location is controlled by cssOutputPath and resolved
@@ -196,8 +195,8 @@ Known Cautions for Maintainers
 - Session state is separate from the main config and only tracks the last-used
   config path.
 
-Verification Notes
-------------------
+## Verification Notes
+
 This README is aligned with the current repo structure and scripts:
 
 - package.json scripts: dev, build, preview, check, test
@@ -206,6 +205,6 @@ This README is aligned with the current repo structure and scripts:
   semantic-colors/theme.manifest.json, .semantic-colors/session.json
 
 For a quick sanity check after future changes, run:
-  npm test
-  npm run check
-  npm run build
+npm test
+npm run check
+npm run build

@@ -9,6 +9,13 @@
       "_internal.js"
     ]
   },
+  "_contracts.js": {
+    "file": "chunks/contracts.js",
+    "name": "contracts",
+    "imports": [
+      "_engine.js"
+    ]
+  },
   "_dev.js": {
     "file": "chunks/dev.js",
     "name": "dev"
@@ -137,7 +144,7 @@
       "_engine.js"
     ],
     "css": [
-      "_app/immutable/assets/_page.D0Q1OWgx.css"
+      "_app/immutable/assets/_page.C5Emmobd.css"
     ]
   },
   "src/routes/api/project/import/+server.ts": {
@@ -146,6 +153,7 @@
     "src": "src/routes/api/project/import/+server.ts",
     "isEntry": true,
     "imports": [
+      "_contracts.js",
       "_project-files.js"
     ]
   },
@@ -155,6 +163,7 @@
     "src": "src/routes/api/project/load/+server.ts",
     "isEntry": true,
     "imports": [
+      "_contracts.js",
       "_project-files.js"
     ]
   },
@@ -164,6 +173,7 @@
     "src": "src/routes/api/project/save/+server.ts",
     "isEntry": true,
     "imports": [
+      "_contracts.js",
       "_project-files.js"
     ]
   }

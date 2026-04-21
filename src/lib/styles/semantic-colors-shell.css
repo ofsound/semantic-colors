@@ -1,0 +1,230 @@
+.semantic-colors-app {
+  --shell-border: rgba(15, 23, 42, 0.08);
+  --shell-panel-bg: rgba(255, 255, 255, 0.88);
+  --shell-shadow: 0 20px 40px -28px rgba(15, 23, 42, 0.25);
+  --shell-muted: #4b5563;
+}
+
+body {
+  background:
+    radial-gradient(circle at top left, rgba(32, 143, 252, 0.16), transparent 22%),
+    linear-gradient(180deg, #f6f7fb, #edeff6);
+  color: #111827;
+}
+
+.semantic-colors-app .skip-link {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 10;
+  padding: 0.65rem 0.9rem;
+  border-radius: 0.8rem;
+  background: #111827;
+  color: white;
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+
+.semantic-colors-app .skip-link:focus {
+  transform: translateY(0);
+}
+
+.semantic-colors-app.workspace {
+  display: grid;
+  grid-template-columns: minmax(22rem, 30rem) 1fr;
+  min-height: 100dvh;
+  gap: 1.25rem;
+  padding: 1.25rem;
+}
+
+.semantic-colors-app .sidebar,
+.semantic-colors-app .stage-shell {
+  min-height: 0;
+}
+
+.semantic-colors-app .sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.semantic-colors-app .stage-shell {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 1rem;
+  min-height: 0;
+}
+
+.semantic-colors-app .panel {
+  border: 1px solid var(--shell-border);
+  border-radius: 1.25rem;
+  background: var(--shell-panel-bg);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shell-shadow);
+  padding: 1rem;
+}
+
+.semantic-colors-app .panel-header,
+.semantic-colors-app .stage-header,
+.semantic-colors-app .fixture-panel-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.semantic-colors-app h1,
+.semantic-colors-app h2,
+.semantic-colors-app h3,
+.semantic-colors-app h4,
+.semantic-colors-app p {
+  margin: 0;
+}
+
+.semantic-colors-app h1 {
+  font-size: 1.3rem;
+}
+
+.semantic-colors-app h2 {
+  font-size: 1.05rem;
+}
+
+.semantic-colors-app .eyebrow {
+  margin-bottom: 0.3rem;
+  color: var(--shell-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.semantic-colors-app .empty-state,
+.semantic-colors-app small {
+  color: var(--shell-muted);
+}
+
+.semantic-colors-app .field-block,
+.semantic-colors-app .channel,
+.semantic-colors-app .checkbox-row {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.semantic-colors-app .field-grid,
+.semantic-colors-app .channel-grid,
+.semantic-colors-app .swatch-row,
+.semantic-colors-app .action-row,
+.semantic-colors-app .mode-row,
+.semantic-colors-app .control-grid,
+.semantic-colors-app .border-grid,
+.semantic-colors-app .accent-grid,
+.semantic-colors-app .status-grid,
+.semantic-colors-app .hero-grid,
+.semantic-colors-app .inventory-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.semantic-colors-app .field-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.semantic-colors-app .mode-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.semantic-colors-app input,
+.semantic-colors-app select,
+.semantic-colors-app button {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.95);
+  color: inherit;
+}
+
+.semantic-colors-app input,
+.semantic-colors-app select {
+  width: 100%;
+  padding: 0.68rem 0.8rem;
+}
+
+.semantic-colors-app input[type='range'] {
+  padding: 0;
+}
+
+.semantic-colors-app button {
+  cursor: pointer;
+  padding: 0.7rem 0.9rem;
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease;
+}
+
+.semantic-colors-app button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.semantic-colors-app .ghost-button,
+.semantic-colors-app .secondary-button {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.semantic-colors-app .empty-state {
+  margin-top: 0.9rem;
+  padding: 0.85rem;
+  border-radius: 1rem;
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.semantic-colors-app .warning {
+  position: relative;
+}
+
+.semantic-colors-app .warning-badge {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  display: grid;
+  place-items: center;
+  min-width: 2.75rem;
+  height: 1.2rem;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--theme-danger) 20%, white);
+  color: var(--theme-danger);
+  font-weight: 800;
+  font-size: 0.67rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.semantic-colors-app .selected-usage {
+  border-color: color-mix(in srgb, var(--theme-accent-strong) 60%, white);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-accent-strong) 18%, transparent);
+}
+
+@media (max-width: 1100px) {
+  .semantic-colors-app.workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .semantic-colors-app .hero-grid,
+  .semantic-colors-app .fixture-grid,
+  .semantic-colors-app .inventory-grid,
+  .semantic-colors-app .field-grid,
+  .semantic-colors-app .channel-grid,
+  .semantic-colors-app .swatch-row,
+  .semantic-colors-app .control-grid,
+  .semantic-colors-app .border-grid,
+  .semantic-colors-app .status-grid,
+  .semantic-colors-app .accent-grid,
+  .semantic-colors-app .alias-row,
+  .semantic-colors-app .review-card {
+    grid-template-columns: 1fr;
+  }
+}

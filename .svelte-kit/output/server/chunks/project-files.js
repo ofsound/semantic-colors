@@ -1,4 +1,4 @@
-import { f as createDefaultManifest, i as themeCssVariables, n as resolveTheme, o as ALL_TOKEN_IDS, s as DEFAULT_PROJECT_CONFIG, u as parseColor } from "./engine.js";
+import { c as createDefaultManifest, i as themeCssVariables, l as ALL_TOKEN_IDS, n as resolveTheme, o as parseColor, u as DEFAULT_PROJECT_CONFIG } from "./engine.js";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 //#region src/lib/theme/css.ts
@@ -340,6 +340,12 @@ function extractImportProposal(sourcePath, css) {
 //#region src/lib/server/project-files.ts
 var SESSION_PATH = path.join(".semantic-colors", "session.json");
 var DEFAULT_CONFIG_PATH = "semantic-colors.project.json";
+var ProjectFilesAccessError = class extends Error {
+	constructor(message) {
+		super(message);
+		this.name = "ProjectFilesAccessError";
+	}
+};
 async function safeReadText(filePath) {
 	try {
 		return await readFile(filePath, "utf8");
@@ -350,14 +356,30 @@ async function safeReadText(filePath) {
 async function ensureParent(filePath) {
 	await mkdir(path.dirname(filePath), { recursive: true });
 }
+function isPathWithin(root, targetPath) {
+	const relativePath = path.relative(path.resolve(root), path.resolve(targetPath));
+	return relativePath === "" || !relativePath.startsWith("..") && !path.isAbsolute(relativePath);
+}
+function assertPathWithin(root, targetPath, label) {
+	if (!isPathWithin(root, targetPath)) throw new ProjectFilesAccessError(`${label} must stay within ${path.resolve(root)}.`);
+}
 function resolvePath(basePath, targetPath) {
-	if (path.isAbsolute(targetPath)) return targetPath;
+	if (path.isAbsolute(targetPath)) return path.resolve(targetPath);
 	return path.resolve(path.dirname(basePath), targetPath);
 }
-function resolveProjectPath(configPath, projectRoot, targetPath) {
-	if (path.isAbsolute(targetPath)) return targetPath;
-	const root = projectRoot ? resolvePath(configPath, projectRoot) : path.dirname(configPath);
-	return path.resolve(root, targetPath);
+function resolveConfigPath(cwd, configPath) {
+	const resolvedConfigPath = configPath ? path.isAbsolute(configPath) ? path.resolve(configPath) : path.resolve(cwd, configPath) : defaultConfigPath(cwd);
+	assertPathWithin(cwd, resolvedConfigPath, "Config path");
+	return resolvedConfigPath;
+}
+function resolveProjectRoot(configPath, projectRoot) {
+	if (!projectRoot) return path.dirname(configPath);
+	return resolvePath(configPath, projectRoot);
+}
+function resolveProjectPath(projectRoot, targetPath, label) {
+	const resolvedTargetPath = path.isAbsolute(targetPath) ? path.resolve(targetPath) : path.resolve(projectRoot, targetPath);
+	assertPathWithin(projectRoot, resolvedTargetPath, label);
+	return resolvedTargetPath;
 }
 function defaultConfigPath(cwd) {
 	return path.join(cwd, DEFAULT_CONFIG_PATH);
@@ -386,7 +408,7 @@ function configWithDefaults(projectRoot, config) {
 }
 async function loadWorkspaceState(cwd, requestedConfigPath) {
 	const session = await readSession(cwd);
-	const configPath = requestedConfigPath || session.configPath;
+	const configPath = resolveConfigPath(cwd, requestedConfigPath || session.configPath);
 	const rawConfig = await safeReadText(configPath);
 	let config = configWithDefaults(path.dirname(configPath));
 	if (rawConfig) try {
@@ -395,7 +417,7 @@ async function loadWorkspaceState(cwd, requestedConfigPath) {
 	} catch {
 		config = configWithDefaults(path.dirname(configPath));
 	}
-	const rawManifest = await safeReadText(resolveProjectPath(configPath, config.projectRoot, config.manifestPath));
+	const rawManifest = await safeReadText(resolveProjectPath(resolveProjectRoot(configPath, config.projectRoot), config.manifestPath, "Manifest path"));
 	let manifest = createDefaultManifest();
 	if (rawManifest) try {
 		manifest = {
@@ -411,10 +433,12 @@ async function loadWorkspaceState(cwd, requestedConfigPath) {
 		manifest
 	};
 }
-async function saveWorkspaceState(cwd, configPath, config, manifest) {
+async function saveWorkspaceState(cwd, configPathInput, config, manifest) {
+	const configPath = resolveConfigPath(cwd, configPathInput);
 	const normalizedConfig = configWithDefaults(path.dirname(configPath), config);
-	const manifestPath = resolveProjectPath(configPath, normalizedConfig.projectRoot, normalizedConfig.manifestPath);
-	const cssOutputPath = resolveProjectPath(configPath, normalizedConfig.projectRoot, normalizedConfig.cssOutputPath);
+	const projectRoot = resolveProjectRoot(configPath, normalizedConfig.projectRoot);
+	const manifestPath = resolveProjectPath(projectRoot, normalizedConfig.manifestPath, "Manifest path");
+	const cssOutputPath = resolveProjectPath(projectRoot, normalizedConfig.cssOutputPath, "CSS output path");
 	const css = generateThemeCss(manifest);
 	await ensureParent(configPath);
 	await writeFile(configPath, JSON.stringify(normalizedConfig, null, 2));
@@ -429,9 +453,10 @@ async function saveWorkspaceState(cwd, configPath, config, manifest) {
 	}
 	await writeSession(cwd, configPath);
 }
-async function importFromCss(configPath, sourcePath) {
-	const resolvedSourcePath = resolveProjectPath(configPath, path.dirname(configPath), sourcePath);
+async function importFromCss(cwd, configPathInput, sourcePath) {
+	const { config, configPath } = await loadWorkspaceState(cwd, configPathInput);
+	const resolvedSourcePath = resolveProjectPath(resolveProjectRoot(configPath, config.projectRoot), sourcePath, "Import source path");
 	return extractImportProposal(resolvedSourcePath, await readFile(resolvedSourcePath, "utf8"));
 }
 //#endregion
-export { loadWorkspaceState as n, saveWorkspaceState as r, importFromCss as t };
+export { saveWorkspaceState as i, importFromCss as n, loadWorkspaceState as r, ProjectFilesAccessError as t };

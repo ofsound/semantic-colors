@@ -14,6 +14,13 @@ interface SessionState {
   configPath: string;
 }
 
+export class ProjectFilesAccessError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ProjectFilesAccessError';
+  }
+}
+
 async function safeReadText(filePath: string): Promise<string | null> {
   try {
     return await readFile(filePath, 'utf8');
@@ -26,20 +33,50 @@ async function ensureParent(filePath: string): Promise<void> {
   await mkdir(path.dirname(filePath), { recursive: true });
 }
 
+function isPathWithin(root: string, targetPath: string): boolean {
+  const relativePath = path.relative(path.resolve(root), path.resolve(targetPath));
+  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
+}
+
+function assertPathWithin(root: string, targetPath: string, label: string): void {
+  if (!isPathWithin(root, targetPath)) {
+    throw new ProjectFilesAccessError(`${label} must stay within ${path.resolve(root)}.`);
+  }
+}
+
 function resolvePath(basePath: string, targetPath: string): string {
   if (path.isAbsolute(targetPath)) {
-    return targetPath;
+    return path.resolve(targetPath);
   }
   return path.resolve(path.dirname(basePath), targetPath);
 }
 
-function resolveProjectPath(configPath: string, projectRoot: string, targetPath: string): string {
-  if (path.isAbsolute(targetPath)) {
-    return targetPath;
+function resolveConfigPath(cwd: string, configPath?: string): string {
+  const resolvedConfigPath = configPath
+    ? path.isAbsolute(configPath)
+      ? path.resolve(configPath)
+      : path.resolve(cwd, configPath)
+    : defaultConfigPath(cwd);
+
+  assertPathWithin(cwd, resolvedConfigPath, 'Config path');
+  return resolvedConfigPath;
+}
+
+function resolveProjectRoot(configPath: string, projectRoot: string): string {
+  if (!projectRoot) {
+    return path.dirname(configPath);
   }
 
-  const root = projectRoot ? resolvePath(configPath, projectRoot) : path.dirname(configPath);
-  return path.resolve(root, targetPath);
+  return resolvePath(configPath, projectRoot);
+}
+
+function resolveProjectPath(projectRoot: string, targetPath: string, label: string): string {
+  const resolvedTargetPath = path.isAbsolute(targetPath)
+    ? path.resolve(targetPath)
+    : path.resolve(projectRoot, targetPath);
+
+  assertPathWithin(projectRoot, resolvedTargetPath, label);
+  return resolvedTargetPath;
 }
 
 function defaultConfigPath(cwd: string): string {
@@ -93,7 +130,7 @@ function configWithDefaults(projectRoot: string, config?: Partial<ProjectConfig>
 
 export async function loadWorkspaceState(cwd: string, requestedConfigPath?: string) {
   const session = await readSession(cwd);
-  const configPath = requestedConfigPath || session.configPath;
+  const configPath = resolveConfigPath(cwd, requestedConfigPath || session.configPath);
   const rawConfig = await safeReadText(configPath);
 
   let config = configWithDefaults(path.dirname(configPath));
@@ -106,7 +143,8 @@ export async function loadWorkspaceState(cwd: string, requestedConfigPath?: stri
     }
   }
 
-  const manifestPath = resolveProjectPath(configPath, config.projectRoot, config.manifestPath);
+  const projectRoot = resolveProjectRoot(configPath, config.projectRoot);
+  const manifestPath = resolveProjectPath(projectRoot, config.manifestPath, 'Manifest path');
   const rawManifest = await safeReadText(manifestPath);
 
   let manifest: ThemeManifest = createDefaultManifest();
@@ -130,20 +168,22 @@ export async function loadWorkspaceState(cwd: string, requestedConfigPath?: stri
 
 export async function saveWorkspaceState(
   cwd: string,
-  configPath: string,
+  configPathInput: string,
   config: ProjectConfig,
   manifest: ThemeManifest
 ): Promise<void> {
+  const configPath = resolveConfigPath(cwd, configPathInput);
   const normalizedConfig = configWithDefaults(path.dirname(configPath), config);
+  const projectRoot = resolveProjectRoot(configPath, normalizedConfig.projectRoot);
   const manifestPath = resolveProjectPath(
-    configPath,
-    normalizedConfig.projectRoot,
-    normalizedConfig.manifestPath
+    projectRoot,
+    normalizedConfig.manifestPath,
+    'Manifest path'
   );
   const cssOutputPath = resolveProjectPath(
-    configPath,
-    normalizedConfig.projectRoot,
-    normalizedConfig.cssOutputPath
+    projectRoot,
+    normalizedConfig.cssOutputPath,
+    'CSS output path'
   );
   const css = generateThemeCss(manifest);
 
@@ -171,11 +211,13 @@ export async function saveWorkspaceState(
 }
 
 export async function importFromCss(
-  configPath: string,
+  cwd: string,
+  configPathInput: string,
   sourcePath: string
 ): Promise<ImportProposal> {
-  const configRoot = path.dirname(configPath);
-  const resolvedSourcePath = resolveProjectPath(configPath, configRoot, sourcePath);
+  const { config, configPath } = await loadWorkspaceState(cwd, configPathInput);
+  const projectRoot = resolveProjectRoot(configPath, config.projectRoot);
+  const resolvedSourcePath = resolveProjectPath(projectRoot, sourcePath, 'Import source path');
   const css = await readFile(resolvedSourcePath, 'utf8');
   return extractImportProposal(resolvedSourcePath, css);
 }

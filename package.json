@@ -15,7 +15,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@sveltejs/adapter-auto": "^6.1.0",
     "@sveltejs/kit": "^2.53.1",
     "@sveltejs/vite-plugin-svelte": "^7.0.0",
     "@types/node": "^25.6.0",
