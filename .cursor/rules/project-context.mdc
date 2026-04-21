@@ -1,12 +1,12 @@
 ---
-description: 
+description: Stack, styling, Svelte MCP, import order
 alwaysApply: true
 ---
 
 # Project Context
 
-- **Stack**: Svelte 5, SvelteKit, TypeScript, Tailwind CSS, Supabase
-- **Styling**: Tailwind only; avoid vanilla CSS in `<style>` blocks
+- **Stack**: Svelte 5, SvelteKit, TypeScript
+- **Styling**: Plain CSS — global rules and variables in `src/app.css`; component `<style>` when scoped styles are needed. This project does not use Tailwind.
 
 ## Svelte MCP Tools
 

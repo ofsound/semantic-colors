@@ -28,7 +28,7 @@ alwaysApply: false
 - Use `$app/environment` (`browser`, `building`, `dev`) for environment checks
 - Use `$app/navigation` for `goto`, `invalidate`, shallow routing, etc.
 
-## Tailwind v4
+## Styling (this repo)
 
-- Prefer utility classes in markup
-- Avoid `@apply` in Svelte `<style>` blocks unless `@reference` to a CSS file that imports Tailwind is added
+- Prefer shared tokens and globals in `src/app.css`; use component `<style>` for scoped layout or one-off rules
+- Keep color/contrast logic consistent with the project’s semantic color approach (see existing `src` patterns)

@@ -34,7 +34,9 @@
     "vitest": "^4.1.0"
   },
   "dependencies": {
+    "@sveltejs/adapter-node": "^5.5.4",
     "apca-w3": "^0.1.9",
-    "culori": "^4.0.2"
+    "culori": "^4.0.2",
+    "zod": "^4.3.6"
   }
 }

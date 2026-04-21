@@ -1,10 +1,10 @@
-# Agent Execution Protocol: Svelte & Supabase
+# Agent Execution Protocol: semantic-colors
 
 ## 1. Boot Sequence
 
 - **Scan:** Read all `.cursor/rules/*.mdc` before first output.
-- **Tooling:** Use `svelte` MCP server for all Svelte 5 (Runes) logic.
-- **Validation:** Run `svelte-autofixer` before finalizing. **Block task completion** until return is clean.
+- **Tooling:** Use the `svelte` MCP server for Svelte 5 (Runes) work.
+- **Validation:** Run `svelte-autofixer` before finalizing Svelte changes. **Block task completion** until return is clean.
 
 ---
 
@@ -27,15 +27,19 @@
 
 1. **Reproduce:** Write/run a test or define a specific failure state.
 2. **Execute:** Implement the minimum code to solve the problem.
-3. **Verify:** Confirm success criteria (e.g., "Invalid input returns 400").
+3. **Verify:** Confirm success criteria (e.g. "Invalid input returns 400").
 
 ---
 
 ## 3. Tech Stack Specifics
 
 - **Svelte 5:** Use Runes (`$state`, `$derived`, `$props`) exclusively. No Svelte 3/4 legacy syntax.
-- **Supabase:** Prioritize Supabase Skills (supabase-postgres-best-practices) and MCP reference and usage whenever possible.
-- **Tailwind:** Follow project-specific utility class ordering.
+
+---
+
+## 4. Verification
+
+After edits under `src/`, run the checks in `.cursor/rules/post-edit-verification.mdc` (`npm run check`, `npm run lint`, `npm run knip`; add `npm run test` when logic or behavior changes). Fix failures before considering the task complete.
 
 ---
 

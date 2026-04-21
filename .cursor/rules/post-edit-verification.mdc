@@ -1,5 +1,5 @@
 ---
-description: Run svelte-check, eslint, knip after code edits; fix issues before finishing
+description: Run check, lint, knip after code edits; add tests when behavior changes; fix issues before finishing
 alwaysApply: true
 ---
 
@@ -7,9 +7,10 @@ alwaysApply: true
 
 After editing any `.svelte` or `.ts` file in `src/`:
 
-1. Run `npm run check` (svelte-check + svelte-kit sync)
+1. Run `npm run check` (svelte-kit sync + svelte-check)
 2. Run `npm run lint` (prettier + eslint)
 3. Run `npm run knip`
-4. Fix any reported issues — do not consider the task complete until all pass
+4. **When logic or behavior changed** (e.g. `src/lib/**`, algorithms, state flow, or anything that could regress): also run `npm run test`
+5. Fix any reported issues — do not consider the task complete until all invoked checks pass
 
 For Svelte components: also run `svelte-autofixer` and iterate until no issues remain (see svelte-code-quality rule).
