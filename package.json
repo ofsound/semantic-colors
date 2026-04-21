@@ -1,0 +1,28 @@
+{
+  "name": "semantic-colors",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-auto": "^6.1.0",
+    "@sveltejs/kit": "^2.53.1",
+    "@sveltejs/vite-plugin-svelte": "^6.2.4",
+    "@types/node": "^25.6.0",
+    "svelte": "^5.53.5",
+    "svelte-check": "^4.4.3",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
+    "vitest": "^4.1.0"
+  },
+  "dependencies": {
+    "apca-w3": "^0.1.9",
+    "culori": "^4.0.2"
+  }
+}

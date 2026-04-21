@@ -1,0 +1,14 @@
+{
+	"/": [
+		"src/routes/+page.server.ts"
+	],
+	"/api/project/import": [
+		"src/routes/api/project/import/+server.ts"
+	],
+	"/api/project/load": [
+		"src/routes/api/project/load/+server.ts"
+	],
+	"/api/project/save": [
+		"src/routes/api/project/save/+server.ts"
+	]
+}

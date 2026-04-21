@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "projectRoot": "/Users/ben/Dev/SVELTE/semantic-colors",
+  "bridgeEnabled": false,
+  "manifestPath": "semantic-colors/theme.manifest.json",
+  "cssOutputPath": "src/lib/styles/semantic-theme.generated.css",
+  "importSourcePath": "",
+  "selectorStrategy": "data-theme"
+}
