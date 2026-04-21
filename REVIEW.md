@@ -44,7 +44,7 @@ These are the ones I'd fix before any public commit:
 
 This will break for every other contributor on first `npm run dev`. Options: gitignore both files; ship `.example` templates; or make the tool auto‑init them relative on first boot.
 
-**b) Path sandbox is weaker than it looks.** `assertPathWithin(cwd, resolvedConfigPath, …)` only protects the *config file* itself. Once the config's `projectRoot` is read, `resolveProjectRoot` trusts whatever the user typed there, and subsequent writes are only bounded by that user‑supplied root:
+**b) Path sandbox is weaker than it looks.** `assertPathWithin(cwd, resolvedConfigPath, …)` only protects the _config file_ itself. Once the config's `projectRoot` is read, `resolveProjectRoot` trusts whatever the user typed there, and subsequent writes are only bounded by that user‑supplied root:
 
 ```ts
 function resolveProjectRoot(configPath: string, projectRoot: string): string {
@@ -79,7 +79,7 @@ if (rawManifest) {
 }
 ```
 
-That's a type assertion + shallow merge — corrupt manifest JSON silently yields a half‑broken object, and `ensureManifest` only shallow‑merges tokens by id (a token with a missing `exception` will crash the UI). Run `themeManifestSchema.safeParse` here too, and if it fails, either fall back to defaults *with a visible warning* or refuse to load. Same for `ProjectConfig`.
+That's a type assertion + shallow merge — corrupt manifest JSON silently yields a half‑broken object, and `ensureManifest` only shallow‑merges tokens by id (a token with a missing `exception` will crash the UI). Run `themeManifestSchema.safeParse` here too, and if it fails, either fall back to defaults _with a visible warning_ or refuse to load. Same for `ProjectConfig`.
 
 **d) APCA is being used in a way APCA doesn't like.**
 
@@ -95,7 +95,7 @@ function contrastIssue(text: OklchColor, background: OklchColor, label: string):
 }
 ```
 
-APCA deliberately returns a *signed* Lc — the sign encodes polarity (dark text on light vs light text on dark). Taking `Math.abs` and comparing to a single 60 threshold throws away the polarity check and uses a threshold that APCA's own spec doesn't define as universal (thresholds are a lookup table keyed by text weight + size). For a theme editor whose whole pitch is perceptual contrast, this is the one place I'd not hand‑wave — at minimum keep the sign, split the threshold per use case (body text vs large label vs placeholder), and surface the Lc value, not just "warning".
+APCA deliberately returns a _signed_ Lc — the sign encodes polarity (dark text on light vs light text on dark). Taking `Math.abs` and comparing to a single 60 threshold throws away the polarity check and uses a threshold that APCA's own spec doesn't define as universal (thresholds are a lookup table keyed by text weight + size). For a theme editor whose whole pitch is perceptual contrast, this is the one place I'd not hand‑wave — at minimum keep the sign, split the threshold per use case (body text vs large label vs placeholder), and surface the Lc value, not just "warning".
 
 Also worth flagging: `apca-w3`'s license is source‑available / non‑commercial‑restricted. If this product is ever commercial, your legal team needs to know. [apca-w3 on GitHub](https://github.com/Myndex/apca-w3) has the details.
 
@@ -105,10 +105,10 @@ Also worth flagging: `apca-w3`'s license is source‑available / non‑commercia
 return `@theme {
 ${bridge}
 }
-...`
+...`;
 ```
 
-where each `bridge` line is `--color-x: var(--theme-x);`. Tailwind v4 `@theme` is meant to register *static* theme values for the Tailwind JIT to turn into utilities — `var()` indirection inside `@theme` doesn't give you what you probably want (utility classes keyed to mode‑switching vars). Either:
+where each `bridge` line is `--color-x: var(--theme-x);`. Tailwind v4 `@theme` is meant to register _static_ theme values for the Tailwind JIT to turn into utilities — `var()` indirection inside `@theme` doesn't give you what you probably want (utility classes keyed to mode‑switching vars). Either:
 
 - Emit the resolved color literal in `@theme` (defeats `data-theme` switching via vars), or
 - Drop the `@theme` block and emit plain `:root { --color-*: var(--theme-*); }` (recommended for a `data-theme`‑switched design system), or
@@ -192,7 +192,7 @@ function handleKeyup(event: KeyboardEvent): void {
 
 If the user holds `3`, alt‑tabs away and releases, `keyup` never fires and you're stuck in Alt. If they hold `3` and click a mode button within 180ms, state desyncs. There's also no UI feedback while holding. Again, a small state machine would make this reliable.
 
-**i) `document.documentElement.dataset.theme = activeMode`** has no consumer in this app — the stage uses inline `--theme-*` vars, the shell CSS doesn't reference `[data-theme]`, and the *generated* CSS is written to a target project, not loaded here. This line looks like an artifact from an earlier design. Delete it or actually consume it.
+**i) `document.documentElement.dataset.theme = activeMode`** has no consumer in this app — the stage uses inline `--theme-*` vars, the shell CSS doesn't reference `[data-theme]`, and the _generated_ CSS is written to a target project, not loaded here. This line looks like an artifact from an earlier design. Delete it or actually consume it.
 
 **j) `+page.server.ts` has zero error handling.** If the manifest JSON is corrupt or a user permission flips, the user gets SvelteKit's default 500. At least catch `ProjectFilesAccessError` there and render a recovery UI.
 

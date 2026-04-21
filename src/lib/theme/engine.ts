@@ -46,39 +46,20 @@ function anchorFor(token: ThemeToken, source: 'light' | 'dark'): OklchColor {
   return source === 'light' ? token.light : token.dark;
 }
 
-function resolveAltToken(
-  tokenId: TokenId,
-  manifest: ThemeManifest,
-  cache: Map<TokenId, OklchColor>
-): OklchColor {
-  const cached = cache.get(tokenId);
-  if (cached) {
-    return cached;
-  }
+function isHarmonyLockedToken(token: ThemeToken, manifest: ThemeManifest): boolean {
+  return (
+    manifest.alt.harmonyLock &&
+    token.exception.altBehavior === 'derive' &&
+    token.group !== 'status' &&
+    !token.altParent &&
+    Boolean(token.harmonyGroup)
+  );
+}
 
-  const token = manifest.tokens[tokenId];
-  if (!token) {
-    const fallback = createDefaultManifest().tokens[tokenId];
-    cache.set(tokenId, fallback.dark);
-    return fallback.dark;
-  }
+function resolveShiftedAltColor(token: ThemeToken, manifest: ThemeManifest): OklchColor {
+  const sourceColor = cloneColor(anchorFor(token, manifest.alt.source));
 
-  const source = manifest.alt.source;
-  const sourceColor = cloneColor(anchorFor(token, source));
-  const altBehavior = token.exception.altBehavior;
-
-  if (altBehavior === 'exclude' || altBehavior === 'pin' || token.group === 'status') {
-    cache.set(tokenId, sourceColor);
-    return sourceColor;
-  }
-
-  if (token.altParent) {
-    const parent = resolveAltToken(token.altParent, manifest, cache);
-    cache.set(tokenId, parent);
-    return parent;
-  }
-
-  const shifted = clampToDisplayable(
+  return clampToDisplayable(
     {
       l: sourceColor.l + manifest.alt.delta.l,
       c: sourceColor.c + manifest.alt.delta.c,
@@ -87,22 +68,110 @@ function resolveAltToken(
     },
     token.exception.maxChroma ?? undefined
   );
+}
 
-  cache.set(tokenId, shifted);
+function resolveHarmonyLeaderId(
+  harmonyGroup: string,
+  manifest: ThemeManifest,
+  groupLeaderCache: Partial<Record<string, TokenId | null>>
+): TokenId | null {
+  if (harmonyGroup in groupLeaderCache) {
+    return groupLeaderCache[harmonyGroup] ?? null;
+  }
+
+  const preferredLeaderId = ALL_TOKEN_IDS.find((candidateId) => candidateId === harmonyGroup);
+  if (preferredLeaderId) {
+    const preferredLeader = manifest.tokens[preferredLeaderId];
+    if (
+      preferredLeader &&
+      preferredLeader.harmonyGroup === harmonyGroup &&
+      isHarmonyLockedToken(preferredLeader, manifest)
+    ) {
+      groupLeaderCache[harmonyGroup] = preferredLeaderId;
+      return preferredLeaderId;
+    }
+  }
+
+  for (const tokenId of ALL_TOKEN_IDS) {
+    const candidate = manifest.tokens[tokenId];
+    if (
+      candidate &&
+      candidate.harmonyGroup === harmonyGroup &&
+      isHarmonyLockedToken(candidate, manifest)
+    ) {
+      groupLeaderCache[harmonyGroup] = tokenId;
+      return tokenId;
+    }
+  }
+
+  groupLeaderCache[harmonyGroup] = null;
+  return null;
+}
+
+function resolveAltToken(
+  tokenId: TokenId,
+  manifest: ThemeManifest,
+  cache: Partial<Record<TokenId, OklchColor>>,
+  groupLeaderCache: Partial<Record<string, TokenId | null>>
+): OklchColor {
+  const cached = cache[tokenId];
+  if (cached) {
+    return cached;
+  }
+
+  const token = manifest.tokens[tokenId];
+  if (!token) {
+    const fallback = createDefaultManifest().tokens[tokenId];
+    cache[tokenId] = fallback.dark;
+    return fallback.dark;
+  }
+
+  const altBehavior = token.exception.altBehavior;
+  const sourceColor = cloneColor(anchorFor(token, manifest.alt.source));
+
+  if (altBehavior === 'exclude' || altBehavior === 'pin' || token.group === 'status') {
+    cache[tokenId] = sourceColor;
+    return sourceColor;
+  }
+
+  if (token.altParent) {
+    const parent = resolveAltToken(token.altParent, manifest, cache, groupLeaderCache);
+    cache[tokenId] = parent;
+    return parent;
+  }
+
+  let shifted = resolveShiftedAltColor(token, manifest);
+
+  if (isHarmonyLockedToken(token, manifest) && token.harmonyGroup) {
+    const leaderId = resolveHarmonyLeaderId(token.harmonyGroup, manifest, groupLeaderCache);
+    if (leaderId && leaderId !== tokenId) {
+      const leader = resolveAltToken(leaderId, manifest, cache, groupLeaderCache);
+      shifted = clampToDisplayable(
+        {
+          ...shifted,
+          h: leader.h
+        },
+        token.exception.maxChroma ?? undefined
+      );
+    }
+  }
+
+  cache[tokenId] = shifted;
   return shifted;
 }
 
 export function resolveTheme(manifestInput: ThemeManifest, mode: ThemeMode): ResolvedTheme {
   const manifest = ensureManifest(manifestInput);
   const colors = {} as Record<TokenId, OklchColor>;
-  const altCache = new Map<TokenId, OklchColor>();
+  const altCache: Partial<Record<TokenId, OklchColor>> = {};
+  const groupLeaderCache: Partial<Record<string, TokenId | null>> = {};
 
   for (const tokenId of ALL_TOKEN_IDS) {
     const token = manifest.tokens[tokenId];
     if (!token) continue;
     colors[tokenId] =
       mode === 'alt'
-        ? resolveAltToken(tokenId, manifest, altCache)
+        ? resolveAltToken(tokenId, manifest, altCache, groupLeaderCache)
         : cloneColor(mode === 'light' ? token.light : token.dark);
   }
 
