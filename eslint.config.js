@@ -24,6 +24,6 @@ export default tseslint.config(
   },
   prettier,
   {
-    ignores: ['build/**', '.svelte-kit/**', 'dist/**', 'node_modules/**']
+    ignores: ['build/**', '.svelte-kit/**', 'dist/**', 'node_modules/**', 'extension/dist/**']
   }
 );

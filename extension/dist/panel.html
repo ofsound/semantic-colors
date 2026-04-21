@@ -1,0 +1,106 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Semantic Colors</title>
+    <link rel="stylesheet" href="panel.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-dot" aria-hidden="true"></span>
+        <h1>Semantic Colors</h1>
+      </div>
+      <div class="connection">
+        <label class="bridge-url">
+          <span>Engine</span>
+          <input id="bridge-url" type="url" placeholder="http://localhost:5173" />
+        </label>
+        <button id="bridge-connect" type="button">Connect</button>
+        <span id="bridge-status" class="status status-idle">idle</span>
+      </div>
+      <div class="mode-switch" role="group" aria-label="Theme mode">
+        <button type="button" data-mode="null" class="is-active">Live</button>
+        <button type="button" data-mode="light">Light</button>
+        <button type="button" data-mode="dark">Dark</button>
+        <button type="button" data-mode="alt">Alt</button>
+      </div>
+    </header>
+
+    <nav class="tabs" role="tablist">
+      <button type="button" role="tab" data-tab="inspect" class="is-active">Inspect</button>
+      <button type="button" role="tab" data-tab="tokens">Tokens</button>
+      <button type="button" role="tab" data-tab="coverage">Coverage</button>
+      <button type="button" role="tab" data-tab="contrast">Contrast</button>
+      <button type="button" role="tab" data-tab="overrides">Overrides</button>
+    </nav>
+
+    <main class="panel-body">
+      <section class="tab-panel is-active" data-tab-panel="inspect">
+        <div class="panel-row">
+          <label class="switch">
+            <input type="checkbox" id="hover-toggle" />
+            <span>Hover inspector</span>
+          </label>
+          <span class="hint">Hover any element on the inspected page to resolve its token.</span>
+        </div>
+        <div id="hover-details" class="hover-details">
+          <p class="placeholder">
+            Move your mouse over the inspected page to read live token info.
+          </p>
+        </div>
+        <div id="page-info" class="page-info"></div>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="tokens">
+        <div class="panel-row">
+          <input id="token-filter" type="search" placeholder="Filter tokens..." />
+          <button type="button" id="clear-highlight" class="secondary">Clear highlight</button>
+        </div>
+        <div id="token-list" class="token-list"></div>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="coverage">
+        <div class="panel-row">
+          <button type="button" id="scan-coverage" class="primary">Scan page</button>
+          <span id="coverage-summary" class="summary"></span>
+        </div>
+        <div id="coverage-output" class="report"></div>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="contrast">
+        <div class="panel-row">
+          <button type="button" id="scan-contrast" class="primary">Audit contrast</button>
+          <span id="contrast-summary" class="summary"></span>
+        </div>
+        <div id="contrast-output" class="report"></div>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="overrides">
+        <div class="panel-row">
+          <label for="override-token">Token</label>
+          <select id="override-token"></select>
+          <button type="button" id="clear-overrides" class="secondary">Clear all</button>
+        </div>
+        <div id="override-sliders" class="sliders"></div>
+        <div class="panel-row push-row">
+          <label class="switch">
+            <input type="checkbox" id="override-persist" />
+            <span>Persist to engine</span>
+          </label>
+          <select id="override-mode">
+            <option value="both">Light &amp; Dark</option>
+            <option value="light">Light only</option>
+            <option value="dark">Dark only</option>
+          </select>
+          <button type="button" id="push-override" class="primary">Push to semantic-colors</button>
+        </div>
+        <p id="override-hint" class="hint">
+          Overrides inject <code>!important</code> --theme-* and --color-* variables on :root of the
+          inspected page. Push to engine updates the authoring tool in real time.
+        </p>
+      </section>
+    </main>
+    <script src="panel.js"></script>
+  </body>
+</html>

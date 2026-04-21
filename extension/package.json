@@ -1,0 +1,11 @@
+{
+  "name": "semantic-colors-inspector",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Chromium MV3 companion for the semantic-colors engine.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch"
+  }
+}

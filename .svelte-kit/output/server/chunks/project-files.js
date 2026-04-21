@@ -1,39 +1,7 @@
-import { c as createDefaultManifest, i as themeCssVariables, l as ALL_TOKEN_IDS, n as resolveTheme, o as parseColor, u as DEFAULT_PROJECT_CONFIG } from "./engine.js";
+import { f as createDefaultManifest, s as DEFAULT_PROJECT_CONFIG, u as parseColor } from "./engine.js";
+import { t as generateThemeCss } from "./css.js";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-//#region src/lib/theme/css.ts
-function generateThemeCss(manifest) {
-	const light = resolveTheme(manifest, "light");
-	const dark = resolveTheme(manifest, "dark");
-	const alt = resolveTheme(manifest, "alt");
-	const bridge = ALL_TOKEN_IDS.map((tokenId) => `  --color-${tokenId}: var(--theme-${tokenId});`).join("\n");
-	const aliases = manifest.aliases.map((alias) => `  --${alias.name}: var(--color-${alias.tokenId});`).join("\n");
-	return `@theme {
-${bridge}
-}
-
-:root,
-:root[data-theme='light'] {
-${themeCssVariables(light)}
-  color-scheme: light;
-}
-
-:root[data-theme='dark'] {
-${themeCssVariables(dark)}
-  color-scheme: dark;
-}
-
-:root[data-theme='alt'] {
-${themeCssVariables(alt)}
-  color-scheme: dark;
-}
-
-:root {
-${aliases || "  /* No local aliases defined. */"}
-}
-`;
-}
-//#endregion
 //#region src/lib/theme/importer.ts
 var NAME_MAP = [
 	{

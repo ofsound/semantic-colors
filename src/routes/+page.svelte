@@ -158,6 +158,23 @@
   }
 
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
+  let bridgeTimer: ReturnType<typeof setTimeout> | null = null;
+
+  async function publishToBridge(): Promise<void> {
+    try {
+      await fetch('/api/bridge/publish', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          configPath,
+          manifest: $state.snapshot(manifest),
+          origin: 'ui'
+        })
+      });
+    } catch {
+      // Bridge is a best-effort channel; ignore publish failures.
+    }
+  }
 
   $effect(() => {
     void JSON.stringify($state.snapshot(manifest));
@@ -175,17 +192,57 @@
     saveTimer = setTimeout(() => {
       void persistState();
     }, 500);
+
+    if (bridgeTimer) {
+      clearTimeout(bridgeTimer);
+    }
+    bridgeTimer = setTimeout(() => {
+      void publishToBridge();
+    }, 80);
   });
 
   $effect(() => {
     document.documentElement.dataset.theme = activeMode;
   });
 
+  function subscribeToBridge(): () => void {
+    if (typeof window === 'undefined' || typeof EventSource === 'undefined') {
+      return () => {};
+    }
+
+    const source = new EventSource('/api/bridge/events');
+    source.addEventListener('snapshot', (event) => {
+      try {
+        const message = JSON.parse((event as MessageEvent<string>).data) as {
+          snapshot?: { origin?: string; manifest?: unknown };
+        };
+        if (!message.snapshot || message.snapshot.origin === 'ui') {
+          return;
+        }
+        manifest = ensureManifest(message.snapshot.manifest as never);
+        saveMessage = `Applied live update from ${message.snapshot.origin} via bridge.`;
+      } catch {
+        // Ignore malformed snapshots.
+      }
+    });
+    source.onerror = () => {
+      source.close();
+    };
+
+    return () => source.close();
+  }
+
   onMount(() => {
     booted = true;
+    void publishToBridge();
+    const unsubscribe = subscribeToBridge();
     return () => {
+      unsubscribe();
       if (saveTimer) {
         clearTimeout(saveTimer);
+      }
+      if (bridgeTimer) {
+        clearTimeout(bridgeTimer);
       }
     };
   });

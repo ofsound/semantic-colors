@@ -3,5 +3,10 @@
   "ignoreExportsUsedInFile": {
     "interface": true,
     "type": true
+  },
+  "workspaces": {
+    ".": {
+      "ignore": ["extension/**"]
+    }
   }
 }

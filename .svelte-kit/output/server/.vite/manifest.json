@@ -9,9 +9,24 @@
       "_internal.js"
     ]
   },
+  "_bridge-state.js": {
+    "file": "chunks/bridge-state.js",
+    "name": "bridge-state",
+    "imports": [
+      "_engine.js",
+      "_css.js"
+    ]
+  },
   "_contracts.js": {
     "file": "chunks/contracts.js",
     "name": "contracts",
+    "imports": [
+      "_engine.js"
+    ]
+  },
+  "_css.js": {
+    "file": "chunks/css.js",
+    "name": "css",
     "imports": [
       "_engine.js"
     ]
@@ -49,13 +64,17 @@
       "_index-server.js",
       "_environment.js",
       "_dev.js"
+    ],
+    "dynamicImports": [
+      "src/hooks.server.ts"
     ]
   },
   "_project-files.js": {
     "file": "chunks/project-files.js",
     "name": "project-files",
     "imports": [
-      "_engine.js"
+      "_engine.js",
+      "_css.js"
     ]
   },
   "_shared.js": {
@@ -112,6 +131,12 @@
       "_dev.js"
     ]
   },
+  "src/hooks.server.ts": {
+    "file": "entries/hooks.server.js",
+    "name": "entries/hooks.server",
+    "src": "src/hooks.server.ts",
+    "isEntry": true
+  },
   "src/routes/+layout.svelte": {
     "file": "entries/pages/_layout.svelte.js",
     "name": "entries/pages/_layout.svelte",
@@ -145,6 +170,45 @@
     ],
     "css": [
       "_app/immutable/assets/_page.C5Emmobd.css"
+    ]
+  },
+  "src/routes/api/bridge/events/+server.ts": {
+    "file": "entries/endpoints/api/bridge/events/_server.ts.js",
+    "name": "entries/endpoints/api/bridge/events/_server.ts",
+    "src": "src/routes/api/bridge/events/+server.ts",
+    "isEntry": true,
+    "imports": [
+      "_bridge-state.js"
+    ]
+  },
+  "src/routes/api/bridge/publish/+server.ts": {
+    "file": "entries/endpoints/api/bridge/publish/_server.ts.js",
+    "name": "entries/endpoints/api/bridge/publish/_server.ts",
+    "src": "src/routes/api/bridge/publish/+server.ts",
+    "isEntry": true,
+    "imports": [
+      "_bridge-state.js",
+      "_contracts.js"
+    ]
+  },
+  "src/routes/api/bridge/snapshot/+server.ts": {
+    "file": "entries/endpoints/api/bridge/snapshot/_server.ts.js",
+    "name": "entries/endpoints/api/bridge/snapshot/_server.ts",
+    "src": "src/routes/api/bridge/snapshot/+server.ts",
+    "isEntry": true,
+    "imports": [
+      "_bridge-state.js"
+    ]
+  },
+  "src/routes/api/bridge/token/+server.ts": {
+    "file": "entries/endpoints/api/bridge/token/_server.ts.js",
+    "name": "entries/endpoints/api/bridge/token/_server.ts",
+    "src": "src/routes/api/bridge/token/+server.ts",
+    "isEntry": true,
+    "imports": [
+      "_bridge-state.js",
+      "_project-files.js",
+      "_engine.js"
     ]
   },
   "src/routes/api/project/import/+server.ts": {

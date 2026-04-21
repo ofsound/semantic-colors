@@ -12,6 +12,12 @@ Current scope is the tool itself. The preview stage is a local fixture harness,
 not an imported external app. The bridge can write generated CSS to another
 path, but the tool UI and stage live in this repo.
 
+For consumption-side workflows (live inspection, real-DOM APCA auditing, hot
+overrides on a shipped product page), see the companion Chromium extension in
+[extension/](./extension/README.md). It connects to the engine over a live
+HTTP + SSE bridge (`/api/bridge/*`) and treats this tool as the source of
+truth for tokens and aliases.
+
 ## Quick Start
 
 Install dependencies:
@@ -64,6 +70,15 @@ The app is organized around a small set of modules:
 6. Persistence helpers
    - src/lib/server/project-files.ts resolves file paths, loads state,
      writes state, and stores the last-used config path in a session file.
+
+7. Bridge (consumption channel)
+   - src/lib/server/bridge-state.ts holds a singleton snapshot of the live
+     manifest plus a fan-out broadcaster.
+   - src/routes/api/bridge/{snapshot,events,publish,token}/+server.ts expose
+     the snapshot over HTTP and a push stream over Server-Sent Events.
+   - The SvelteKit page publishes every edit to the bridge so external
+     consumers (notably the Chromium extension in extension/) see changes
+     live; the page also listens for non-UI overrides and applies them.
 
 ## Data Model and Persisted Files
 
