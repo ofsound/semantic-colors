@@ -42,11 +42,11 @@ function resolveProjectPath(configPath: string, projectRoot: string, targetPath:
   return path.resolve(root, targetPath);
 }
 
-export function defaultConfigPath(cwd: string): string {
+function defaultConfigPath(cwd: string): string {
   return path.join(cwd, DEFAULT_CONFIG_PATH);
 }
 
-export async function readSession(cwd: string): Promise<SessionState> {
+async function readSession(cwd: string): Promise<SessionState> {
   const sessionFilePath = path.join(cwd, SESSION_PATH);
   const raw = await safeReadText(sessionFilePath);
   if (!raw) {
@@ -135,8 +135,16 @@ export async function saveWorkspaceState(
   manifest: ThemeManifest
 ): Promise<void> {
   const normalizedConfig = configWithDefaults(path.dirname(configPath), config);
-  const manifestPath = resolveProjectPath(configPath, normalizedConfig.projectRoot, normalizedConfig.manifestPath);
-  const cssOutputPath = resolveProjectPath(configPath, normalizedConfig.projectRoot, normalizedConfig.cssOutputPath);
+  const manifestPath = resolveProjectPath(
+    configPath,
+    normalizedConfig.projectRoot,
+    normalizedConfig.manifestPath
+  );
+  const cssOutputPath = resolveProjectPath(
+    configPath,
+    normalizedConfig.projectRoot,
+    normalizedConfig.cssOutputPath
+  );
   const css = generateThemeCss(manifest);
 
   await ensureParent(configPath);
@@ -162,7 +170,10 @@ export async function saveWorkspaceState(
   await writeSession(cwd, configPath);
 }
 
-export async function importFromCss(configPath: string, sourcePath: string): Promise<ImportProposal> {
+export async function importFromCss(
+  configPath: string,
+  sourcePath: string
+): Promise<ImportProposal> {
   const configRoot = path.dirname(configPath);
   const resolvedSourcePath = resolveProjectPath(configPath, configRoot, sourcePath);
   const css = await readFile(resolvedSourcePath, 'utf8');

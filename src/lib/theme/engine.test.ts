@@ -33,7 +33,9 @@ describe('theme engine', () => {
     manifest.tokens['control-primary-text'].dark = { ...manifest.tokens['control-primary'].dark };
 
     const validation = validateManifest(manifest);
-    expect(validation.dark.perToken['control-primary-text'].contrastIssues.length).toBeGreaterThan(0);
+    expect(validation.dark.perToken['control-primary-text'].contrastIssues.length).toBeGreaterThan(
+      0
+    );
   });
 });
 
@@ -50,11 +52,13 @@ describe('import proposal heuristics', () => {
       `
     );
 
-    expect(proposal.candidates.find((candidate) => candidate.sourceName === 'color-surface-muted')?.suggestedTokenId).toBe(
-      'surface-muted'
-    );
-    expect(proposal.candidates.find((candidate) => candidate.sourceName === 'color-text-primary')?.suggestedTokenId).toBe(
-      'text'
-    );
+    expect(
+      proposal.candidates.find((candidate) => candidate.sourceName === 'color-surface-muted')
+        ?.suggestedTokenId
+    ).toBe('surface-muted');
+    expect(
+      proposal.candidates.find((candidate) => candidate.sourceName === 'color-text-primary')
+        ?.suggestedTokenId
+    ).toBe('text');
   });
 });

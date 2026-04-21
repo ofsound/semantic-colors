@@ -1,0 +1,29 @@
+---
+description: 
+alwaysApply: true
+---
+
+# Project Context
+
+- **Stack**: Svelte 5, SvelteKit, TypeScript, Tailwind CSS, Supabase
+- **Styling**: Tailwind only; avoid vanilla CSS in `<style>` blocks
+
+## Svelte MCP Tools
+
+- `list-sections`: Use FIRST when asked about Svelte/SvelteKit topics
+- `get-documentation`: Fetch relevant docs after listing sections
+- `playground-link`: Only when user explicitly asks; never for code written to project files
+
+## Import Order
+
+When adding or editing imports in `.svelte` or `src` `.ts` files, enforce this order. Use **one blank line between groups**; no blank line between imports within a group.
+
+1. **Svelte / SvelteKit** — `svelte`, `svelte/*`, `$app/*`
+2. **External packages**
+3. **Project components** — `$lib/components/...` first, then route-local `./...`
+4. **Project utils** — `$lib/...` (non-component imports)
+5. **Types** — all `import type { ... }`
+6. **Assets** — `$lib/assets/*` when present
+7. **Side-effect** — e.g. `import './layout.css'`; must be last
+
+If a module is imported for both type and value, keep one import line and place it by its primary use.

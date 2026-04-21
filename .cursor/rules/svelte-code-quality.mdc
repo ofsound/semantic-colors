@@ -1,0 +1,17 @@
+---
+description: svelte-autofixer mandatory, Svelte 5 only, TypeScript annotations
+globs: "**/*.svelte,**/*.svelte.ts,src/**/*.ts"
+alwaysApply: false
+---
+
+# Svelte Code Quality
+
+**MANDATORY** when writing or modifying any `.svelte` file or `.ts` file in `src/`:
+
+1. Use the `svelte-autofixer` MCP tool (server: `svelte`) to analyze the code
+2. Call it with the complete Svelte component code
+3. Iterate until no issues or suggestions are returned
+4. Apply all suggested fixes before finalizing
+
+- Use TypeScript type annotations, not JSDoc comments
+- Svelte 5 only — no legacy syntax (`export let`, `$:`, `<slot>`, etc.)

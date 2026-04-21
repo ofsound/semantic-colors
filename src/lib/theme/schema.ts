@@ -1,11 +1,5 @@
 export type ThemeMode = 'light' | 'dark' | 'alt';
-export type TokenGroup =
-  | 'surfaces'
-  | 'text'
-  | 'borders'
-  | 'accent'
-  | 'status'
-  | 'controls';
+export type TokenGroup = 'surfaces' | 'text' | 'borders' | 'accent' | 'status' | 'controls';
 
 export type TokenId =
   | 'app'

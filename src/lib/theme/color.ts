@@ -13,7 +13,7 @@ export function normalizeHue(hue: number): number {
   return value < 0 ? value + 360 : value;
 }
 
-export function sanitizeColor(color: OklchColor): OklchColor {
+function sanitizeColor(color: OklchColor): OklchColor {
   return {
     l: clamp(color.l, 0, 1),
     c: Math.max(0, color.c),
@@ -22,7 +22,7 @@ export function sanitizeColor(color: OklchColor): OklchColor {
   };
 }
 
-export function clamp(value: number, min: number, max: number): number {
+function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
@@ -47,7 +47,10 @@ export function parseColor(input: string): OklchColor | null {
 export function toCssColor(color: OklchColor): string {
   const normalized = sanitizeColor(color);
   const converted = toOklch(normalized);
-  return formatCss(converted) ?? `oklch(${(normalized.l * 100).toFixed(2)}% ${normalized.c.toFixed(4)} ${normalized.h.toFixed(2)})`;
+  return (
+    formatCss(converted) ??
+    `oklch(${(normalized.l * 100).toFixed(2)}% ${normalized.c.toFixed(4)} ${normalized.h.toFixed(2)})`
+  );
 }
 
 export function toRgbChannels(color: OklchColor): [number, number, number] {
@@ -63,7 +66,7 @@ export function toRgbChannels(color: OklchColor): [number, number, number] {
 }
 
 export function clampToDisplayable(color: OklchColor, maxChroma?: number | null): OklchColor {
-  let working = sanitizeColor(color);
+  const working = sanitizeColor(color);
   if (maxChroma !== undefined && maxChroma !== null) {
     working.c = Math.min(working.c, maxChroma);
   }
@@ -92,7 +95,12 @@ export function clampToDisplayable(color: OklchColor, maxChroma?: number | null)
 
   const clamped = clampRgb(best);
   const backToOklch = toOklch(clamped);
-  if (!backToOklch || backToOklch.l === undefined || backToOklch.c === undefined || backToOklch.h === undefined) {
+  if (
+    !backToOklch ||
+    backToOklch.l === undefined ||
+    backToOklch.c === undefined ||
+    backToOklch.h === undefined
+  ) {
     return sanitizeColor(best);
   }
 

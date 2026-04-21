@@ -1,9 +1,19 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { themeCssVariables, resolveTheme, summarizeTokenValidation, validateManifest } from '$lib/theme/engine';
+  import {
+    themeCssVariables,
+    resolveTheme,
+    summarizeTokenValidation,
+    validateManifest
+  } from '$lib/theme/engine';
   import { ensureManifest } from '$lib/theme/engine';
   import { createDefaultManifest } from '$lib/theme/defaults';
-  import { ALL_TOKEN_IDS, DEFAULT_PROJECT_CONFIG, TOKEN_GROUP_ORDER, TOKENS_BY_GROUP } from '$lib/theme/schema';
+  import {
+    ALL_TOKEN_IDS,
+    DEFAULT_PROJECT_CONFIG,
+    TOKEN_GROUP_ORDER,
+    TOKENS_BY_GROUP
+  } from '$lib/theme/schema';
   import type {
     ImportProposal,
     LocalAlias,
@@ -54,7 +64,9 @@
   const lightTheme = $derived(resolveTheme(manifest, 'light'));
   const darkTheme = $derived(resolveTheme(manifest, 'dark'));
   const altTheme = $derived(resolveTheme(manifest, 'alt'));
-  const currentTheme = $derived(activeMode === 'light' ? lightTheme : activeMode === 'dark' ? darkTheme : altTheme);
+  const currentTheme = $derived(
+    activeMode === 'light' ? lightTheme : activeMode === 'dark' ? darkTheme : altTheme
+  );
   const validations = $derived(validateManifest(manifest));
   const selectedToken = $derived(manifest.tokens[selectedTokenId]);
   const selectedTokenValidation = $derived(validations[activeMode].perToken[selectedTokenId]);
@@ -105,9 +117,9 @@
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
   $effect(() => {
-    JSON.stringify($state.snapshot(manifest));
-    JSON.stringify($state.snapshot(config));
-    configPath;
+    void JSON.stringify($state.snapshot(manifest));
+    void JSON.stringify($state.snapshot(config));
+    void configPath;
 
     if (!booted) {
       return;
@@ -140,7 +152,9 @@
   }
 
   function hasWarnings(tokenIds: TokenId[]): boolean {
-    return tokenIds.some((tokenId) => summarizeTokenValidation(validations[activeMode].perToken[tokenId]).length > 0);
+    return tokenIds.some(
+      (tokenId) => summarizeTokenValidation(validations[activeMode].perToken[tokenId]).length > 0
+    );
   }
 
   function selectToken(tokenId: TokenId): void {
@@ -156,7 +170,11 @@
   }
 
   function handleKeydown(event: KeyboardEvent): void {
-    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement) {
+    if (
+      event.target instanceof HTMLInputElement ||
+      event.target instanceof HTMLTextAreaElement ||
+      event.target instanceof HTMLSelectElement
+    ) {
       return;
     }
 
@@ -235,7 +253,10 @@
 
       importProposal = (await response.json()) as ImportProposal;
       importSelection = Object.fromEntries(
-        importProposal.candidates.map((candidate) => [candidate.sourceName, candidate.suggestedTokenId ?? ''])
+        importProposal.candidates.map((candidate) => [
+          candidate.sourceName,
+          candidate.suggestedTokenId ?? ''
+        ])
       );
       saveMessage = `Imported ${importProposal.candidates.length} custom properties for review.`;
     } catch (error) {
@@ -336,7 +357,13 @@
       </label>
 
       <div class={`save-state save-state-${saveState}`}>
-        <strong>{saveState === 'saving' ? 'Autosaving' : saveState === 'error' ? 'Error' : 'State'}</strong>
+        <strong
+          >{saveState === 'saving'
+            ? 'Autosaving'
+            : saveState === 'error'
+              ? 'Error'
+              : 'State'}</strong
+        >
         <span>{saveMessage}</span>
       </div>
     </section>
@@ -350,8 +377,11 @@
       </div>
 
       <div class="mode-row">
-        <button class:active={activeMode === 'light'} onclick={() => setTheme('light')}>1 Light</button>
-        <button class:active={activeMode === 'dark'} onclick={() => setTheme('dark')}>2 Dark</button>
+        <button class:active={activeMode === 'light'} onclick={() => setTheme('light')}
+          >1 Light</button
+        >
+        <button class:active={activeMode === 'dark'} onclick={() => setTheme('dark')}>2 Dark</button
+        >
         <button class:active={activeMode === 'alt'} onclick={() => setTheme('alt')}>3 Alt</button>
       </div>
 
@@ -383,7 +413,8 @@
             step="1"
             type="range"
             value={manifest.alt.delta.h}
-            oninput={(event) => updateAltDelta('h', Number((event.currentTarget as HTMLInputElement).value))}
+            oninput={(event) =>
+              updateAltDelta('h', Number((event.currentTarget as HTMLInputElement).value))}
           />
           <input
             class="number-field"
@@ -403,7 +434,8 @@
             step="0.005"
             type="range"
             value={manifest.alt.delta.c}
-            oninput={(event) => updateAltDelta('c', Number((event.currentTarget as HTMLInputElement).value))}
+            oninput={(event) =>
+              updateAltDelta('c', Number((event.currentTarget as HTMLInputElement).value))}
           />
           <input
             class="number-field"
@@ -423,7 +455,8 @@
             step="0.01"
             type="range"
             value={manifest.alt.delta.l}
-            oninput={(event) => updateAltDelta('l', Number((event.currentTarget as HTMLInputElement).value))}
+            oninput={(event) =>
+              updateAltDelta('l', Number((event.currentTarget as HTMLInputElement).value))}
           />
           <input
             class="number-field"
@@ -474,14 +507,15 @@
         <div class="channel-grid">
           <label class="channel">
             <span>L</span>
+            <input max="1" min="0" step="0.005" type="range" bind:value={selectedToken.light.l} />
             <input
+              class="number-field"
               max="1"
               min="0"
               step="0.005"
-              type="range"
+              type="number"
               bind:value={selectedToken.light.l}
             />
-            <input class="number-field" max="1" min="0" step="0.005" type="number" bind:value={selectedToken.light.l} />
           </label>
           <label class="channel">
             <span>C</span>
@@ -492,18 +526,26 @@
               type="range"
               bind:value={selectedToken.light.c}
             />
-            <input class="number-field" max="0.37" min="0" step="0.005" type="number" bind:value={selectedToken.light.c} />
+            <input
+              class="number-field"
+              max="0.37"
+              min="0"
+              step="0.005"
+              type="number"
+              bind:value={selectedToken.light.c}
+            />
           </label>
           <label class="channel">
             <span>H</span>
+            <input max="360" min="0" step="1" type="range" bind:value={selectedToken.light.h} />
             <input
+              class="number-field"
               max="360"
               min="0"
               step="1"
-              type="range"
+              type="number"
               bind:value={selectedToken.light.h}
             />
-            <input class="number-field" max="360" min="0" step="1" type="number" bind:value={selectedToken.light.h} />
           </label>
         </div>
       </div>
@@ -516,36 +558,39 @@
         <div class="channel-grid">
           <label class="channel">
             <span>L</span>
+            <input max="1" min="0" step="0.005" type="range" bind:value={selectedToken.dark.l} />
             <input
+              class="number-field"
               max="1"
               min="0"
               step="0.005"
-              type="range"
+              type="number"
               bind:value={selectedToken.dark.l}
             />
-            <input class="number-field" max="1" min="0" step="0.005" type="number" bind:value={selectedToken.dark.l} />
           </label>
           <label class="channel">
             <span>C</span>
+            <input max="0.37" min="0" step="0.005" type="range" bind:value={selectedToken.dark.c} />
             <input
+              class="number-field"
               max="0.37"
               min="0"
               step="0.005"
-              type="range"
+              type="number"
               bind:value={selectedToken.dark.c}
             />
-            <input class="number-field" max="0.37" min="0" step="0.005" type="number" bind:value={selectedToken.dark.c} />
           </label>
           <label class="channel">
             <span>H</span>
+            <input max="360" min="0" step="1" type="range" bind:value={selectedToken.dark.h} />
             <input
+              class="number-field"
               max="360"
               min="0"
               step="1"
-              type="range"
+              type="number"
               bind:value={selectedToken.dark.h}
             />
-            <input class="number-field" max="360" min="0" step="1" type="number" bind:value={selectedToken.dark.h} />
           </label>
         </div>
       </div>
@@ -562,12 +607,20 @@
           </label>
           <label class="field-block">
             <span>Max chroma</span>
-            <input bind:value={selectedToken.exception.maxChroma} max="0.37" min="0" step="0.005" type="number" />
+            <input
+              bind:value={selectedToken.exception.maxChroma}
+              max="0.37"
+              min="0"
+              step="0.005"
+              type="number"
+            />
           </label>
         </div>
 
         {#if selectedToken.altParent}
-          <p class="microcopy">Alt derives from parent token: <strong>{tokenLabel(selectedToken.altParent)}</strong></p>
+          <p class="microcopy">
+            Alt derives from parent token: <strong>{tokenLabel(selectedToken.altParent)}</strong>
+          </p>
         {/if}
       </div>
 
@@ -595,9 +648,19 @@
       <div class="alias-list">
         {#each manifest.aliases as alias, index (`${alias.name}-${index}`)}
           <div class="alias-row">
-            <input bind:value={alias.name} oninput={(event) => updateAlias(index, { name: (event.currentTarget as HTMLInputElement).value })} />
-            <select bind:value={alias.tokenId} oninput={(event) => updateAlias(index, { tokenId: (event.currentTarget as HTMLSelectElement).value as TokenId })}>
-              {#each ALL_TOKEN_IDS as tokenId}
+            <input
+              bind:value={alias.name}
+              oninput={(event) =>
+                updateAlias(index, { name: (event.currentTarget as HTMLInputElement).value })}
+            />
+            <select
+              bind:value={alias.tokenId}
+              oninput={(event) =>
+                updateAlias(index, {
+                  tokenId: (event.currentTarget as HTMLSelectElement).value as TokenId
+                })}
+            >
+              {#each ALL_TOKEN_IDS as tokenId (tokenId)}
                 <option value={tokenId}>{tokenLabel(tokenId)}</option>
               {/each}
             </select>
@@ -626,7 +689,9 @@
           {isImporting ? 'Importing...' : 'Scan CSS variables'}
         </button>
         {#if importProposal}
-          <button class="secondary-button" onclick={applyImportReview}>Apply reviewed mappings</button>
+          <button class="secondary-button" onclick={applyImportReview}
+            >Apply reviewed mappings</button
+          >
         {/if}
       </div>
 
@@ -646,8 +711,16 @@
                 {/each}
               </select>
               <div class="review-swatches">
-                <span class="mini-swatch" style={`background:${candidate.light ? toCssColor(candidate.light) : 'transparent'}`}>L</span>
-                <span class="mini-swatch" style={`background:${candidate.dark ? toCssColor(candidate.dark) : 'transparent'}`}>D</span>
+                <span
+                  class="mini-swatch"
+                  style={`background:${candidate.light ? toCssColor(candidate.light) : 'transparent'}`}
+                  >L</span
+                >
+                <span
+                  class="mini-swatch"
+                  style={`background:${candidate.dark ? toCssColor(candidate.dark) : 'transparent'}`}
+                  >D</span
+                >
               </div>
             </article>
           {/each}
@@ -793,7 +866,10 @@
           <div class="status-grid">
             {#each ['success', 'warning', 'danger', 'info'] as stem (stem)}
               <button
-                class:selected-usage={isSelectedUsage([stem as TokenId, `${stem}-surface` as TokenId])}
+                class:selected-usage={isSelectedUsage([
+                  stem as TokenId,
+                  `${stem}-surface` as TokenId
+                ])}
                 class:warning={hasWarnings([stem as TokenId, `${stem}-surface` as TokenId])}
                 class={`status-card status-card-${stem}`}
                 onclick={() => selectToken(stem as TokenId)}
@@ -820,8 +896,16 @@
               Primary action
             </button>
             <button
-              class:selected-usage={isSelectedUsage(['control-secondary', 'control-secondary-border', 'control-secondary-text'])}
-              class:warning={hasWarnings(['control-secondary', 'control-secondary-border', 'control-secondary-text'])}
+              class:selected-usage={isSelectedUsage([
+                'control-secondary',
+                'control-secondary-border',
+                'control-secondary-text'
+              ])}
+              class:warning={hasWarnings([
+                'control-secondary',
+                'control-secondary-border',
+                'control-secondary-text'
+              ])}
               class="control-secondary"
               onclick={() => selectToken('control-secondary')}
             >
@@ -904,7 +988,10 @@
                   class="inventory-card"
                   onclick={() => selectToken(tokenId)}
                 >
-                  <span class="inventory-swatch" style={`background:${toCssColor(currentTheme.colors[tokenId])}`}></span>
+                  <span
+                    class="inventory-swatch"
+                    style={`background:${toCssColor(currentTheme.colors[tokenId])}`}
+                  ></span>
                   <span class="inventory-title">{tokenLabel(tokenId)}</span>
                   <code>{tokenId}</code>
                 </button>
@@ -1524,8 +1611,11 @@
     min-height: 11rem;
     border-radius: 1rem;
     overflow: hidden;
-    background:
-      linear-gradient(135deg, color-mix(in srgb, var(--theme-accent) 35%, var(--theme-surface-subtle)), var(--theme-surface-muted));
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--theme-accent) 35%, var(--theme-surface-subtle)),
+      var(--theme-surface-muted)
+    );
   }
 
   .scrim {

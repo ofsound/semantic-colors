@@ -110,7 +110,9 @@ export function resolveTheme(manifestInput: ThemeManifest, mode: ThemeMode): Res
 }
 
 function contrastIssue(text: OklchColor, background: OklchColor, label: string): string | null {
-  const contrast = Math.abs(APCAcontrast(sRGBtoY(toRgbChannels(text)), sRGBtoY(toRgbChannels(background))));
+  const contrast = Math.abs(
+    APCAcontrast(sRGBtoY(toRgbChannels(text)), sRGBtoY(toRgbChannels(background)))
+  );
   if (contrast >= 60) {
     return null;
   }
@@ -142,7 +144,10 @@ export function validateManifest(manifestInput: ThemeManifest): Record<ThemeMode
     const resolved = resolveTheme(manifest, mode);
 
     for (const tokenId of ALL_TOKEN_IDS) {
-      const base = mode === 'alt' ? anchorFor(manifest.tokens[tokenId], manifest.alt.source) : anchorFor(manifest.tokens[tokenId], mode);
+      const base =
+        mode === 'alt'
+          ? anchorFor(manifest.tokens[tokenId], manifest.alt.source)
+          : anchorFor(manifest.tokens[tokenId], mode);
       const resolvedColor = resolved.colors[tokenId];
       const gamutAdjusted =
         Math.abs(base.c - resolvedColor.c) > 0.002 ||
@@ -157,7 +162,11 @@ export function validateManifest(manifestInput: ThemeManifest): Record<ThemeMode
     }
 
     for (const [foregroundId, backgroundId, label] of CONTRAST_PAIRS) {
-      const issue = contrastIssue(resolved.colors[foregroundId], resolved.colors[backgroundId], label);
+      const issue = contrastIssue(
+        resolved.colors[foregroundId],
+        resolved.colors[backgroundId],
+        label
+      );
       if (issue) {
         validations[mode].perToken[foregroundId].contrastIssues.push(issue);
         validations[mode].perToken[backgroundId].contrastIssues.push(issue);
@@ -190,6 +199,7 @@ export function summarizeTokenValidation(validation: TokenValidation): string[] 
 }
 
 export function themeCssVariables(resolved: ResolvedTheme): string {
-  return ALL_TOKEN_IDS.map((tokenId) => `  --theme-${tokenId}: ${toCssColor(resolved.colors[tokenId])};`).join('\n');
+  return ALL_TOKEN_IDS.map(
+    (tokenId) => `  --theme-${tokenId}: ${toCssColor(resolved.colors[tokenId])};`
+  ).join('\n');
 }
-

@@ -7,7 +7,9 @@ export function generateThemeCss(manifest: ThemeManifest): string {
   const dark = resolveTheme(manifest, 'dark');
   const alt = resolveTheme(manifest, 'alt');
 
-  const bridge = ALL_TOKEN_IDS.map((tokenId) => `  --color-${tokenId}: var(--theme-${tokenId});`).join('\n');
+  const bridge = ALL_TOKEN_IDS.map(
+    (tokenId) => `  --color-${tokenId}: var(--theme-${tokenId});`
+  ).join('\n');
   const aliases = manifest.aliases
     .map((alias) => `  --${alias.name}: var(--color-${alias.tokenId});`)
     .join('\n');

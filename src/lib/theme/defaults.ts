@@ -1,7 +1,10 @@
 import type { ThemeManifest, ThemeToken, TokenId } from './schema';
 
 function token(
-  definition: Omit<ThemeToken, 'id' | 'exception'> & { id: TokenId; altBehavior?: ThemeToken['exception']['altBehavior'] }
+  definition: Omit<ThemeToken, 'id' | 'exception'> & {
+    id: TokenId;
+    altBehavior?: ThemeToken['exception']['altBehavior'];
+  }
 ): ThemeToken {
   const { altBehavior = 'derive', ...rest } = definition;
   return {
@@ -392,7 +395,9 @@ const TOKENS = [
 
 export function createDefaultManifest(): ThemeManifest {
   const now = new Date().toISOString();
-  const tokens = Object.fromEntries(TOKENS.map((token) => [token.id, structuredClone(token)])) as ThemeManifest['tokens'];
+  const tokens = Object.fromEntries(
+    TOKENS.map((token) => [token.id, structuredClone(token)])
+  ) as ThemeManifest['tokens'];
 
   return {
     version: 1,

@@ -1,0 +1,34 @@
+---
+description: Svelte 5 best practices — runes, snippets, Remote Functions
+globs: '**/*.svelte,**/*.svelte.ts,src/**/*.ts'
+alwaysApply: false
+---
+
+# Svelte 5 Patterns
+
+## Runes
+
+- `$state()` for reactive state (not implicit `let`)
+- `$derived()` for computed values (not `$:`)
+- `$effect()` for side effects (not `$:`)
+- `$props()` for component props (not `export let`)
+- `$bindable()` for two-way binding
+
+## Snippets
+
+- Use `{#snippet}` and `{@render}` instead of `<slot>` for composition
+
+## Shared Logic
+
+- Extract reusable reactive logic to `.svelte.ts` or `.svelte.js` files
+
+## SvelteKit
+
+- Prefer Remote Functions (`$app/server`) over manual API routes for type-safe client-server calls
+- Use `$app/environment` (`browser`, `building`, `dev`) for environment checks
+- Use `$app/navigation` for `goto`, `invalidate`, shallow routing, etc.
+
+## Tailwind v4
+
+- Prefer utility classes in markup
+- Avoid `@apply` in Svelte `<style>` blocks unless `@reference` to a CSS file that imports Tailwind is added
