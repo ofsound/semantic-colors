@@ -14,6 +14,12 @@ import { ALL_TOKEN_IDS, TOKENS_BY_GROUP, TOKEN_GROUP_ORDER } from '$lib/theme/sc
 
 export type BridgeOrigin = 'ui' | 'extension' | 'server';
 
+export interface BridgeDraftState {
+  dirty: boolean;
+  baseVersion: number;
+  lastEditor: BridgeOrigin;
+}
+
 export interface ResolvedThemePayload {
   mode: ThemeMode;
   colors: Record<TokenId, OklchColor & { css: string }>;
@@ -25,6 +31,7 @@ export interface BridgeSnapshot {
   updatedAt: string;
   origin: BridgeOrigin;
   configPath: string;
+  draft: BridgeDraftState;
   manifest: ThemeManifest;
   resolved: Record<ThemeMode, ResolvedThemePayload>;
   css: string;
@@ -59,7 +66,8 @@ function buildSnapshot(
   manifest: ThemeManifest,
   configPath: string,
   origin: BridgeOrigin,
-  version: number
+  version: number,
+  draft: BridgeDraftState
 ): BridgeSnapshot {
   const normalized = ensureManifest(manifest);
   return {
@@ -67,6 +75,7 @@ function buildSnapshot(
     updatedAt: new Date().toISOString(),
     origin,
     configPath,
+    draft,
     manifest: normalized,
     resolved: {
       light: buildResolvedPayload(normalized, 'light'),
@@ -83,18 +92,83 @@ function buildSnapshot(
 class BridgeStateStore {
   private subscribers = new Set<Subscriber>();
   private currentVersion = 0;
-  private currentSnapshot: BridgeSnapshot = buildSnapshot(createDefaultManifest(), '', 'server', 0);
+  private persistedVersion = 0;
+  private persistedManifest: ThemeManifest = createDefaultManifest();
+  private currentSnapshot: BridgeSnapshot = buildSnapshot(
+    createDefaultManifest(),
+    '',
+    'server',
+    0,
+    {
+      dirty: false,
+      baseVersion: 0,
+      lastEditor: 'server'
+    }
+  );
   private pingTimer: ReturnType<typeof setInterval> | null = null;
 
   getSnapshot(): BridgeSnapshot {
     return this.currentSnapshot;
   }
 
-  publish(manifest: ThemeManifest, configPath: string, origin: BridgeOrigin): BridgeSnapshot {
+  syncPersisted(manifest: ThemeManifest, configPath: string, origin: BridgeOrigin): BridgeSnapshot {
     this.currentVersion += 1;
-    this.currentSnapshot = buildSnapshot(manifest, configPath, origin, this.currentVersion);
+    this.persistedVersion = this.currentVersion;
+    this.persistedManifest = ensureManifest(manifest);
+    this.currentSnapshot = buildSnapshot(
+      this.persistedManifest,
+      configPath,
+      origin,
+      this.currentVersion,
+      {
+        dirty: false,
+        baseVersion: this.persistedVersion,
+        lastEditor: origin
+      }
+    );
     this.broadcast({ type: 'snapshot', snapshot: this.currentSnapshot });
     return this.currentSnapshot;
+  }
+
+  stage(manifest: ThemeManifest, configPath: string, origin: BridgeOrigin): BridgeSnapshot {
+    this.currentVersion += 1;
+    const normalized = ensureManifest(manifest);
+    const dirty = JSON.stringify(normalized) !== JSON.stringify(this.persistedManifest);
+    this.currentSnapshot = buildSnapshot(normalized, configPath, origin, this.currentVersion, {
+      dirty,
+      baseVersion: this.persistedVersion,
+      lastEditor: origin
+    });
+    this.broadcast({ type: 'snapshot', snapshot: this.currentSnapshot });
+    return this.currentSnapshot;
+  }
+
+  discard(origin: BridgeOrigin): BridgeSnapshot {
+    this.currentVersion += 1;
+    this.currentSnapshot = buildSnapshot(
+      this.persistedManifest,
+      this.currentSnapshot.configPath,
+      origin,
+      this.currentVersion,
+      {
+        dirty: false,
+        baseVersion: this.persistedVersion,
+        lastEditor: origin
+      }
+    );
+    this.broadcast({ type: 'snapshot', snapshot: this.currentSnapshot });
+    return this.currentSnapshot;
+  }
+
+  reset(): void {
+    this.currentVersion = 0;
+    this.persistedVersion = 0;
+    this.persistedManifest = createDefaultManifest();
+    this.currentSnapshot = buildSnapshot(createDefaultManifest(), '', 'server', 0, {
+      dirty: false,
+      baseVersion: 0,
+      lastEditor: 'server'
+    });
   }
 
   subscribe(subscriber: Subscriber): () => void {
@@ -147,7 +221,11 @@ function getStore(): BridgeStateStore {
 
 export const bridgeState = {
   snapshot: () => getStore().getSnapshot(),
-  publish: (manifest: ThemeManifest, configPath: string, origin: BridgeOrigin) =>
-    getStore().publish(manifest, configPath, origin),
+  stage: (manifest: ThemeManifest, configPath: string, origin: BridgeOrigin) =>
+    getStore().stage(manifest, configPath, origin),
+  syncPersisted: (manifest: ThemeManifest, configPath: string, origin: BridgeOrigin) =>
+    getStore().syncPersisted(manifest, configPath, origin),
+  discard: (origin: BridgeOrigin) => getStore().discard(origin),
+  reset: () => getStore().reset(),
   subscribe: (subscriber: Subscriber) => getStore().subscribe(subscriber)
 };

@@ -86,13 +86,14 @@ export function createWorkspaceController(options: WorkspaceControllerOptions) {
       saveMessage = config.bridgeEnabled
         ? 'Saved manifest and regenerated target CSS.'
         : 'Saved manifest and config. Bridge output is currently disabled.';
+      await publishToBridge(true);
     } catch (error) {
       saveState = 'error';
       saveMessage = error instanceof Error ? error.message : 'Save failed';
     }
   }
 
-  async function publishToBridge(): Promise<void> {
+  async function publishToBridge(persisted = false): Promise<void> {
     try {
       await fetch('/api/bridge/publish', {
         method: 'POST',
@@ -100,7 +101,8 @@ export function createWorkspaceController(options: WorkspaceControllerOptions) {
         body: JSON.stringify({
           configPath: options.getConfigPath(),
           manifest: $state.snapshot(options.getManifest()),
-          origin: 'ui'
+          origin: 'ui',
+          persisted
         })
       });
     } catch {
@@ -148,15 +150,20 @@ export function createWorkspaceController(options: WorkspaceControllerOptions) {
     source.addEventListener('snapshot', (event) => {
       try {
         const message = JSON.parse((event as MessageEvent<string>).data) as {
-          snapshot?: { origin?: string; manifest?: unknown };
+          snapshot?: {
+            draft?: { dirty?: boolean };
+            origin?: string;
+            manifest?: unknown;
+          };
         };
         if (!message.snapshot || message.snapshot.origin === 'ui') {
           return;
         }
 
         options.replaceManifest(ensureManifest(message.snapshot.manifest as never));
-        markPersistDirty();
-        saveMessage = `Applied live update from ${message.snapshot.origin} via bridge.`;
+        saveMessage = message.snapshot.draft?.dirty
+          ? `Applied staged update from ${message.snapshot.origin} via bridge.`
+          : `Applied committed update from ${message.snapshot.origin} via bridge.`;
       } catch {
         // Ignore malformed snapshots.
       }
@@ -168,10 +175,41 @@ export function createWorkspaceController(options: WorkspaceControllerOptions) {
     return () => source.close();
   }
 
+  async function syncBridgeOnConnect(): Promise<void> {
+    try {
+      const response = await fetch('/api/bridge/snapshot', { cache: 'no-store' });
+      if (!response.ok) {
+        await publishToBridge(true);
+        return;
+      }
+
+      const payload = (await response.json()) as {
+        configPath?: string;
+        draft?: { dirty?: boolean };
+        manifest?: ThemeManifest;
+      };
+
+      if (
+        payload.draft?.dirty &&
+        payload.configPath &&
+        payload.configPath === options.getConfigPath() &&
+        payload.manifest
+      ) {
+        options.replaceManifest(ensureManifest(payload.manifest));
+        saveMessage = 'Loaded staged bridge draft.';
+        return;
+      }
+
+      await publishToBridge(true);
+    } catch {
+      await publishToBridge(true);
+    }
+  }
+
   function connect(): () => void {
     booted = true;
-    void publishToBridge();
     const unsubscribe = subscribeToBridge();
+    void syncBridgeOnConnect();
 
     return () => {
       booted = false;

@@ -37,6 +37,10 @@ body {
   padding: 1.25rem;
 }
 
+.semantic-colors-app.workspace-sidebar-collapsed {
+  grid-template-columns: minmax(22rem, 24rem) 1fr;
+}
+
 .semantic-colors-app .sidebar,
 .semantic-colors-app .stage-shell {
   min-height: 0;
@@ -48,6 +52,15 @@ body {
   gap: 1rem;
   overflow-y: auto;
   padding-right: 0.25rem;
+}
+
+.semantic-colors-app .sidebar-collapsed {
+  gap: 0.85rem;
+}
+
+.semantic-colors-app .sidebar-toolbar {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .semantic-colors-app .stage-shell {

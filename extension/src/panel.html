@@ -9,7 +9,10 @@
     <header class="app-header">
       <div class="brand">
         <span class="brand-dot" aria-hidden="true"></span>
-        <h1>Semantic Colors</h1>
+        <div>
+          <h1>Semantic Colors</h1>
+          <p class="eyebrow">DOM-first authoring</p>
+        </div>
       </div>
       <div class="connection">
         <label class="bridge-url">
@@ -27,8 +30,23 @@
       </div>
     </header>
 
+    <section class="draft-bar">
+      <div>
+        <p class="eyebrow">Draft state</p>
+        <div id="draft-status" class="draft-status">Waiting for bridge snapshot...</div>
+      </div>
+      <div class="draft-actions">
+        <button id="discard-draft" type="button" class="secondary">Discard draft</button>
+        <button id="commit-draft" type="button" class="primary">Commit draft</button>
+        <button id="reset-manifest" type="button">Reset manifest</button>
+      </div>
+    </section>
+
     <nav class="tabs" role="tablist">
       <button type="button" role="tab" data-tab="inspect" class="is-active">Inspect</button>
+      <button type="button" role="tab" data-tab="authoring">Authoring</button>
+      <button type="button" role="tab" data-tab="aliases">Aliases</button>
+      <button type="button" role="tab" data-tab="import">Import</button>
       <button type="button" role="tab" data-tab="tokens">Tokens</button>
       <button type="button" role="tab" data-tab="coverage">Coverage</button>
       <button type="button" role="tab" data-tab="contrast">Contrast</button>
@@ -40,16 +58,91 @@
         <div class="panel-row">
           <label class="switch">
             <input type="checkbox" id="hover-toggle" />
-            <span>Hover inspector</span>
+            <span>Inspect mode</span>
           </label>
-          <span class="hint">Hover any element on the inspected page to resolve its token.</span>
-        </div>
-        <div id="hover-details" class="hover-details">
-          <p class="placeholder">
-            Move your mouse over the inspected page to read live token info.
-          </p>
+          <button id="clear-selection" type="button" class="secondary">Clear selection</button>
+          <span class="hint">Hover to inspect. Click on the page to lock a selection.</span>
         </div>
         <div id="page-info" class="page-info"></div>
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Selected element</p>
+              <h2>Locked context</h2>
+            </div>
+          </div>
+          <div id="selection-details" class="hover-details"></div>
+        </section>
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Hover preview</p>
+              <h2>Live target</h2>
+            </div>
+          </div>
+          <div id="hover-details" class="hover-details"></div>
+        </section>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="authoring">
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Focused token</p>
+              <h2>Token editor</h2>
+            </div>
+          </div>
+          <div class="panel-row">
+            <label for="editor-token">Token</label>
+            <select id="editor-token"></select>
+          </div>
+          <div id="token-editor" class="editor-stack"></div>
+          <div id="token-validation" class="report"></div>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Theme state</p>
+              <h2>Mode controls</h2>
+            </div>
+          </div>
+          <div id="mode-editor" class="editor-stack"></div>
+        </section>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="aliases">
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Local aliases</p>
+              <h2>Project-specific names</h2>
+            </div>
+            <div class="panel-row">
+              <button id="add-alias-current" type="button">Alias focused token</button>
+              <button id="add-alias" type="button" class="secondary">Add alias</button>
+            </div>
+          </div>
+          <div id="alias-list" class="report"></div>
+        </section>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="import">
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Import and migration</p>
+              <h2>CSS review queue</h2>
+            </div>
+          </div>
+          <div class="panel-row">
+            <input id="import-source-path" type="text" placeholder="../project/src/app.css" />
+            <button id="scan-import" type="button" class="primary">Scan CSS variables</button>
+            <button id="apply-import-review" type="button" class="secondary">Apply to draft</button>
+          </div>
+          <div id="import-status" class="hint"></div>
+          <div id="import-review" class="report"></div>
+        </section>
       </section>
 
       <section class="tab-panel" data-tab-panel="tokens">
@@ -61,44 +154,64 @@
       </section>
 
       <section class="tab-panel" data-tab-panel="coverage">
-        <div class="panel-row">
-          <button type="button" id="scan-coverage" class="primary">Scan page</button>
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Coverage</p>
+              <h2>Page scan</h2>
+            </div>
+            <button type="button" id="scan-coverage" class="primary">Scan page</button>
+          </div>
           <span id="coverage-summary" class="summary"></span>
-        </div>
-        <div id="coverage-output" class="report"></div>
+          <div id="coverage-output" class="report"></div>
+        </section>
       </section>
 
       <section class="tab-panel" data-tab-panel="contrast">
-        <div class="panel-row">
-          <button type="button" id="scan-contrast" class="primary">Audit contrast</button>
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Contrast</p>
+              <h2>APCA audit</h2>
+            </div>
+            <button type="button" id="scan-contrast" class="primary">Audit contrast</button>
+          </div>
           <span id="contrast-summary" class="summary"></span>
-        </div>
-        <div id="contrast-output" class="report"></div>
+          <div id="contrast-output" class="report"></div>
+        </section>
       </section>
 
       <section class="tab-panel" data-tab-panel="overrides">
-        <div class="panel-row">
-          <label for="override-token">Token</label>
-          <select id="override-token"></select>
-          <button type="button" id="clear-overrides" class="secondary">Clear all</button>
-        </div>
-        <div id="override-sliders" class="sliders"></div>
-        <div class="panel-row push-row">
-          <label class="switch">
-            <input type="checkbox" id="override-persist" />
-            <span>Persist to engine</span>
-          </label>
-          <select id="override-mode">
-            <option value="both">Light &amp; Dark</option>
-            <option value="light">Light only</option>
-            <option value="dark">Dark only</option>
-          </select>
-          <button type="button" id="push-override" class="primary">Push to semantic-colors</button>
-        </div>
-        <p id="override-hint" class="hint">
-          Overrides inject <code>!important</code> --theme-* and --color-* variables on :root of the
-          inspected page. Push to engine updates the authoring tool in real time.
-        </p>
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Hot overrides</p>
+              <h2>Page-only live injection</h2>
+            </div>
+          </div>
+          <div class="panel-row">
+            <label for="override-token">Token</label>
+            <select id="override-token"></select>
+            <button type="button" id="clear-overrides" class="secondary">Clear all</button>
+          </div>
+          <div id="override-sliders" class="editor-stack"></div>
+          <div class="panel-row">
+            <label class="switch">
+              <input type="checkbox" id="override-persist" />
+              <span>Persist to engine</span>
+            </label>
+            <select id="override-mode">
+              <option value="both">Light &amp; Dark</option>
+              <option value="light">Light only</option>
+              <option value="dark">Dark only</option>
+            </select>
+            <button type="button" id="push-override" class="primary">Push override</button>
+          </div>
+          <p id="override-hint" class="hint">
+            These overrides stay separate from the new draft authoring tabs so you can keep using
+            the old page-level experimentation workflow.
+          </p>
+        </section>
       </section>
     </main>
     <script src="panel.js"></script>

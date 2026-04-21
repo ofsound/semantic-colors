@@ -28,6 +28,7 @@
     ...DEFAULT_PROJECT_CONFIG
   });
   let configPath = $state('');
+  let sidebarCollapsed = $state(false);
   let selectedTokenId = $state<TokenId>('surface');
   let activeMode = $state<ThemeMode>('light');
   let holdPreviewStartedAt = 0;
@@ -233,6 +234,10 @@
   function tokenLabel(tokenId: TokenId): string {
     return manifest.tokens[tokenId].label;
   }
+
+  function toggleSidebar(): void {
+    sidebarCollapsed = !sidebarCollapsed;
+  }
 </script>
 
 <svelte:window onkeydown={handleKeydown} onkeyup={handleKeyup} />
@@ -243,8 +248,15 @@
 
 <a class="skip-link" href="#preview-stage">Skip to preview harness</a>
 
-<div class="semantic-colors-app workspace">
-  <aside class="sidebar">
+<div
+  class={`semantic-colors-app workspace ${sidebarCollapsed ? 'workspace-sidebar-collapsed' : ''}`}
+>
+  <aside class={`sidebar ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+    <div class="sidebar-toolbar">
+      <button class="ghost-button" onclick={toggleSidebar} type="button">
+        {sidebarCollapsed ? 'Show Authoring Panels' : 'Collapse Sidebar'}
+      </button>
+    </div>
     <ProjectPanel
       bind:config
       bind:configPath
@@ -257,35 +269,37 @@
       onReload={workspace.reloadProject}
       onRetrySave={workspace.retrySave}
     />
-    <ModeControls
-      bind:manifest
-      onPersistChange={workspace.markPersistDirty}
-      {activeMode}
-      {setTheme}
-      {updateAltDelta}
-    />
-    <TokenEditor
-      bind:manifest
-      {activeMode}
-      {currentTokenAlt}
-      onPersistChange={workspace.markPersistDirty}
-      {selectedTokenId}
-      {selectedTokenNotes}
-      {setTheme}
-      {tokenLabel}
-    />
-    <AliasPanel {addAlias} {manifest} {removeAlias} {tokenLabel} {updateAlias} />
-    <ImportReview
-      bind:config
-      bind:importSelection={workspace.importSelection}
-      applyImportReview={workspace.applyImportReview}
-      {confirmResetManifest}
-      importProposal={workspace.importProposal}
-      isImporting={workspace.isImporting}
-      onPersistChange={workspace.markPersistDirty}
-      runImport={workspace.runImport}
-      {tokenLabel}
-    />
+    {#if !sidebarCollapsed}
+      <ModeControls
+        bind:manifest
+        onPersistChange={workspace.markPersistDirty}
+        {activeMode}
+        {setTheme}
+        {updateAltDelta}
+      />
+      <TokenEditor
+        bind:manifest
+        {activeMode}
+        {currentTokenAlt}
+        onPersistChange={workspace.markPersistDirty}
+        {selectedTokenId}
+        {selectedTokenNotes}
+        {setTheme}
+        {tokenLabel}
+      />
+      <AliasPanel {addAlias} {manifest} {removeAlias} {tokenLabel} {updateAlias} />
+      <ImportReview
+        bind:config
+        bind:importSelection={workspace.importSelection}
+        applyImportReview={workspace.applyImportReview}
+        {confirmResetManifest}
+        importProposal={workspace.importProposal}
+        isImporting={workspace.isImporting}
+        onPersistChange={workspace.markPersistDirty}
+        runImport={workspace.runImport}
+        {tokenLabel}
+      />
+    {/if}
   </aside>
 
   <main class="stage-shell">

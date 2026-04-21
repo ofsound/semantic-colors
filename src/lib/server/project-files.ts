@@ -3,6 +3,7 @@ import path from 'node:path';
 import { createDefaultManifest } from '$lib/theme/defaults';
 import { generateThemeCss } from '$lib/theme/css';
 import { extractImportProposal } from '$lib/theme/importer';
+import { projectConfigSchema, themeManifestSchema } from '$lib/server/contracts';
 import type { ImportProposal, ProjectConfig, ThemeManifest } from '$lib/theme/schema';
 import { DEFAULT_PROJECT_CONFIG } from '$lib/theme/schema';
 
@@ -136,7 +137,7 @@ export async function loadWorkspaceState(cwd: string, requestedConfigPath?: stri
   let config = configWithDefaults(path.dirname(configPath));
   if (rawConfig) {
     try {
-      const parsed = JSON.parse(rawConfig) as Partial<ProjectConfig>;
+      const parsed = projectConfigSchema.parse(JSON.parse(rawConfig));
       config = configWithDefaults(path.dirname(configPath), parsed);
     } catch {
       config = configWithDefaults(path.dirname(configPath));
@@ -150,10 +151,7 @@ export async function loadWorkspaceState(cwd: string, requestedConfigPath?: stri
   let manifest: ThemeManifest = createDefaultManifest();
   if (rawManifest) {
     try {
-      manifest = {
-        ...createDefaultManifest(),
-        ...(JSON.parse(rawManifest) as ThemeManifest)
-      };
+      manifest = themeManifestSchema.parse(JSON.parse(rawManifest));
     } catch {
       manifest = createDefaultManifest();
     }

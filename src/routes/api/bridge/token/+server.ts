@@ -1,5 +1,6 @@
 import { error, json } from '@sveltejs/kit';
 import { z, ZodError } from 'zod';
+import { applyBridgeDraftCommands, createTokenColorCommand } from '$lib/server/bridge-draft';
 import { bridgeState } from '$lib/server/bridge-state';
 import {
   ProjectFilesAccessError,
@@ -7,7 +8,7 @@ import {
   saveWorkspaceState
 } from '$lib/server/project-files';
 import { ALL_TOKEN_IDS } from '$lib/theme/schema';
-import type { OklchColor, ThemeManifest, TokenId } from '$lib/theme/schema';
+import type { TokenId } from '$lib/theme/schema';
 import type { RequestHandler } from './$types';
 
 const oklchSchema = z
@@ -32,59 +33,47 @@ const tokenRequestSchema = z
   })
   .strict();
 
-function applyOverride(
-  manifest: ThemeManifest,
-  tokenId: TokenId,
-  mode: 'light' | 'dark' | 'both',
-  color: OklchColor
-): ThemeManifest {
-  const next: ThemeManifest = {
-    ...manifest,
-    tokens: { ...manifest.tokens }
-  };
-  const existing = next.tokens[tokenId];
-  if (!existing) {
-    return next;
-  }
-  const updated = { ...existing };
-  if (mode === 'light' || mode === 'both') {
-    updated.light = { ...color };
-  }
-  if (mode === 'dark' || mode === 'both') {
-    updated.dark = { ...color };
-  }
-  next.tokens[tokenId] = updated;
-  next.updatedAt = new Date().toISOString();
-  return next;
-}
-
 export const POST: RequestHandler = async ({ request }) => {
   try {
     const payload = tokenRequestSchema.parse(await request.json());
-    const current = bridgeState.snapshot();
-    const nextManifest = applyOverride(
-      current.manifest,
-      payload.tokenId,
-      payload.mode,
-      payload.color
-    );
-
+    let current = bridgeState.snapshot();
     const configPath = payload.configPath || current.configPath;
+
+    if (!current.configPath || (configPath && current.configPath !== configPath)) {
+      const workspace = await loadWorkspaceState(process.cwd(), configPath);
+      current = bridgeState.syncPersisted(workspace.manifest, workspace.configPath, 'server');
+    }
+
+    const nextManifest = applyBridgeDraftCommands(current.manifest, [
+      createTokenColorCommand(payload.tokenId, payload.mode, payload.color)
+    ]);
 
     if (payload.persist && !configPath) {
       throw error(400, 'Persisted overrides require an active project config path.');
     }
 
+    const stagedSnapshot = bridgeState.stage(nextManifest, configPath, 'extension');
+
     if (payload.persist && configPath) {
       const workspace = await loadWorkspaceState(process.cwd(), configPath);
-      await saveWorkspaceState(process.cwd(), workspace.configPath, workspace.config, nextManifest);
+      await saveWorkspaceState(
+        process.cwd(),
+        workspace.configPath,
+        workspace.config,
+        stagedSnapshot.manifest
+      );
+      const committed = bridgeState.syncPersisted(stagedSnapshot.manifest, configPath, 'extension');
+      return json({
+        ok: true,
+        version: committed.version,
+        persisted: true
+      });
     }
 
-    const snapshot = bridgeState.publish(nextManifest, configPath, 'extension');
     return json({
       ok: true,
-      version: snapshot.version,
-      persisted: Boolean(payload.persist && configPath)
+      version: stagedSnapshot.version,
+      persisted: false
     });
   } catch (caughtError) {
     if (caughtError instanceof ZodError) {

@@ -1,4 +1,4 @@
-import type { BridgeSnapshot, OklchColor } from './types';
+import type { BridgeDraftCommand, BridgeSnapshot, OklchColor } from './types';
 
 export type BridgeStatus = 'idle' | 'connecting' | 'connected' | 'error';
 
@@ -63,6 +63,49 @@ export class BridgeClient {
     });
     if (!response.ok) {
       throw new Error(`Override failed with status ${response.status}`);
+    }
+  }
+
+  async applyDraft(
+    commands: BridgeDraftCommand[],
+    options: { configPath?: string } = {}
+  ): Promise<void> {
+    const response = await fetch(`${this.options.getBaseUrl()}/api/bridge/draft`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        configPath: options.configPath,
+        commands
+      })
+    });
+    if (!response.ok) {
+      throw new Error(`Draft update failed with status ${response.status}`);
+    }
+  }
+
+  async commitDraft(options: { configPath?: string } = {}): Promise<void> {
+    const response = await fetch(`${this.options.getBaseUrl()}/api/bridge/commit`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        configPath: options.configPath
+      })
+    });
+    if (!response.ok) {
+      throw new Error(`Commit failed with status ${response.status}`);
+    }
+  }
+
+  async discardDraft(options: { configPath?: string } = {}): Promise<void> {
+    const response = await fetch(`${this.options.getBaseUrl()}/api/bridge/discard`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        configPath: options.configPath
+      })
+    });
+    if (!response.ok) {
+      throw new Error(`Discard failed with status ${response.status}`);
     }
   }
 

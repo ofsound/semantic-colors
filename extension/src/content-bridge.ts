@@ -3,7 +3,9 @@ import {
   HIGHLIGHT_ATTR,
   INSPECTOR_OVERLAY_ID,
   INSPECTOR_STYLE_ID,
-  OVERRIDE_STYLE_ID
+  PREVIEW_STYLE_ID,
+  OVERRIDE_STYLE_ID,
+  SELECTED_ATTR
 } from './shared/constants';
 import type { ContentMessageEnvelope } from './shared/messaging';
 import type {
@@ -12,24 +14,21 @@ import type {
   ContrastFinding,
   ContrastReport,
   CoverageReport,
+  ElementTokenMatch,
   HoverElementPayload,
   PanelToContentMessage
 } from './shared/types';
 
-/**
- * Content bridge: runs in every inspected page. Receives commands from the
- * panel (via background SW) and performs DOM inspection / mutation in the
- * live product page.
- */
-
 const state = {
   hoverActive: false,
   hoverTarget: null as HTMLElement | null,
+  selectedTarget: null as HTMLElement | null,
   highlightedToken: null as string | null,
-  tokenColorMap: new Map<string, string>(), // normalized rgb(a) → tokenId
-  tokenCssByTokenId: new Map<string, string>(), // tokenId → `--theme-foo` css
-  aliasMap: new Map<string, string>(), // alias name (no `--`) → tokenId
-  overrides: new Map<string, string>(), // tokenId → css value
+  snapshot: null as BridgeSnapshot | null,
+  overrides: new Map<string, string>(),
+  tokenColorMap: new Map<string, string>(),
+  tokenCssByTokenId: new Map<string, string>(),
+  aliasMap: new Map<string, string>(),
   liveThemeBaseline: null as { hadAttribute: boolean; value: string | null } | null
 };
 
@@ -72,6 +71,15 @@ function elementSelector(el: Element): string {
   return parts.join(' > ');
 }
 
+function aliasesForToken(tokenId: string | null): string[] {
+  if (!tokenId) return [];
+  const aliases: string[] = [];
+  for (const [alias, mappedTokenId] of state.aliasMap) {
+    if (mappedTokenId === tokenId) aliases.push(`--${alias}`);
+  }
+  return aliases;
+}
+
 function findOpaqueBackground(el: Element): { el: Element; color: string } | null {
   let current: Element | null = el;
   while (current && current !== document.documentElement) {
@@ -88,8 +96,6 @@ function findOpaqueBackground(el: Element): { el: Element; color: string } | nul
   }
   return null;
 }
-
-// --- Hover inspector ------------------------------------------------------
 
 function ensureInspectorStyle(): void {
   if (document.getElementById(INSPECTOR_STYLE_ID)) return;
@@ -110,6 +116,10 @@ function ensureInspectorStyle(): void {
       outline: 2px dashed #ff7ab6 !important;
       outline-offset: 1px !important;
     }
+    [${SELECTED_ATTR}] {
+      outline: 2px solid #7c9eff !important;
+      outline-offset: 2px !important;
+    }
   `;
   document.documentElement.appendChild(style);
 }
@@ -128,28 +138,58 @@ function clearInspectorOverlay(): void {
   document.getElementById(INSPECTOR_OVERLAY_ID)?.remove();
 }
 
-function buildHoverPayload(el: HTMLElement): HoverElementPayload {
+function positionOverlay(target: HTMLElement | null): void {
+  if (!target || state.selectedTarget) {
+    clearInspectorOverlay();
+    return;
+  }
+
+  const overlay = ensureInspectorOverlay();
+  const rect = target.getBoundingClientRect();
+  overlay.style.left = `${rect.left}px`;
+  overlay.style.top = `${rect.top}px`;
+  overlay.style.width = `${rect.width}px`;
+  overlay.style.height = `${rect.height}px`;
+}
+
+function elementMatches(el: HTMLElement): ElementTokenMatch[] {
+  const computed = window.getComputedStyle(el);
+  const foregroundToken = tokenFor(computed.color);
+  const backgroundToken = tokenFor(computed.backgroundColor);
+  const borderToken = tokenFor(computed.borderTopColor);
+
+  return [
+    {
+      channel: 'foreground',
+      tokenId: foregroundToken,
+      aliases: aliasesForToken(foregroundToken),
+      cssValue: computed.color
+    },
+    {
+      channel: 'background',
+      tokenId: backgroundToken,
+      aliases: aliasesForToken(backgroundToken),
+      cssValue: computed.backgroundColor
+    },
+    {
+      channel: 'border',
+      tokenId: borderToken,
+      aliases: aliasesForToken(borderToken),
+      cssValue: computed.borderTopColor
+    }
+  ];
+}
+
+function buildElementPayload(el: HTMLElement, selected: boolean): HoverElementPayload {
   const computed = window.getComputedStyle(el);
   const bg = findOpaqueBackground(el);
   const fg = computed.color;
-
-  const fgToken = tokenFor(fg);
-  const bgToken = bg ? tokenFor(bg.color) : null;
-  const matchedToken = fgToken ?? bgToken;
-  const matchedChannel = fgToken ? 'color' : bgToken ? 'background' : null;
 
   let contrastLc: number | null = null;
   const fgParsed = parseCssColor(fg);
   const bgParsed = bg ? parseCssColor(bg.color) : null;
   if (fgParsed && bgParsed) {
     contrastLc = Math.round(apcaContrast(fgParsed, bgParsed) * 10) / 10;
-  }
-
-  const aliasChain: string[] = [];
-  if (matchedToken) {
-    for (const [alias, tokenId] of state.aliasMap) {
-      if (tokenId === matchedToken) aliasChain.push(`--${alias}`);
-    }
   }
 
   const rect = el.getBoundingClientRect();
@@ -160,13 +200,39 @@ function buildHoverPayload(el: HTMLElement): HoverElementPayload {
     classes: [...el.classList],
     role: el.getAttribute('role'),
     computedColor: fg,
-    computedBackground: bg?.color ?? null,
-    matchedToken,
-    matchedTokenChannel: matchedChannel,
-    aliasChain,
+    computedBackground: bg?.color ?? computed.backgroundColor,
+    computedBorder: computed.borderTopColor,
+    matches: elementMatches(el),
     contrastLc,
+    selected,
     rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
   };
+}
+
+function emitSelectionPayload(): void {
+  if (!state.selectedTarget) return;
+  send({ kind: 'selected-element', payload: buildElementPayload(state.selectedTarget, true) });
+}
+
+function emitHoverPayload(): void {
+  if (!state.hoverTarget || state.selectedTarget) return;
+  send({ kind: 'hover-element', payload: buildElementPayload(state.hoverTarget, false) });
+}
+
+function setSelectedTarget(target: HTMLElement | null): void {
+  if (state.selectedTarget === target) return;
+  state.selectedTarget?.removeAttribute(SELECTED_ATTR);
+  state.selectedTarget = target;
+  if (!target) {
+    send({ kind: 'selection-cleared' });
+    positionOverlay(state.hoverTarget);
+    return;
+  }
+
+  ensureInspectorStyle();
+  target.setAttribute(SELECTED_ATTR, '1');
+  clearInspectorOverlay();
+  emitSelectionPayload();
 }
 
 function handleHoverMove(event: MouseEvent): void {
@@ -175,22 +241,27 @@ function handleHoverMove(event: MouseEvent): void {
   if (!(target instanceof HTMLElement)) return;
   if (target.id === INSPECTOR_OVERLAY_ID) return;
   state.hoverTarget = target;
-
-  const overlay = ensureInspectorOverlay();
-  const rect = target.getBoundingClientRect();
-  overlay.style.left = `${rect.left}px`;
-  overlay.style.top = `${rect.top}px`;
-  overlay.style.width = `${rect.width}px`;
-  overlay.style.height = `${rect.height}px`;
-
-  send({ kind: 'hover-element', payload: buildHoverPayload(target) });
+  positionOverlay(target);
+  emitHoverPayload();
 }
 
 function handleHoverLeave(): void {
   if (!state.hoverActive) return;
   state.hoverTarget = null;
-  clearInspectorOverlay();
+  if (!state.selectedTarget) {
+    clearInspectorOverlay();
+  }
   send({ kind: 'hover-cleared' });
+}
+
+function handleDocumentClick(event: MouseEvent): void {
+  if (!state.hoverActive) return;
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+  if (target.id === INSPECTOR_OVERLAY_ID) return;
+  event.preventDefault();
+  event.stopPropagation();
+  setSelectedTarget(target);
 }
 
 function setHoverActive(enabled: boolean): void {
@@ -199,14 +270,16 @@ function setHoverActive(enabled: boolean): void {
     ensureInspectorStyle();
     document.addEventListener('mousemove', handleHoverMove, true);
     document.addEventListener('mouseleave', handleHoverLeave, true);
+    document.addEventListener('click', handleDocumentClick, true);
   } else {
     document.removeEventListener('mousemove', handleHoverMove, true);
     document.removeEventListener('mouseleave', handleHoverLeave, true);
-    clearInspectorOverlay();
+    document.removeEventListener('click', handleDocumentClick, true);
+    if (!state.selectedTarget) {
+      clearInspectorOverlay();
+    }
   }
 }
-
-// --- Highlight by token ---------------------------------------------------
 
 function clearHighlights(): void {
   document.querySelectorAll(`[${HIGHLIGHT_ATTR}]`).forEach((node) => {
@@ -233,8 +306,6 @@ function highlightToken(tokenId: string | null): void {
   });
 }
 
-// --- Theme mode ------------------------------------------------------------
-
 function setThemeMode(mode: string | null): void {
   const root = document.documentElement;
 
@@ -247,20 +318,61 @@ function setThemeMode(mode: string | null): void {
       }
       state.liveThemeBaseline = null;
     }
+  } else {
+    if (!state.liveThemeBaseline) {
+      state.liveThemeBaseline = {
+        hadAttribute: root.hasAttribute('data-theme'),
+        value: root.getAttribute('data-theme')
+      };
+    }
+
+    root.dataset.theme = mode;
+  }
+
+  rebuildTokenLookup();
+  flushPreviewStyle();
+  emitSelectionPayload();
+  emitHoverPayload();
+}
+
+function previewMode(): 'light' | 'dark' | 'alt' {
+  const activeMode = document.documentElement.dataset.theme;
+  if (activeMode === 'dark' || activeMode === 'alt') return activeMode;
+  return 'light';
+}
+
+function ensurePreviewStyle(): HTMLStyleElement {
+  let style = document.getElementById(PREVIEW_STYLE_ID) as HTMLStyleElement | null;
+  if (!style) {
+    style = document.createElement('style');
+    style.id = PREVIEW_STYLE_ID;
+    document.documentElement.appendChild(style);
+  }
+  return style;
+}
+
+function flushPreviewStyle(): void {
+  const style = ensurePreviewStyle();
+  if (!state.snapshot) {
+    style.textContent = '';
     return;
   }
 
-  if (!state.liveThemeBaseline) {
-    state.liveThemeBaseline = {
-      hadAttribute: root.hasAttribute('data-theme'),
-      value: root.getAttribute('data-theme')
-    };
-  }
+  const resolved = state.snapshot.resolved[previewMode()] ?? state.snapshot.resolved.light;
+  const declarations = Object.entries(resolved.colors)
+    .map(
+      ([tokenId, payload]) =>
+        `  --theme-${tokenId}: ${payload.css} !important;\n  --color-${tokenId}: ${payload.css} !important;`
+    )
+    .join('\n');
+  const aliases = state.snapshot.manifest.aliases
+    .map(
+      (alias) => `  --${alias.name.replace(/^--/, '')}: var(--color-${alias.tokenId}) !important;`
+    )
+    .join('\n');
 
-  root.dataset.theme = mode;
+  style.textContent = `:root, :root[data-theme] {\n${declarations}\n${aliases}\n}`;
 }
-
-// --- Overrides ------------------------------------------------------------
 
 function ensureOverrideStyle(): HTMLStyleElement {
   let style = document.getElementById(OVERRIDE_STYLE_ID) as HTMLStyleElement | null;
@@ -278,6 +390,7 @@ function flushOverrideStyle(): void {
     style.textContent = '';
     return;
   }
+
   const declarations = [...state.overrides]
     .map(
       ([tokenId, css]) =>
@@ -301,28 +414,23 @@ function clearAllOverrides(): void {
   flushOverrideStyle();
 }
 
-// --- Snapshot update ------------------------------------------------------
-
-function applySnapshot(snapshot: BridgeSnapshot): void {
+function rebuildTokenLookup(): void {
   state.tokenColorMap.clear();
   state.tokenCssByTokenId.clear();
   state.aliasMap.clear();
 
-  const rootStyle = window.getComputedStyle(document.documentElement);
-  const activeMode = (document.documentElement.dataset.theme ?? 'light') as
-    | 'light'
-    | 'dark'
-    | 'alt';
+  if (!state.snapshot) {
+    return;
+  }
 
-  const resolved = snapshot.resolved[activeMode] ?? snapshot.resolved.light;
+  const rootStyle = window.getComputedStyle(document.documentElement);
+  const resolved = state.snapshot.resolved[previewMode()] ?? state.snapshot.resolved.light;
   for (const [tokenId, resolvedColor] of Object.entries(resolved.colors)) {
     state.tokenCssByTokenId.set(tokenId, resolvedColor.css);
-    // Index by the browser's normalized rgb form.
+
     const key = normalizeRgb(resolvedColor.css);
     if (key) state.tokenColorMap.set(key, tokenId);
 
-    // Also index by the actual computed var value, in case the page resolves
-    // tokens with slight gamut differences from our engine output.
     const live = rootStyle.getPropertyValue(`--theme-${tokenId}`);
     const liveKey = normalizeRgb(live);
     if (liveKey) state.tokenColorMap.set(liveKey, tokenId);
@@ -332,15 +440,22 @@ function applySnapshot(snapshot: BridgeSnapshot): void {
     if (colorLiveKey) state.tokenColorMap.set(colorLiveKey, tokenId);
   }
 
-  for (const alias of snapshot.manifest.aliases) {
-    state.aliasMap.set(alias.name.replace(/^--/, ''), alias.tokenId);
-    const aliasValue = rootStyle.getPropertyValue(`--${alias.name.replace(/^--/, '')}`);
+  for (const alias of state.snapshot.manifest.aliases) {
+    const aliasName = alias.name.replace(/^--/, '');
+    state.aliasMap.set(aliasName, alias.tokenId);
+    const aliasValue = rootStyle.getPropertyValue(`--${aliasName}`);
     const aliasKey = normalizeRgb(aliasValue);
     if (aliasKey) state.tokenColorMap.set(aliasKey, alias.tokenId);
   }
 }
 
-// --- Coverage scan --------------------------------------------------------
+function applySnapshot(snapshot: BridgeSnapshot): void {
+  state.snapshot = snapshot;
+  rebuildTokenLookup();
+  flushPreviewStyle();
+  emitSelectionPayload();
+  emitHoverPayload();
+}
 
 function rootCustomProperties(): Record<string, string> {
   const result: Record<string, string> = {};
@@ -380,7 +495,6 @@ function scanCoverage(): CoverageReport {
       } else {
         const parsed = parseCssColor(value);
         if (parsed && parsed.alpha > 0 && violations.length < rawColorLimit) {
-          // Filter out "default" colors to avoid noise.
           if (!(parsed.r === 0 && parsed.g === 0 && parsed.b === 0 && prop !== 'color')) {
             violations.push({ selector: elementSelector(el), property: prop, value });
           }
@@ -399,8 +513,6 @@ function scanCoverage(): CoverageReport {
     rootVariables: rootCustomProperties()
   };
 }
-
-// --- Contrast audit -------------------------------------------------------
 
 function hasDirectText(el: Element): boolean {
   for (const child of el.childNodes) {
@@ -453,18 +565,9 @@ function scanContrast(): ContrastReport {
   return { sampled, findings: findings.slice(0, 80) };
 }
 
-// --- Message dispatch -----------------------------------------------------
-
 function handlePanelMessage(message: PanelToContentMessage): void {
   switch (message.kind) {
     case 'ping':
-      send({
-        kind: 'page-info',
-        url: location.href,
-        title: document.title,
-        theme: document.documentElement.dataset.theme ?? null
-      });
-      break;
     case 'page-info':
       send({
         kind: 'page-info',
@@ -476,8 +579,22 @@ function handlePanelMessage(message: PanelToContentMessage): void {
     case 'hover-inspector':
       setHoverActive(message.enabled);
       break;
+    case 'select-element':
+      setSelectedTarget(state.hoverTarget);
+      break;
+    case 'clear-selection':
+      setSelectedTarget(null);
+      break;
     case 'highlight-token':
+    case 'focus-token':
+    case 'reveal-token-usage':
       highlightToken(message.tokenId);
+      break;
+    case 'override-token':
+      setOverride(message.tokenId, message.css);
+      break;
+    case 'clear-all-overrides':
+      clearAllOverrides();
       break;
     case 'set-theme':
       setThemeMode(message.mode);
@@ -487,12 +604,6 @@ function handlePanelMessage(message: PanelToContentMessage): void {
         title: document.title,
         theme: document.documentElement.dataset.theme ?? null
       });
-      break;
-    case 'override-token':
-      setOverride(message.tokenId, message.css);
-      break;
-    case 'clear-all-overrides':
-      clearAllOverrides();
       break;
     case 'update-snapshot':
       applySnapshot(message.snapshot);

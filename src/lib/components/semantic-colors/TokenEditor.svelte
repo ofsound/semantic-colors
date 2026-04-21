@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AnchorColorPicker from '$lib/components/semantic-colors/AnchorColorPicker.svelte';
   import { toCssColor } from '$lib/theme/color';
   import type { OklchColor, ThemeManifest, ThemeMode, TokenId } from '$lib/theme/schema';
 
@@ -74,67 +75,70 @@
       <strong>Light anchor</strong>
       <span>{activeMode === 'light' ? 'Editing focus' : 'Anchor remains inspectable'}</span>
     </div>
-    <div class="channel-grid">
-      <label class="channel">
-        <span>L</span>
-        <input
-          bind:value={selectedToken.light.l}
-          max="1"
-          min="0"
-          oninput={onPersistChange}
-          step="0.005"
-          type="range"
-        />
-        <input
-          class="number-field"
-          max="1"
-          min="0"
-          oninput={onPersistChange}
-          step="0.005"
-          type="number"
-          bind:value={selectedToken.light.l}
-        />
-      </label>
-      <label class="channel">
-        <span>C</span>
-        <input
-          bind:value={selectedToken.light.c}
-          max="0.37"
-          min="0"
-          oninput={onPersistChange}
-          step="0.005"
-          type="range"
-        />
-        <input
-          class="number-field"
-          max="0.37"
-          min="0"
-          oninput={onPersistChange}
-          step="0.005"
-          type="number"
-          bind:value={selectedToken.light.c}
-        />
-      </label>
-      <label class="channel">
-        <span>H</span>
-        <input
-          bind:value={selectedToken.light.h}
-          max="360"
-          min="0"
-          oninput={onPersistChange}
-          step="1"
-          type="range"
-        />
-        <input
-          class="number-field"
-          max="360"
-          min="0"
-          oninput={onPersistChange}
-          step="1"
-          type="number"
-          bind:value={selectedToken.light.h}
-        />
-      </label>
+    <div class="anchor-layout">
+      <AnchorColorPicker bind:color={selectedToken.light} label="Light anchor" {onPersistChange} />
+      <div class="channel-grid">
+        <label class="channel">
+          <span>L</span>
+          <input
+            bind:value={selectedToken.light.l}
+            max="1"
+            min="0"
+            oninput={onPersistChange}
+            step="0.005"
+            type="range"
+          />
+          <input
+            class="number-field"
+            max="1"
+            min="0"
+            oninput={onPersistChange}
+            step="0.005"
+            type="number"
+            bind:value={selectedToken.light.l}
+          />
+        </label>
+        <label class="channel">
+          <span>C</span>
+          <input
+            bind:value={selectedToken.light.c}
+            max="0.37"
+            min="0"
+            oninput={onPersistChange}
+            step="0.005"
+            type="range"
+          />
+          <input
+            class="number-field"
+            max="0.37"
+            min="0"
+            oninput={onPersistChange}
+            step="0.005"
+            type="number"
+            bind:value={selectedToken.light.c}
+          />
+        </label>
+        <label class="channel">
+          <span>H</span>
+          <input
+            bind:value={selectedToken.light.h}
+            max="360"
+            min="0"
+            oninput={onPersistChange}
+            step="1"
+            type="range"
+          />
+          <input
+            class="number-field"
+            max="360"
+            min="0"
+            oninput={onPersistChange}
+            step="1"
+            type="number"
+            bind:value={selectedToken.light.h}
+          />
+        </label>
+      </div>
     </div>
   </div>
 
@@ -143,67 +147,70 @@
       <strong>Dark anchor</strong>
       <span>{activeMode === 'dark' ? 'Editing focus' : 'Anchor remains inspectable'}</span>
     </div>
-    <div class="channel-grid">
-      <label class="channel">
-        <span>L</span>
-        <input
-          bind:value={selectedToken.dark.l}
-          max="1"
-          min="0"
-          oninput={onPersistChange}
-          step="0.005"
-          type="range"
-        />
-        <input
-          class="number-field"
-          max="1"
-          min="0"
-          oninput={onPersistChange}
-          step="0.005"
-          type="number"
-          bind:value={selectedToken.dark.l}
-        />
-      </label>
-      <label class="channel">
-        <span>C</span>
-        <input
-          bind:value={selectedToken.dark.c}
-          max="0.37"
-          min="0"
-          oninput={onPersistChange}
-          step="0.005"
-          type="range"
-        />
-        <input
-          class="number-field"
-          max="0.37"
-          min="0"
-          oninput={onPersistChange}
-          step="0.005"
-          type="number"
-          bind:value={selectedToken.dark.c}
-        />
-      </label>
-      <label class="channel">
-        <span>H</span>
-        <input
-          bind:value={selectedToken.dark.h}
-          max="360"
-          min="0"
-          oninput={onPersistChange}
-          step="1"
-          type="range"
-        />
-        <input
-          class="number-field"
-          max="360"
-          min="0"
-          oninput={onPersistChange}
-          step="1"
-          type="number"
-          bind:value={selectedToken.dark.h}
-        />
-      </label>
+    <div class="anchor-layout">
+      <AnchorColorPicker bind:color={selectedToken.dark} label="Dark anchor" {onPersistChange} />
+      <div class="channel-grid">
+        <label class="channel">
+          <span>L</span>
+          <input
+            bind:value={selectedToken.dark.l}
+            max="1"
+            min="0"
+            oninput={onPersistChange}
+            step="0.005"
+            type="range"
+          />
+          <input
+            class="number-field"
+            max="1"
+            min="0"
+            oninput={onPersistChange}
+            step="0.005"
+            type="number"
+            bind:value={selectedToken.dark.l}
+          />
+        </label>
+        <label class="channel">
+          <span>C</span>
+          <input
+            bind:value={selectedToken.dark.c}
+            max="0.37"
+            min="0"
+            oninput={onPersistChange}
+            step="0.005"
+            type="range"
+          />
+          <input
+            class="number-field"
+            max="0.37"
+            min="0"
+            oninput={onPersistChange}
+            step="0.005"
+            type="number"
+            bind:value={selectedToken.dark.c}
+          />
+        </label>
+        <label class="channel">
+          <span>H</span>
+          <input
+            bind:value={selectedToken.dark.h}
+            max="360"
+            min="0"
+            oninput={onPersistChange}
+            step="1"
+            type="range"
+          />
+          <input
+            class="number-field"
+            max="360"
+            min="0"
+            oninput={onPersistChange}
+            step="1"
+            type="number"
+            bind:value={selectedToken.dark.h}
+          />
+        </label>
+      </div>
     </div>
   </div>
 
@@ -315,7 +322,14 @@
   }
 
   .channel-grid {
+    display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.85rem;
+  }
+
+  .anchor-layout {
+    display: grid;
+    gap: 0.85rem;
   }
 
   .number-field {
@@ -342,5 +356,12 @@
 
   .validation-issue {
     color: #991b1b;
+  }
+
+  @media (min-width: 900px) {
+    .anchor-layout {
+      grid-template-columns: minmax(0, 1.05fr) minmax(16rem, 1fr);
+      align-items: start;
+    }
   }
 </style>

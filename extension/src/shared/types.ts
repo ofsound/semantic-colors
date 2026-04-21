@@ -17,6 +17,27 @@ export interface TokenRecord {
   dark: OklchColor;
 }
 
+export interface ImportCandidate {
+  sourceName: string;
+  rawValue: string;
+  suggestedTokenId: string | null;
+  confidence: number;
+  reason: string;
+  light?: OklchColor | null;
+  dark?: OklchColor | null;
+}
+
+export interface ImportProposal {
+  sourcePath: string;
+  candidates: ImportCandidate[];
+}
+
+export interface BridgeDraftState {
+  dirty: boolean;
+  baseVersion: number;
+  lastEditor: 'ui' | 'extension' | 'server';
+}
+
 export interface ResolvedTokenPayload extends OklchColor {
   css: string;
 }
@@ -32,6 +53,7 @@ export interface BridgeSnapshot {
   updatedAt: string;
   origin: 'ui' | 'extension' | 'server';
   configPath: string;
+  draft: BridgeDraftState;
   manifest: {
     version: number;
     name: string;
@@ -60,6 +82,59 @@ export interface BridgeSnapshot {
   >;
 }
 
+export type BridgeDraftCommand =
+  | {
+      kind: 'update-token-color';
+      tokenId: string;
+      mode: 'light' | 'dark' | 'both';
+      color: OklchColor;
+    }
+  | {
+      kind: 'update-token-exception';
+      tokenId: string;
+      patch: {
+        altBehavior?: 'derive' | 'pin' | 'exclude';
+        maxChroma?: number | null;
+      };
+    }
+  | {
+      kind: 'update-alt-settings';
+      patch: {
+        source?: 'light' | 'dark';
+        harmonyLock?: boolean;
+        grayscalePreview?: boolean;
+        delta?: Partial<{ l: number; c: number; h: number }>;
+      };
+    }
+  | {
+      kind: 'add-alias';
+      alias: { name: string; tokenId: string };
+    }
+  | {
+      kind: 'update-alias';
+      index: number;
+      patch: { name?: string; tokenId?: string };
+    }
+  | {
+      kind: 'remove-alias';
+      index: number;
+    }
+  | {
+      kind: 'reset-manifest';
+    }
+  | {
+      kind: 'apply-import-review';
+      proposal: ImportProposal;
+      selection: Record<string, string>;
+    };
+
+export interface ElementTokenMatch {
+  channel: 'foreground' | 'background' | 'border';
+  tokenId: string | null;
+  aliases: string[];
+  cssValue: string | null;
+}
+
 export interface HoverElementPayload {
   selector: string;
   tagName: string;
@@ -67,10 +142,10 @@ export interface HoverElementPayload {
   role: string | null;
   computedColor: string | null;
   computedBackground: string | null;
-  matchedToken: string | null;
-  matchedTokenChannel: 'color' | 'background' | null;
-  aliasChain: string[];
+  computedBorder: string | null;
+  matches: ElementTokenMatch[];
   contrastLc: number | null;
+  selected: boolean;
   rect: { x: number; y: number; width: number; height: number };
 }
 
@@ -108,7 +183,11 @@ export type PanelToContentMessage =
   | { kind: 'ping' }
   | { kind: 'set-theme'; mode: ThemeMode | null }
   | { kind: 'hover-inspector'; enabled: boolean }
+  | { kind: 'select-element' }
+  | { kind: 'clear-selection' }
   | { kind: 'highlight-token'; tokenId: string | null }
+  | { kind: 'focus-token'; tokenId: string | null }
+  | { kind: 'reveal-token-usage'; tokenId: string | null }
   | { kind: 'override-token'; tokenId: string; css: string | null }
   | { kind: 'clear-all-overrides' }
   | {
@@ -127,7 +206,9 @@ export type PanelToContentMessage =
 export type ContentToPanelMessage =
   | { kind: 'hello'; url: string; title: string }
   | { kind: 'hover-element'; payload: HoverElementPayload }
+  | { kind: 'selected-element'; payload: HoverElementPayload }
   | { kind: 'hover-cleared' }
+  | { kind: 'selection-cleared' }
   | { kind: 'coverage-report'; report: CoverageReport }
   | { kind: 'contrast-report'; report: ContrastReport }
   | { kind: 'page-info'; url: string; title: string; theme: string | null }
