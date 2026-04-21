@@ -1,10 +1,9 @@
+import { t as importFromCss } from "../../../../../chunks/project-files.js";
 import { json } from "@sveltejs/kit";
-import { i as importFromCss } from "../../../../../chunks/project-files.js";
-const POST = async ({ request }) => {
-  const payload = await request.json();
-  const proposal = await importFromCss(payload.configPath, payload.sourcePath);
-  return json(proposal);
+//#region src/routes/api/project/import/+server.ts
+var POST = async ({ request }) => {
+	const payload = await request.json();
+	return json(await importFromCss(payload.configPath, payload.sourcePath));
 };
-export {
-  POST
-};
+//#endregion
+export { POST };

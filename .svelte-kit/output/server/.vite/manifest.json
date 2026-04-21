@@ -5,10 +5,13 @@
     "src": ".svelte-kit/generated/server/internal.js",
     "isEntry": true,
     "imports": [
-      "_root.js",
       "_environment.js",
       "_internal.js"
     ]
+  },
+  "_dev.js": {
+    "file": "chunks/dev.js",
+    "name": "dev"
   },
   "_engine.js": {
     "file": "chunks/engine.js",
@@ -22,20 +25,23 @@
     "file": "chunks/exports.js",
     "name": "exports",
     "imports": [
-      "_renderer.js",
-      "_root.js"
+      "_dev.js"
     ]
   },
-  "_false.js": {
-    "file": "chunks/false.js",
-    "name": "false"
+  "_index-server.js": {
+    "file": "chunks/index-server.js",
+    "name": "index-server",
+    "imports": [
+      "_dev.js"
+    ]
   },
   "_internal.js": {
     "file": "chunks/internal.js",
     "name": "internal",
     "imports": [
-      "_root.js",
-      "_environment.js"
+      "_index-server.js",
+      "_environment.js",
+      "_dev.js"
     ]
   },
   "_project-files.js": {
@@ -45,36 +51,20 @@
       "_engine.js"
     ]
   },
-  "_render-context.js": {
-    "file": "chunks/render-context.js",
-    "name": "render-context"
-  },
-  "_renderer.js": {
-    "file": "chunks/renderer.js",
-    "name": "renderer",
-    "imports": [
-      "_render-context.js"
-    ]
-  },
-  "_root.js": {
-    "file": "chunks/root.js",
-    "name": "root",
-    "imports": [
-      "_renderer.js",
-      "_false.js"
-    ]
-  },
   "_shared.js": {
     "file": "chunks/shared.js",
     "name": "shared",
     "imports": [
-      "_utils.js",
-      "_render-context.js"
+      "_index-server.js"
     ]
   },
   "_utils.js": {
     "file": "chunks/utils.js",
-    "name": "utils"
+    "name": "utils",
+    "imports": [
+      "_environment.js",
+      "_shared.js"
+    ]
   },
   "node_modules/@sveltejs/kit/src/runtime/app/server/remote/index.js": {
     "file": "remote-entry.js",
@@ -82,9 +72,9 @@
     "src": "node_modules/@sveltejs/kit/src/runtime/app/server/remote/index.js",
     "isEntry": true,
     "imports": [
-      "_shared.js",
-      "_false.js",
-      "_environment.js"
+      "_environment.js",
+      "_utils.js",
+      "_shared.js"
     ]
   },
   "node_modules/@sveltejs/kit/src/runtime/components/svelte-5/error.svelte": {
@@ -93,10 +83,12 @@
     "src": "node_modules/@sveltejs/kit/src/runtime/components/svelte-5/error.svelte",
     "isEntry": true,
     "imports": [
-      "_renderer.js",
+      "_index-server.js",
+      "_environment.js",
+      "_internal.js",
       "_exports.js",
-      "_root.js",
-      "_utils.js"
+      "_shared.js",
+      "_dev.js"
     ]
   },
   "node_modules/@sveltejs/kit/src/runtime/server/index.js": {
@@ -105,12 +97,12 @@
     "src": "node_modules/@sveltejs/kit/src/runtime/server/index.js",
     "isEntry": true,
     "imports": [
-      "_shared.js",
-      "_false.js",
       "_environment.js",
-      "_exports.js",
+      "_internal.js",
       "_utils.js",
-      "_internal.js"
+      "_exports.js",
+      "_shared.js",
+      "_dev.js"
     ]
   },
   "src/routes/+layout.svelte": {
@@ -119,10 +111,10 @@
     "src": "src/routes/+layout.svelte",
     "isEntry": true,
     "imports": [
-      "_renderer.js"
+      "_dev.js"
     ],
     "css": [
-      "_app/immutable/assets/_layout.C3n1nOEt.css"
+      "_app/immutable/assets/_layout.B_FH8XUK.css"
     ]
   },
   "src/routes/+page.server.ts": {
@@ -140,11 +132,12 @@
     "src": "src/routes/+page.svelte",
     "isEntry": true,
     "imports": [
-      "_renderer.js",
+      "_index-server.js",
+      "_dev.js",
       "_engine.js"
     ],
     "css": [
-      "_app/immutable/assets/_page.C3RgaQKW.css"
+      "_app/immutable/assets/_page.D0Q1OWgx.css"
     ]
   },
   "src/routes/api/project/import/+server.ts": {

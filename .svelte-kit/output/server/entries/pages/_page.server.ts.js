@@ -1,7 +1,7 @@
-import { l as loadWorkspaceState } from "../../chunks/project-files.js";
-const load = async () => {
-  return loadWorkspaceState(process.cwd());
+import { n as loadWorkspaceState } from "../../chunks/project-files.js";
+//#region src/routes/+page.server.ts
+var load = async () => {
+	return loadWorkspaceState(process.cwd());
 };
-export {
-  load
-};
+//#endregion
+export { load };
