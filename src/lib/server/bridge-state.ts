@@ -213,7 +213,14 @@ type GlobalWithBridge = typeof globalThis & { [k: symbol]: BridgeStateStore | un
 const globalRef = globalThis as GlobalWithBridge;
 
 function getStore(): BridgeStateStore {
-  if (!globalRef[globalKey]) {
+  const existing = globalRef[globalKey];
+  if (
+    !existing ||
+    typeof existing.stage !== 'function' ||
+    typeof existing.syncPersisted !== 'function' ||
+    typeof existing.discard !== 'function' ||
+    typeof existing.reset !== 'function'
+  ) {
     globalRef[globalKey] = new BridgeStateStore();
   }
   return globalRef[globalKey]!;

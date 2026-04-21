@@ -465,6 +465,91 @@ code {
   font-size: 12px;
 }
 
+.anchor-editor-layout {
+  display: grid;
+  gap: 12px;
+}
+
+.anchor-slider-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.picker-shell {
+  min-width: 0;
+  user-select: none;
+}
+
+.picker-stack {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 10px;
+}
+
+.picker-input-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.picker-inputs {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.picker-input {
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  border-radius: 10px;
+  padding: 0 10px;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.picker-input.is-invalid {
+  border-color: rgba(255, 135, 149, 0.6);
+  box-shadow: 0 0 0 1px rgba(255, 135, 149, 0.28);
+}
+
+.picker-swatch-preview {
+  width: 100%;
+  min-height: 72px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.picker-panel {
+  position: relative;
+  height: 150px;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.picker-panel:focus-visible {
+  outline: 2px solid rgba(120, 166, 255, 0.55);
+  outline-offset: 2px;
+}
+
+.picker-handle {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: white;
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.18),
+    0 2px 8px rgba(15, 23, 42, 0.22);
+  pointer-events: none;
+}
+
 .slider-row {
   display: grid;
   grid-template-columns: 28px 1fr 78px;
@@ -522,4 +607,28 @@ code {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.8px;
+}
+
+@media (min-width: 560px) {
+  .picker-input-row {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .picker-inputs {
+    flex: 1 1 auto;
+    min-width: 12ch;
+  }
+
+  .picker-swatch-preview {
+    flex: 0 0 108px;
+    min-height: 72px;
+  }
+}
+
+@media (min-width: 820px) {
+  .anchor-editor-layout {
+    grid-template-columns: minmax(0, 1.05fr) minmax(220px, 1fr);
+    align-items: start;
+  }
 }

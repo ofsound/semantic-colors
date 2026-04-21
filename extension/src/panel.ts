@@ -1,7 +1,21 @@
 import { BridgeClient } from './shared/bridge-client';
 import type { BridgeStatus } from './shared/bridge-client';
 import { DEFAULT_BRIDGE_URL, STORAGE_KEYS } from './shared/constants';
-import { formatOklch, oklchToCss } from './shared/color';
+import {
+  formatOklch,
+  hexToRgb,
+  hsvToRgb,
+  normalizeHexInput,
+  oklchToCss,
+  oklchToHex,
+  oklchToRgb,
+  pickerPointToHsv,
+  pickerPositionFromHsv,
+  parseRgbInput,
+  rgbToDisplayString,
+  rgbToHsv,
+  rgbToOklch
+} from './shared/color';
 import {
   addAlias,
   applyImportReview,
@@ -31,6 +45,8 @@ import type {
 } from './shared/types';
 
 const tabId = chrome.devtools.inspectedWindow.tabId;
+const PICKER_PANEL_BACKGROUND =
+  'linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0) 50%), linear-gradient(to bottom, rgba(255, 255, 255, 0) 50%, #fff 100%), linear-gradient(to right, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)';
 
 const state = {
   bridgeUrl: DEFAULT_BRIDGE_URL,
@@ -51,7 +67,12 @@ const state = {
   pageInfo: { url: '', title: '', theme: null as string | null },
   importSourcePath: '',
   importProposal: null as ImportProposal | null,
-  importSelection: {} as Record<string, string>
+  importSelection: {} as Record<string, string>,
+  pickerDrag: null as {
+    tokenId: string;
+    mode: 'light' | 'dark';
+    rect: DOMRect;
+  } | null
 };
 
 const el = {
@@ -564,6 +585,64 @@ function tokenRecord(tokenId: string): TokenRecord | null {
   return state.snapshot?.manifest.tokens[tokenId] ?? null;
 }
 
+function tokenAnchorColor(token: TokenRecord, mode: 'light' | 'dark'): OklchColor {
+  return mode === 'dark' ? token.dark : token.light;
+}
+
+function pickerMarkup(mode: 'light' | 'dark', color: OklchColor): string {
+  const hexValue = oklchToHex(color);
+  const rgbValue = oklchToRgb(color);
+  const hsvValue = rgbToHsv({ r: rgbValue.r, g: rgbValue.g, b: rgbValue.b });
+  const pointer = pickerPositionFromHsv(hsvValue);
+
+  return `
+    <div class="picker-shell">
+      <div class="picker-stack">
+        <div class="picker-input-row">
+          <div class="picker-inputs">
+            <input
+              type="text"
+              value="${escapeHtml(hexValue)}"
+              class="picker-input"
+              spellcheck="false"
+              aria-label="${mode} anchor hex color"
+              data-picker-input="hex"
+              data-picker-mode="${mode}"
+            />
+            <input
+              type="text"
+              value="${escapeHtml(rgbToDisplayString({ r: rgbValue.r, g: rgbValue.g, b: rgbValue.b }))}"
+              class="picker-input"
+              spellcheck="false"
+              aria-label="${mode} anchor rgb color"
+              data-picker-input="rgb"
+              data-picker-mode="${mode}"
+            />
+          </div>
+          <div class="picker-swatch-preview" style="background-color:${escapeHtml(hexValue)}"></div>
+        </div>
+        <div
+          class="picker-panel"
+          style="background:${PICKER_PANEL_BACKGROUND}"
+          role="slider"
+          tabindex="0"
+          aria-label="${mode} anchor hue and brightness"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="${Math.round(hsvValue.v)}"
+          aria-valuetext="${escapeHtml(`Hue: ${Math.round(hsvValue.h)}°, Saturation: ${Math.round(hsvValue.s)}%, Value: ${Math.round(hsvValue.v)}%`)}"
+          data-picker-plane="${mode}"
+        >
+          <div
+            class="picker-handle"
+            style="left:${pointer.xPercent}; top:${pointer.yPercent};"
+          ></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function renderEditorTokenOptions(): void {
   if (!state.snapshot) {
     el.editorToken.innerHTML = '<option value="">Connect to the engine first</option>';
@@ -623,9 +702,48 @@ async function applyTokenColorChange(
   const token = tokenRecord(tokenId);
   if (!token || !state.snapshot) return;
   const color = { ...(mode === 'dark' ? token.dark : token.light), [channel]: value };
+  await applyTokenModeColor(tokenId, mode, color);
+}
+
+async function applyTokenModeColor(
+  tokenId: string,
+  mode: 'light' | 'dark',
+  color: OklchColor
+): Promise<void> {
+  if (!state.snapshot) return;
   await bridge.applyDraft([updateTokenColor(tokenId, mode, color)], {
     configPath: state.snapshot.configPath
   });
+}
+
+async function applyPickerHsv(
+  tokenId: string,
+  mode: 'light' | 'dark',
+  hue: number,
+  saturation: number,
+  value: number
+): Promise<void> {
+  const rgb = hsvToRgb({ h: hue, s: saturation, v: value });
+  await applyTokenModeColor(tokenId, mode, rgbToOklch(rgb.r, rgb.g, rgb.b));
+}
+
+async function applyPickerPoint(
+  tokenId: string,
+  mode: 'light' | 'dark',
+  rect: DOMRect,
+  clientX: number,
+  clientY: number
+): Promise<void> {
+  const hsv = pickerPointToHsv(rect.width, rect.height, clientX - rect.left, clientY - rect.top);
+  await applyPickerHsv(tokenId, mode, hsv.h, hsv.s, hsv.v);
+}
+
+function setPickerInvalid(input: HTMLInputElement, invalid: boolean): void {
+  input.classList.toggle('is-invalid', invalid);
+}
+
+function pickerModeFromDataset(value: string | undefined): 'light' | 'dark' | null {
+  return value === 'light' || value === 'dark' ? value : null;
 }
 
 function attachTokenEditorHandlers(tokenId: string): void {
@@ -647,6 +765,119 @@ function attachTokenEditorHandlers(tokenId: string): void {
           error instanceof Error ? error.message : 'token update failed'
         );
       }
+    });
+  });
+
+  el.tokenEditor.querySelectorAll<HTMLInputElement>('[data-picker-input]').forEach((input) => {
+    input.addEventListener('input', () => {
+      setPickerInvalid(input, false);
+    });
+
+    const commit = async () => {
+      const mode = pickerModeFromDataset(input.dataset.pickerMode);
+      if (!mode) return;
+
+      try {
+        if (input.dataset.pickerInput === 'hex') {
+          const normalized = normalizeHexInput(input.value);
+          const parsed = normalized ? hexToRgb(normalized) : null;
+          if (!normalized || !parsed) {
+            setPickerInvalid(input, true);
+            return;
+          }
+
+          setPickerInvalid(input, false);
+          input.value = normalized;
+          await applyTokenModeColor(tokenId, mode, rgbToOklch(parsed.r, parsed.g, parsed.b));
+          return;
+        }
+
+        const parsed = parseRgbInput(input.value);
+        if (!parsed) {
+          setPickerInvalid(input, true);
+          return;
+        }
+
+        setPickerInvalid(input, false);
+        input.value = rgbToDisplayString(parsed);
+        await applyTokenModeColor(tokenId, mode, rgbToOklch(parsed.r, parsed.g, parsed.b));
+      } catch (error) {
+        setConnectionStatus(
+          'error',
+          error instanceof Error ? error.message : 'token update failed'
+        );
+      }
+    };
+
+    input.addEventListener('blur', () => {
+      void commit();
+    });
+    input.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      void commit();
+    });
+  });
+
+  el.tokenEditor.querySelectorAll<HTMLElement>('[data-picker-plane]').forEach((plane) => {
+    plane.addEventListener('pointerdown', (event) => {
+      const mode = pickerModeFromDataset(plane.dataset.pickerPlane);
+      if (!mode || !(event.currentTarget instanceof HTMLDivElement)) return;
+
+      state.pickerDrag = {
+        tokenId,
+        mode,
+        rect: event.currentTarget.getBoundingClientRect()
+      };
+
+      void applyPickerPoint(
+        tokenId,
+        mode,
+        state.pickerDrag.rect,
+        event.clientX,
+        event.clientY
+      ).catch((error) => {
+        setConnectionStatus(
+          'error',
+          error instanceof Error ? error.message : 'token update failed'
+        );
+      });
+    });
+
+    plane.addEventListener('keydown', (event) => {
+      const mode = pickerModeFromDataset(plane.dataset.pickerPlane);
+      if (!mode) return;
+
+      const token = tokenRecord(tokenId);
+      if (!token) return;
+
+      const currentColor = tokenAnchorColor(token, mode);
+      const rgb = oklchToRgb(currentColor);
+      const hsv = rgbToHsv({ r: rgb.r, g: rgb.g, b: rgb.b });
+      const pointer = pickerPositionFromHsv(hsv);
+      let nextX = Number.parseFloat(pointer.xPercent);
+      let nextY = Number.parseFloat(pointer.yPercent);
+
+      if (event.key === 'ArrowLeft') {
+        nextX -= 2;
+      } else if (event.key === 'ArrowRight') {
+        nextX += 2;
+      } else if (event.key === 'ArrowUp') {
+        nextY -= 2;
+      } else if (event.key === 'ArrowDown') {
+        nextY += 2;
+      } else {
+        return;
+      }
+
+      event.preventDefault();
+      const nextHsv = pickerPointToHsv(100, 100, nextX, nextY);
+      void applyPickerHsv(tokenId, mode, nextHsv.h, nextHsv.s, nextHsv.v).catch((error) => {
+        setConnectionStatus(
+          'error',
+          error instanceof Error ? error.message : 'token update failed'
+        );
+      });
     });
   });
 
@@ -754,15 +985,25 @@ function renderAuthoring(): void {
     </div>
     <div class="editor-block">
       <h3>Light anchor</h3>
-      ${sliderMarkup('light', 'l', token.light.l, 0, 1, 0.005)}
-      ${sliderMarkup('light', 'c', token.light.c, 0, 0.37, 0.005)}
-      ${sliderMarkup('light', 'h', token.light.h, 0, 360, 1)}
+      <div class="anchor-editor-layout">
+        ${pickerMarkup('light', token.light)}
+        <div class="anchor-slider-stack">
+          ${sliderMarkup('light', 'l', token.light.l, 0, 1, 0.005)}
+          ${sliderMarkup('light', 'c', token.light.c, 0, 0.37, 0.005)}
+          ${sliderMarkup('light', 'h', token.light.h, 0, 360, 1)}
+        </div>
+      </div>
     </div>
     <div class="editor-block">
       <h3>Dark anchor</h3>
-      ${sliderMarkup('dark', 'l', token.dark.l, 0, 1, 0.005)}
-      ${sliderMarkup('dark', 'c', token.dark.c, 0, 0.37, 0.005)}
-      ${sliderMarkup('dark', 'h', token.dark.h, 0, 360, 1)}
+      <div class="anchor-editor-layout">
+        ${pickerMarkup('dark', token.dark)}
+        <div class="anchor-slider-stack">
+          ${sliderMarkup('dark', 'l', token.dark.l, 0, 1, 0.005)}
+          ${sliderMarkup('dark', 'c', token.dark.c, 0, 0.37, 0.005)}
+          ${sliderMarkup('dark', 'h', token.dark.h, 0, 360, 1)}
+        </div>
+      </div>
     </div>
     <div class="editor-block">
       <h3>Alt exception</h3>
@@ -1241,6 +1482,24 @@ function escapeHtml(text: string): string {
     }
   });
 }
+
+window.addEventListener('pointermove', (event) => {
+  if (!state.pickerDrag) return;
+
+  void applyPickerPoint(
+    state.pickerDrag.tokenId,
+    state.pickerDrag.mode,
+    state.pickerDrag.rect,
+    event.clientX,
+    event.clientY
+  ).catch((error) => {
+    setConnectionStatus('error', error instanceof Error ? error.message : 'token update failed');
+  });
+});
+
+window.addEventListener('pointerup', () => {
+  state.pickerDrag = null;
+});
 
 (async () => {
   await loadBridgeUrl();
