@@ -71,13 +71,21 @@ export const POST: RequestHandler = async ({ request }) => {
 
     const configPath = payload.configPath || current.configPath;
 
+    if (payload.persist && !configPath) {
+      throw error(400, 'Persisted overrides require an active project config path.');
+    }
+
     if (payload.persist && configPath) {
       const workspace = await loadWorkspaceState(process.cwd(), configPath);
       await saveWorkspaceState(process.cwd(), workspace.configPath, workspace.config, nextManifest);
     }
 
     const snapshot = bridgeState.publish(nextManifest, configPath, 'extension');
-    return json({ ok: true, version: snapshot.version, persisted: Boolean(payload.persist) });
+    return json({
+      ok: true,
+      version: snapshot.version,
+      persisted: Boolean(payload.persist && configPath)
+    });
   } catch (caughtError) {
     if (caughtError instanceof ZodError) {
       throw error(400, caughtError.issues[0]?.message ?? 'Invalid token override request.');

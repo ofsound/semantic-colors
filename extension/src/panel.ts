@@ -85,6 +85,10 @@ function handleContentMessage(message: ContentToPanelMessage): void {
         theme: 'theme' in message ? message.theme : null
       };
       renderPageInfo();
+      if (!state.activeMode && state.overrideTokenId) {
+        syncOverrideFromSnapshot();
+        renderOverrideSliders();
+      }
       pushSnapshotToContent();
       break;
     case 'hover-element':
@@ -169,6 +173,10 @@ el.modeSwitch.querySelectorAll<HTMLButtonElement>('button').forEach((btn) => {
     const raw = btn.dataset.mode ?? 'null';
     const mode = raw === 'null' ? null : (raw as ThemeMode);
     state.activeMode = mode;
+    if (state.overrideTokenId) {
+      syncOverrideFromSnapshot();
+      renderOverrideSliders();
+    }
     sendToContent({ kind: 'set-theme', mode });
     pushSnapshotToContent();
   });
@@ -240,7 +248,8 @@ el.pushOverride.addEventListener('click', async () => {
   if (!state.overrideTokenId) return;
   try {
     await bridge.pushOverride(state.overrideTokenId, state.overrideMode, state.overrideColor, {
-      persist: state.persistOverride
+      persist: state.persistOverride,
+      configPath: state.snapshot?.configPath
     });
   } catch (error) {
     setConnectionStatus('error', error instanceof Error ? error.message : 'push failed');
@@ -484,6 +493,18 @@ function syncOverrideFromSnapshot(): void {
   const token = state.snapshot.manifest.tokens[state.overrideTokenId];
   if (!token) return;
   const mode = resolvedModeForPreview();
+  if (mode === 'alt') {
+    const resolvedAlt = state.snapshot.resolved.alt.colors[state.overrideTokenId];
+    if (resolvedAlt) {
+      state.overrideColor = {
+        l: resolvedAlt.l,
+        c: resolvedAlt.c,
+        h: resolvedAlt.h,
+        alpha: resolvedAlt.alpha
+      };
+      return;
+    }
+  }
   state.overrideColor = { ...(mode === 'dark' ? token.dark : token.light) };
 }
 

@@ -48,12 +48,18 @@ export class BridgeClient {
     tokenId: string,
     mode: 'light' | 'dark' | 'both',
     color: OklchColor,
-    options: { persist?: boolean } = {}
+    options: { persist?: boolean; configPath?: string } = {}
   ): Promise<void> {
     const response = await fetch(`${this.options.getBaseUrl()}/api/bridge/token`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ tokenId, mode, color, persist: options.persist ?? false })
+      body: JSON.stringify({
+        tokenId,
+        mode,
+        color,
+        persist: options.persist ?? false,
+        configPath: options.configPath
+      })
     });
     if (!response.ok) {
       throw new Error(`Override failed with status ${response.status}`);

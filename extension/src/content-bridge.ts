@@ -29,7 +29,8 @@ const state = {
   tokenColorMap: new Map<string, string>(), // normalized rgb(a) → tokenId
   tokenCssByTokenId: new Map<string, string>(), // tokenId → `--theme-foo` css
   aliasMap: new Map<string, string>(), // alias name (no `--`) → tokenId
-  overrides: new Map<string, string>() // tokenId → css value
+  overrides: new Map<string, string>(), // tokenId → css value
+  liveThemeBaseline: null as { hadAttribute: boolean; value: string | null } | null
 };
 
 function send(message: ContentToPanelMessage): void {
@@ -235,11 +236,28 @@ function highlightToken(tokenId: string | null): void {
 // --- Theme mode ------------------------------------------------------------
 
 function setThemeMode(mode: string | null): void {
+  const root = document.documentElement;
+
   if (mode === null) {
-    document.documentElement.removeAttribute('data-theme');
+    if (state.liveThemeBaseline) {
+      if (state.liveThemeBaseline.hadAttribute) {
+        root.setAttribute('data-theme', state.liveThemeBaseline.value ?? '');
+      } else {
+        root.removeAttribute('data-theme');
+      }
+      state.liveThemeBaseline = null;
+    }
     return;
   }
-  document.documentElement.dataset.theme = mode;
+
+  if (!state.liveThemeBaseline) {
+    state.liveThemeBaseline = {
+      hadAttribute: root.hasAttribute('data-theme'),
+      value: root.getAttribute('data-theme')
+    };
+  }
+
+  root.dataset.theme = mode;
 }
 
 // --- Overrides ------------------------------------------------------------
@@ -463,6 +481,12 @@ function handlePanelMessage(message: PanelToContentMessage): void {
       break;
     case 'set-theme':
       setThemeMode(message.mode);
+      send({
+        kind: 'page-info',
+        url: location.href,
+        title: document.title,
+        theme: document.documentElement.dataset.theme ?? null
+      });
       break;
     case 'override-token':
       setOverride(message.tokenId, message.css);
