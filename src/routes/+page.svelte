@@ -1,5 +1,4 @@
 <script lang="ts">
-  import '$lib/styles/semantic-colors-shell.css';
   import { onMount } from 'svelte';
   import AliasPanel from '$lib/components/semantic-colors/AliasPanel.svelte';
   import FixtureStage from '$lib/components/semantic-colors/FixtureStage.svelte';
@@ -16,15 +15,11 @@
     themeCssVariables,
     validateManifest
   } from '$lib/theme/engine';
+  import { createWorkspaceController } from '$lib/theme/workspace-controller.svelte';
   import { DEFAULT_PROJECT_CONFIG } from '$lib/theme/schema';
-  import type {
-    ImportProposal,
-    LocalAlias,
-    ProjectConfig,
-    ThemeMode,
-    TokenId
-  } from '$lib/theme/schema';
+  import type { LocalAlias, ProjectConfig, ThemeMode, TokenId } from '$lib/theme/schema';
   import type { PageData } from './$types';
+  import '$lib/styles/semantic-colors-shell.css';
 
   let { data }: { data: PageData } = $props();
 
@@ -35,28 +30,32 @@
   let configPath = $state('');
   let selectedTokenId = $state<TokenId>('surface');
   let activeMode = $state<ThemeMode>('light');
-  let importProposal = $state<ImportProposal | null>(null);
-  let importSelection = $state<Record<string, TokenId | ''>>({});
-  let isImporting = $state(false);
-  let saveState = $state<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  let saveMessage = $state('Ready');
   let holdPreviewStartedAt = 0;
   let holdPreviewReturnMode: ThemeMode | null = null;
-  let booted = false;
+
+  const workspace = createWorkspaceController({
+    applyPageData,
+    getConfig: () => config,
+    getConfigPath: () => configPath,
+    getManifest: () => manifest,
+    replaceManifest: (value) => {
+      manifest = value;
+    }
+  });
 
   const saveHeading = $derived(
-    saveState === 'saving'
+    workspace.saveState === 'saving'
       ? 'Autosaving'
-      : saveState === 'saved'
+      : workspace.saveState === 'saved'
         ? 'Saved'
-        : saveState === 'error'
+        : workspace.saveState === 'error'
           ? 'Save failed'
           : 'Ready'
   );
   const saveHint = $derived(
-    saveState === 'error'
+    workspace.saveState === 'error'
       ? 'Check the configured paths, then retry or reload the project state.'
-      : saveState === 'saving'
+      : workspace.saveState === 'saving'
         ? 'Changes are persisted automatically after a short pause.'
         : config.bridgeEnabled
           ? 'Bridge output is enabled. Saving updates both the manifest and generated CSS.'
@@ -93,155 +92,12 @@
   const stageStyle = $derived(`${themeCssVariables(currentTheme)}\n`);
   const currentTokenAlt = $derived(altTheme.colors[selectedTokenId]);
 
-  async function responseMessage(response: Response, fallback: string): Promise<string> {
-    const contentType = response.headers.get('content-type') ?? '';
-
-    if (contentType.includes('application/json')) {
-      const payload = (await response.json().catch(() => null)) as { message?: string } | null;
-      if (payload?.message) {
-        return payload.message;
-      }
-    }
-
-    const text = await response.text().catch(() => '');
-    return text.trim() || fallback;
-  }
-
-  async function reloadProject(): Promise<void> {
-    const response = await fetch(`/api/project/load?configPath=${encodeURIComponent(configPath)}`);
-    if (!response.ok) {
-      saveState = 'error';
-      saveMessage = await responseMessage(response, `Reload failed with status ${response.status}`);
-      return;
-    }
-
-    const nextData = (await response.json()) as PageData;
-    applyPageData(nextData);
-    saveState = 'saved';
-    saveMessage = 'Reloaded project state';
-  }
-
-  async function persistState(): Promise<void> {
-    saveState = 'saving';
-    saveMessage = 'Saving manifest and generated CSS...';
-
-    try {
-      const response = await fetch('/api/project/save', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json'
-        },
-        body: JSON.stringify({
-          configPath,
-          config: $state.snapshot(config),
-          manifest: {
-            ...$state.snapshot(manifest),
-            updatedAt: new Date().toISOString()
-          }
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          await responseMessage(response, `Save failed with status ${response.status}`)
-        );
-      }
-
-      saveState = 'saved';
-      saveMessage = config.bridgeEnabled
-        ? 'Saved manifest and regenerated target CSS.'
-        : 'Saved manifest and config. Bridge output is currently disabled.';
-    } catch (error) {
-      saveState = 'error';
-      saveMessage = error instanceof Error ? error.message : 'Save failed';
-    }
-  }
-
-  let saveTimer: ReturnType<typeof setTimeout> | null = null;
-  let bridgeTimer: ReturnType<typeof setTimeout> | null = null;
-
-  function markPersistDirty(): void {
-    if (!booted) {
-      return;
-    }
-
-    if (saveTimer) {
-      clearTimeout(saveTimer);
-    }
-
-    saveTimer = setTimeout(() => {
-      void persistState();
-    }, 500);
-
-    if (bridgeTimer) {
-      clearTimeout(bridgeTimer);
-    }
-    bridgeTimer = setTimeout(() => {
-      void publishToBridge();
-    }, 80);
-  }
-
-  async function publishToBridge(): Promise<void> {
-    try {
-      await fetch('/api/bridge/publish', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          configPath,
-          manifest: $state.snapshot(manifest),
-          origin: 'ui'
-        })
-      });
-    } catch {
-      // Bridge is a best-effort channel; ignore publish failures.
-    }
-  }
-
   $effect(() => {
     document.documentElement.dataset.theme = activeMode;
   });
 
-  function subscribeToBridge(): () => void {
-    if (typeof window === 'undefined' || typeof EventSource === 'undefined') {
-      return () => {};
-    }
-
-    const source = new EventSource('/api/bridge/events');
-    source.addEventListener('snapshot', (event) => {
-      try {
-        const message = JSON.parse((event as MessageEvent<string>).data) as {
-          snapshot?: { origin?: string; manifest?: unknown };
-        };
-        if (!message.snapshot || message.snapshot.origin === 'ui') {
-          return;
-        }
-        manifest = ensureManifest(message.snapshot.manifest as never);
-        markPersistDirty();
-        saveMessage = `Applied live update from ${message.snapshot.origin} via bridge.`;
-      } catch {
-        // Ignore malformed snapshots.
-      }
-    });
-    source.onerror = () => {
-      source.close();
-    };
-
-    return () => source.close();
-  }
-
   onMount(() => {
-    booted = true;
-    void publishToBridge();
-    const unsubscribe = subscribeToBridge();
-    return () => {
-      unsubscribe();
-      if (saveTimer) {
-        clearTimeout(saveTimer);
-      }
-      if (bridgeTimer) {
-        clearTimeout(bridgeTimer);
-      }
-    };
+    return workspace.connect();
   });
 
   function isSelectedUsage(tokenIds: TokenId[]): boolean {
@@ -298,7 +154,7 @@
 
     if (event.key.toLowerCase() === 'l') {
       manifest.alt.grayscalePreview = !manifest.alt.grayscalePreview;
-      markPersistDirty();
+      workspace.markPersistDirty();
     }
   }
 
@@ -320,12 +176,12 @@
         tokenId: selectedTokenId
       }
     ];
-    markPersistDirty();
+    workspace.markPersistDirty();
   }
 
   function removeAlias(index: number): void {
     manifest.aliases = manifest.aliases.filter((_, aliasIndex) => aliasIndex !== index);
-    markPersistDirty();
+    workspace.markPersistDirty();
   }
 
   function updateAlias(index: number, patch: Partial<LocalAlias>): void {
@@ -333,7 +189,7 @@
       ...manifest.aliases[index],
       ...patch
     };
-    markPersistDirty();
+    workspace.markPersistDirty();
   }
 
   function warningNotes(tokenIds: TokenId[]): string[] {
@@ -355,10 +211,6 @@
     return `${notes.length} validation warning${notes.length === 1 ? '' : 's'}: ${notes.join(' ')}`;
   }
 
-  async function retrySave(): Promise<void> {
-    await persistState();
-  }
-
   function confirmResetManifest(): void {
     const confirmed = window.confirm(
       'Reset the manifest to defaults? This replaces all token anchors, alt settings, and aliases in the current project.'
@@ -369,79 +221,8 @@
     }
 
     resetManifest();
-    markPersistDirty();
-    saveMessage = 'Reset the manifest to the default semantic color set.';
-  }
-
-  async function runImport(): Promise<void> {
-    isImporting = true;
-    saveMessage = 'Scanning CSS variables from source file...';
-
-    try {
-      const response = await fetch('/api/project/import', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json'
-        },
-        body: JSON.stringify({
-          configPath,
-          sourcePath: config.importSourcePath
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          await responseMessage(response, `Import failed with status ${response.status}`)
-        );
-      }
-
-      importProposal = (await response.json()) as ImportProposal;
-      importSelection = Object.fromEntries(
-        importProposal.candidates.map((candidate) => [
-          candidate.sourceName,
-          candidate.suggestedTokenId ?? ''
-        ])
-      );
-      saveMessage = `Imported ${importProposal.candidates.length} custom properties for review.`;
-    } catch (error) {
-      saveMessage = error instanceof Error ? error.message : 'Import failed';
-    } finally {
-      isImporting = false;
-    }
-  }
-
-  function applyImportReview(): void {
-    if (!importProposal) {
-      return;
-    }
-
-    for (const candidate of importProposal.candidates) {
-      const tokenId = importSelection[candidate.sourceName];
-      if (!tokenId) {
-        continue;
-      }
-
-      if (candidate.light) {
-        manifest.tokens[tokenId].light = { ...candidate.light };
-      }
-      if (candidate.dark) {
-        manifest.tokens[tokenId].dark = { ...candidate.dark };
-      }
-
-      if (!manifest.aliases.some((alias) => alias.name === candidate.sourceName)) {
-        manifest.aliases = [
-          ...manifest.aliases,
-          {
-            name: candidate.sourceName,
-            tokenId
-          }
-        ];
-      }
-    }
-
-    importProposal = null;
-    markPersistDirty();
-    saveMessage = 'Applied reviewed import mappings into the canonical manifest.';
+    workspace.markPersistDirty();
+    workspace.setSaveMessage('Reset the manifest to the default semantic color set.');
   }
 
   function resetManifest(): void {
@@ -467,18 +248,18 @@
     <ProjectPanel
       bind:config
       bind:configPath
-      onPersistChange={markPersistDirty}
+      onPersistChange={workspace.markPersistDirty}
       {saveHeading}
       {saveHint}
-      {saveMessage}
-      {saveState}
+      saveMessage={workspace.saveMessage}
+      saveState={workspace.saveState}
       {showSetupGuide}
-      onReload={reloadProject}
-      onRetrySave={retrySave}
+      onReload={workspace.reloadProject}
+      onRetrySave={workspace.retrySave}
     />
     <ModeControls
       bind:manifest
-      onPersistChange={markPersistDirty}
+      onPersistChange={workspace.markPersistDirty}
       {activeMode}
       {setTheme}
       {updateAltDelta}
@@ -487,7 +268,7 @@
       bind:manifest
       {activeMode}
       {currentTokenAlt}
-      onPersistChange={markPersistDirty}
+      onPersistChange={workspace.markPersistDirty}
       {selectedTokenId}
       {selectedTokenNotes}
       {setTheme}
@@ -496,13 +277,13 @@
     <AliasPanel {addAlias} {manifest} {removeAlias} {tokenLabel} {updateAlias} />
     <ImportReview
       bind:config
-      bind:importSelection
-      {applyImportReview}
+      bind:importSelection={workspace.importSelection}
+      applyImportReview={workspace.applyImportReview}
       {confirmResetManifest}
-      {importProposal}
-      {isImporting}
-      onPersistChange={markPersistDirty}
-      {runImport}
+      importProposal={workspace.importProposal}
+      isImporting={workspace.isImporting}
+      onPersistChange={workspace.markPersistDirty}
+      runImport={workspace.runImport}
       {tokenLabel}
     />
   </aside>
@@ -513,8 +294,8 @@
       grayscalePreview={manifest.alt.grayscalePreview}
       {hasWarnings}
       {isSelectedUsage}
-      {saveMessage}
-      {saveState}
+      saveMessage={workspace.saveMessage}
+      saveState={workspace.saveState}
       {selectToken}
       {selectedTokenId}
       selectedTokenLabel={selectedToken.label}
