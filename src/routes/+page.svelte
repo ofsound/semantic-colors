@@ -128,10 +128,6 @@
     );
   }
 
-  function selectToken(tokenId: TokenId): void {
-    selectedTokenId = tokenId;
-  }
-
   function selectPreviewToken(tokenId: TokenId): void {
     selectedTokenId = tokenId;
     activeSidebarTab = 'token';
@@ -447,7 +443,7 @@
           grayscalePreview={manifest.alt.grayscalePreview}
           {hasWarnings}
           {isSelectedUsage}
-          {selectToken}
+          selectToken={selectPreviewToken}
           {selectedTokenId}
           {stageStyle}
           {tokenLabel}

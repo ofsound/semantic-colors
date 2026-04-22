@@ -28,16 +28,10 @@
 </script>
 
 <article class="inventory" class:grayscale={grayscalePreview} style={stageStyle}>
-  <div class="fixture-panel-header">
-    <h3>Token inventory</h3>
-    <span>Every shared token is visible and selectable here.</span>
-  </div>
-
   {#each TOKEN_GROUP_ORDER as group (group)}
     <div class="inventory-group">
       <div class="inventory-group-header">
         <h4>{group}</h4>
-        <span>{TOKENS_BY_GROUP[group].length} tokens</span>
       </div>
       <div class="inventory-grid">
         {#each TOKENS_BY_GROUP[group] as tokenId (tokenId)}
@@ -84,19 +78,14 @@
     filter: grayscale(1);
   }
 
-  .inventory-group + .inventory-group {
-    margin-top: 1rem;
-  }
-
   .inventory-group-header {
     display: flex;
     justify-content: space-between;
     gap: 1rem;
+    margin-top: 36px;
     margin-bottom: 0.75rem;
   }
 
-  .inventory .fixture-panel-header > span,
-  .inventory-group-header > span,
   .inventory-card code {
     color: var(--theme-text-secondary);
   }
@@ -113,7 +102,7 @@
     background: transparent;
     color: var(--theme-text);
     border: 0;
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--theme-text) 8%, transparent);
+    box-shadow: none;
   }
 
   .inventory .inventory-card:hover {
@@ -129,7 +118,7 @@
     height: 2.5rem;
     border-radius: var(--shell-radius-inner);
     border: 0;
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--theme-text) 8%, transparent);
+    box-shadow: none;
   }
 
   .inventory .inventory-card.selected-usage {
