@@ -6,7 +6,6 @@
   let {
     activeMode,
     selectedTokenId,
-    selectedTokenLabel,
     saveState,
     saveMessage,
     stageStyle,
@@ -19,7 +18,6 @@
   }: {
     activeMode: ThemeMode;
     selectedTokenId: TokenId;
-    selectedTokenLabel: string;
     saveState: 'idle' | 'saving' | 'saved' | 'error';
     saveMessage: string;
     stageStyle: string;
@@ -35,17 +33,6 @@
   const accentInventory = TOKENS_BY_GROUP.accent;
   const borderInventory = TOKENS_BY_GROUP.borders;
 </script>
-
-<header class="stage-header">
-  <div>
-    <p class="eyebrow">Preview harness</p>
-    <h2>Standalone fixture app + live token inventory</h2>
-  </div>
-  <div class="stage-meta">
-    <span>Mode: {activeMode}</span>
-    <span>Selected: {selectedTokenLabel}</span>
-  </div>
-</header>
 
 {#if saveState === 'error'}
   <div class="status-banner status-banner-error" role="alert">
@@ -354,7 +341,6 @@
 </section>
 
 <style>
-  .stage-header,
   .fixture-panel,
   .status-banner {
     border: 1px solid rgba(15, 23, 42, 0.08);
@@ -362,18 +348,6 @@
     background: rgba(255, 255, 255, 0.88);
     backdrop-filter: blur(12px);
     box-shadow: 0 20px 40px -28px rgba(15, 23, 42, 0.25);
-  }
-
-  .stage-header {
-    padding: 1rem 1.1rem;
-    align-items: center;
-  }
-
-  .stage-meta {
-    display: flex;
-    gap: 0.8rem;
-    color: #4b5563;
-    font-size: 0.85rem;
   }
 
   .status-banner {

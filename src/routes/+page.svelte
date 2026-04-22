@@ -28,8 +28,13 @@
     { id: 'aliases', label: 'Aliases' },
     { id: 'import', label: 'Import' }
   ] as const;
+  const MAIN_TABS = [
+    { id: 'preview', label: 'Preview App' },
+    { id: 'inventory', label: 'Token Inventory' }
+  ] as const;
 
   type SidebarTabId = (typeof SIDEBAR_TABS)[number]['id'];
+  type MainTabId = (typeof MAIN_TABS)[number]['id'];
 
   let { data }: { data: PageData } = $props();
 
@@ -40,6 +45,7 @@
   let configPath = $state('');
   let sidebarCollapsed = $state(false);
   let activeSidebarTab = $state<SidebarTabId>('project');
+  let activeMainTab = $state<MainTabId>('preview');
   let selectedTokenId = $state<TokenId>('surface');
   let activeMode = $state<ThemeMode>('light');
   let holdPreviewStartedAt = 0;
@@ -348,28 +354,59 @@
   </aside>
 
   <main class="stage-shell">
-    <FixtureStage
-      {activeMode}
-      grayscalePreview={manifest.alt.grayscalePreview}
-      {hasWarnings}
-      {isSelectedUsage}
-      saveMessage={workspace.saveMessage}
-      saveState={workspace.saveState}
-      {selectToken}
-      {selectedTokenId}
-      selectedTokenLabel={selectedToken.label}
-      {stageStyle}
-      {tokenLabel}
-      {warningSummary}
-    />
-    <TokenInventory
-      currentColors={currentTheme.colors}
-      {hasWarnings}
-      {isSelectedUsage}
-      {selectToken}
-      {selectedTokenId}
-      {tokenLabel}
-      {warningSummary}
-    />
+    <header class="stage-header stage-header-fixed">
+      <div
+        aria-label="Main viewport panels"
+        class="sidebar-tab-strip stage-tab-strip"
+        role="tablist"
+      >
+        {#each MAIN_TABS as tab (tab.id)}
+          <button
+            aria-controls={`main-panel-${tab.id}`}
+            aria-selected={activeMainTab === tab.id}
+            class={`sidebar-tab ${activeMainTab === tab.id ? 'sidebar-tab-active' : ''}`}
+            onclick={() => {
+              activeMainTab = tab.id;
+            }}
+            role="tab"
+            type="button"
+          >
+            {tab.label}
+          </button>
+        {/each}
+      </div>
+      <div class="stage-meta">
+        <span>Mode: {activeMode}</span>
+        <span>Selected: {selectedToken.label}</span>
+      </div>
+    </header>
+
+    <div class="stage-content-shell" id={`main-panel-${activeMainTab}`} role="tabpanel">
+      {#if activeMainTab === 'preview'}
+        <FixtureStage
+          {activeMode}
+          grayscalePreview={manifest.alt.grayscalePreview}
+          {hasWarnings}
+          {isSelectedUsage}
+          saveMessage={workspace.saveMessage}
+          saveState={workspace.saveState}
+          {selectToken}
+          {selectedTokenId}
+          {stageStyle}
+          {tokenLabel}
+          {warningSummary}
+        />
+      {:else}
+        <TokenInventory
+          currentColors={currentTheme.colors}
+          {hasWarnings}
+          {isSelectedUsage}
+          {selectToken}
+          {selectedTokenId}
+          {tokenLabel}
+          {warningSummary}
+        />
+      {/if}
+    </div>
   </main>
 </div>
