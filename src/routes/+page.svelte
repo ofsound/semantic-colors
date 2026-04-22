@@ -22,15 +22,15 @@
   import '$lib/styles/semantic-colors-shell.css';
 
   const SIDEBAR_TABS = [
-    { id: 'project', label: 'Project' },
-    { id: 'modes', label: 'Alt' },
     { id: 'token', label: 'Token' },
+    { id: 'modes', label: 'Alt' },
     { id: 'aliases', label: 'Aliases' },
-    { id: 'import', label: 'Import' }
+    { id: 'import', label: 'Import' },
+    { id: 'project', label: 'Project' }
   ] as const;
   const MAIN_TABS = [
-    { id: 'preview', label: 'Preview App' },
-    { id: 'inventory', label: 'Token Inventory' }
+    { id: 'preview', label: 'Preview' },
+    { id: 'inventory', label: 'Tokens' }
   ] as const;
 
   type SidebarTabId = (typeof SIDEBAR_TABS)[number]['id'];
@@ -303,7 +303,40 @@
       </div>
 
       <div class="sidebar-panel-shell" id={`sidebar-panel-${activeSidebarTab}`} role="tabpanel">
-        {#if activeSidebarTab === 'project'}
+        {#if activeSidebarTab === 'token'}
+          <TokenEditor
+            bind:manifest
+            {activeMode}
+            {currentTokenAlt}
+            onPersistChange={workspace.markPersistDirty}
+            {selectedTokenId}
+            {selectedTokenNotes}
+            {setTheme}
+            {tokenLabel}
+          />
+        {:else if activeSidebarTab === 'modes'}
+          <ModeControls
+            bind:manifest
+            onActivateAltPreview={() => setTheme('alt')}
+            onPersistChange={workspace.markPersistDirty}
+            {activeMode}
+            {updateAltDelta}
+          />
+        {:else if activeSidebarTab === 'aliases'}
+          <AliasPanel {addAlias} {manifest} {removeAlias} {tokenLabel} {updateAlias} />
+        {:else if activeSidebarTab === 'import'}
+          <ImportReview
+            bind:config
+            bind:importSelection={workspace.importSelection}
+            applyImportReview={workspace.applyImportReview}
+            {confirmResetManifest}
+            importProposal={workspace.importProposal}
+            isImporting={workspace.isImporting}
+            onPersistChange={workspace.markPersistDirty}
+            runImport={workspace.runImport}
+            {tokenLabel}
+          />
+        {:else if activeSidebarTab === 'project'}
           <ProjectPanel
             bind:config
             bind:configPath
@@ -315,39 +348,6 @@
             {showSetupGuide}
             onReload={workspace.reloadProject}
             onRetrySave={workspace.retrySave}
-          />
-        {:else if activeSidebarTab === 'modes'}
-          <ModeControls
-            bind:manifest
-            onActivateAltPreview={() => setTheme('alt')}
-            onPersistChange={workspace.markPersistDirty}
-            {activeMode}
-            {updateAltDelta}
-          />
-        {:else if activeSidebarTab === 'token'}
-          <TokenEditor
-            bind:manifest
-            {activeMode}
-            {currentTokenAlt}
-            onPersistChange={workspace.markPersistDirty}
-            {selectedTokenId}
-            {selectedTokenNotes}
-            {setTheme}
-            {tokenLabel}
-          />
-        {:else if activeSidebarTab === 'aliases'}
-          <AliasPanel {addAlias} {manifest} {removeAlias} {tokenLabel} {updateAlias} />
-        {:else}
-          <ImportReview
-            bind:config
-            bind:importSelection={workspace.importSelection}
-            applyImportReview={workspace.applyImportReview}
-            {confirmResetManifest}
-            importProposal={workspace.importProposal}
-            isImporting={workspace.isImporting}
-            onPersistChange={workspace.markPersistDirty}
-            runImport={workspace.runImport}
-            {tokenLabel}
           />
         {/if}
       </div>
