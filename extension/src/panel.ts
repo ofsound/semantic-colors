@@ -3,16 +3,12 @@ import type { BridgeStatus } from './shared/bridge-client';
 import { DEFAULT_BRIDGE_URL, STORAGE_KEYS } from './shared/constants';
 import {
   formatOklch,
-  hexToRgb,
   hsvToRgb,
-  normalizeHexInput,
   oklchToCss,
   oklchToHex,
   oklchToRgb,
   pickerPointToHsv,
   pickerPositionFromHsv,
-  parseRgbInput,
-  rgbToDisplayString,
   rgbToHsv,
   rgbToOklch
 } from './shared/color';
@@ -598,28 +594,12 @@ function pickerMarkup(mode: 'light' | 'dark', color: OklchColor): string {
   return `
     <div class="picker-shell">
       <div class="picker-stack">
-        <div class="picker-input-row">
-          <div class="picker-inputs">
-            <input
-              type="text"
-              value="${escapeHtml(hexValue)}"
-              class="picker-input"
-              spellcheck="false"
-              aria-label="${mode} anchor hex color"
-              data-picker-input="hex"
-              data-picker-mode="${mode}"
-            />
-            <input
-              type="text"
-              value="${escapeHtml(rgbToDisplayString({ r: rgbValue.r, g: rgbValue.g, b: rgbValue.b }))}"
-              class="picker-input"
-              spellcheck="false"
-              aria-label="${mode} anchor rgb color"
-              data-picker-input="rgb"
-              data-picker-mode="${mode}"
-            />
-          </div>
-          <div class="picker-swatch-preview" style="background-color:${escapeHtml(hexValue)}"></div>
+        <div class="picker-swatch-row">
+          <div
+            class="picker-swatch"
+            style="background-color:${escapeHtml(hexValue)}"
+            aria-label="${mode} anchor selected color preview"
+          ></div>
         </div>
         <div
           class="picker-panel"
@@ -738,10 +718,6 @@ async function applyPickerPoint(
   await applyPickerHsv(tokenId, mode, hsv.h, hsv.s, hsv.v);
 }
 
-function setPickerInvalid(input: HTMLInputElement, invalid: boolean): void {
-  input.classList.toggle('is-invalid', invalid);
-}
-
 function pickerModeFromDataset(value: string | undefined): 'light' | 'dark' | null {
   return value === 'light' || value === 'dark' ? value : null;
 }
@@ -765,57 +741,6 @@ function attachTokenEditorHandlers(tokenId: string): void {
           error instanceof Error ? error.message : 'token update failed'
         );
       }
-    });
-  });
-
-  el.tokenEditor.querySelectorAll<HTMLInputElement>('[data-picker-input]').forEach((input) => {
-    input.addEventListener('input', () => {
-      setPickerInvalid(input, false);
-    });
-
-    const commit = async () => {
-      const mode = pickerModeFromDataset(input.dataset.pickerMode);
-      if (!mode) return;
-
-      try {
-        if (input.dataset.pickerInput === 'hex') {
-          const normalized = normalizeHexInput(input.value);
-          const parsed = normalized ? hexToRgb(normalized) : null;
-          if (!normalized || !parsed) {
-            setPickerInvalid(input, true);
-            return;
-          }
-
-          setPickerInvalid(input, false);
-          input.value = normalized;
-          await applyTokenModeColor(tokenId, mode, rgbToOklch(parsed.r, parsed.g, parsed.b));
-          return;
-        }
-
-        const parsed = parseRgbInput(input.value);
-        if (!parsed) {
-          setPickerInvalid(input, true);
-          return;
-        }
-
-        setPickerInvalid(input, false);
-        input.value = rgbToDisplayString(parsed);
-        await applyTokenModeColor(tokenId, mode, rgbToOklch(parsed.r, parsed.g, parsed.b));
-      } catch (error) {
-        setConnectionStatus(
-          'error',
-          error instanceof Error ? error.message : 'token update failed'
-        );
-      }
-    };
-
-    input.addEventListener('blur', () => {
-      void commit();
-    });
-    input.addEventListener('keydown', (event) => {
-      if (event.key !== 'Enter') return;
-      event.preventDefault();
-      void commit();
     });
   });
 

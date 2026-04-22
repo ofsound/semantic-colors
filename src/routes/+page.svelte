@@ -132,6 +132,11 @@
     selectedTokenId = tokenId;
   }
 
+  function selectPreviewToken(tokenId: TokenId): void {
+    selectedTokenId = tokenId;
+    activeSidebarTab = 'token';
+  }
+
   function updateAltDelta(channel: 'l' | 'c' | 'h', value: number): void {
     manifest.alt.delta[channel] = value;
   }
@@ -318,6 +323,7 @@
         {:else if activeSidebarTab === 'modes'}
           <ModeControls
             bind:manifest
+            onActivateAltPreview={() => setTheme('alt')}
             onPersistChange={workspace.markPersistDirty}
             {activeMode}
             {updateAltDelta}
@@ -429,7 +435,7 @@
           {isSelectedUsage}
           saveMessage={workspace.saveMessage}
           saveState={workspace.saveState}
-          {selectToken}
+          selectToken={selectPreviewToken}
           {selectedTokenId}
           {stageStyle}
           {tokenLabel}

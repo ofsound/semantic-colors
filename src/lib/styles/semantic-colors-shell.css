@@ -2,6 +2,8 @@
   --shell-page-padding: 1.25rem;
   --shell-column-gap: 1.25rem;
   --stage-header-height: 5.4rem;
+  --shell-radius-outer: 10px;
+  --shell-radius-inner: 6px;
   --shell-border: rgba(15, 23, 42, 0.08);
   --shell-panel-bg: rgba(255, 255, 255, 0.88);
   --shell-shadow: 0 20px 40px -28px rgba(15, 23, 42, 0.25);
@@ -118,7 +120,7 @@ body {
 
 .semantic-colors-app .stage-header {
   border: 1px solid var(--shell-border);
-  border-radius: 0 0 1.25rem 1.25rem;
+  border-radius: var(--shell-radius-outer);
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(14px);
   box-shadow: var(--shell-shadow);
@@ -175,7 +177,7 @@ body {
 
 .semantic-colors-app .panel {
   border: 1px solid var(--shell-border);
-  border-radius: 1.25rem;
+  border-radius: var(--shell-radius-outer);
   background: var(--shell-panel-bg);
   backdrop-filter: blur(12px);
   box-shadow: var(--shell-shadow);
@@ -255,7 +257,7 @@ body {
 .semantic-colors-app select,
 .semantic-colors-app button {
   border: 1px solid rgba(15, 23, 42, 0.12);
-  border-radius: 0.9rem;
+  border-radius: var(--shell-radius-inner);
   background: rgba(255, 255, 255, 0.95);
   color: inherit;
 }
@@ -273,15 +275,9 @@ body {
 .semantic-colors-app button {
   cursor: pointer;
   padding: 0.7rem 0.9rem;
-  transition:
-    transform 140ms ease,
-    border-color 140ms ease,
-    box-shadow 140ms ease,
-    background 140ms ease;
 }
 
 .semantic-colors-app button:hover {
-  transform: translateY(-1px);
   border-color: rgba(59, 130, 246, 0.35);
 }
 
@@ -293,7 +289,7 @@ body {
 .semantic-colors-app .empty-state {
   margin-top: 0.9rem;
   padding: 0.85rem;
-  border-radius: 1rem;
+  border-radius: var(--shell-radius-inner);
   background: rgba(15, 23, 42, 0.04);
 }
 

@@ -486,36 +486,13 @@ code {
   gap: 10px;
 }
 
-.picker-input-row {
+.picker-swatch-row {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.picker-inputs {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-}
-
-.picker-input {
-  width: 100%;
-  min-width: 0;
-  height: 32px;
-  border-radius: 10px;
-  padding: 0 10px;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-
-.picker-input.is-invalid {
-  border-color: rgba(255, 135, 149, 0.6);
-  box-shadow: 0 0 0 1px rgba(255, 135, 149, 0.28);
-}
-
-.picker-swatch-preview {
+.picker-swatch {
   width: 100%;
   min-height: 72px;
   border-radius: 10px;
@@ -610,18 +587,13 @@ code {
 }
 
 @media (min-width: 560px) {
-  .picker-input-row {
+  .picker-swatch-row {
     flex-direction: row;
-    align-items: flex-start;
+    align-items: stretch;
   }
 
-  .picker-inputs {
+  .picker-swatch {
     flex: 1 1 auto;
-    min-width: 12ch;
-  }
-
-  .picker-swatch-preview {
-    flex: 0 0 108px;
     min-height: 72px;
   }
 }

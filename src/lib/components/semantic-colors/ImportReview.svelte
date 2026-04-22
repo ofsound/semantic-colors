@@ -106,7 +106,7 @@
     display: grid;
     gap: 0.75rem;
     padding: 0.8rem;
-    border-radius: 1rem;
+    border-radius: var(--shell-radius-inner);
     background: rgba(15, 23, 42, 0.04);
     grid-template-columns: 1.3fr 1fr auto;
     align-items: center;
@@ -128,7 +128,7 @@
     place-items: center;
     width: 2rem;
     height: 2rem;
-    border-radius: 0.7rem;
+    border-radius: var(--shell-radius-inner);
     border: 1px solid rgba(15, 23, 42, 0.12);
     font-size: 0.7rem;
     font-weight: 700;

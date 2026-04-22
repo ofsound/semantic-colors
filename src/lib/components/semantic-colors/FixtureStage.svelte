@@ -32,6 +32,23 @@
   const textInventory = TOKENS_BY_GROUP.text;
   const accentInventory = TOKENS_BY_GROUP.accent;
   const borderInventory = TOKENS_BY_GROUP.borders;
+
+  function handlePrimarySurfaceCardClick(event: MouseEvent): void {
+    if (event.target instanceof HTMLElement && event.target.closest('button')) {
+      return;
+    }
+
+    selectToken('surface');
+  }
+
+  function handlePrimarySurfaceCardKeydown(event: KeyboardEvent): void {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+
+    event.preventDefault();
+    selectToken('surface');
+  }
 </script>
 
 {#if saveState === 'error'}
@@ -58,8 +75,7 @@
       type="button"
     >
       <WarningBadge summary={warningSummary(['app'])} visible={hasWarnings(['app'])} />
-      <span class="fixture-label">App background</span>
-      <small>{tokenLabel('app')}</small>
+      <span class="fixture-label">App</span>
     </button>
 
     <button
@@ -72,29 +88,23 @@
     >
       <WarningBadge summary={warningSummary(['shell'])} visible={hasWarnings(['shell'])} />
       <span class="fixture-label">Shell</span>
-      <small>{tokenLabel('shell')}</small>
     </button>
 
-    <article
+    <div
+      aria-pressed={selectedTokenId === 'surface'}
       class:selected-usage={isSelectedUsage(['surface', 'surface-raised', 'border', 'text'])}
       class:warning={hasWarnings(['surface', 'surface-raised', 'border', 'text'])}
-      class="surface-card surface-card-panel"
+      class="surface-card surface-card-panel surface-card-panel-interactive"
+      onclick={handlePrimarySurfaceCardClick}
+      onkeydown={handlePrimarySurfaceCardKeydown}
+      role="button"
+      tabindex="0"
     >
       <WarningBadge
         summary={warningSummary(['surface', 'surface-raised', 'border', 'text'])}
         visible={hasWarnings(['surface', 'surface-raised', 'border', 'text'])}
       />
       <span class="fixture-label">Primary surface</span>
-      <h3>Depth stack</h3>
-      <p>Use the preview to judge visual weight in-place while themes swap.</p>
-      <button
-        aria-pressed={selectedTokenId === 'surface'}
-        class="card-select-button"
-        onclick={() => selectToken('surface')}
-        type="button"
-      >
-        Select surface token
-      </button>
       <div class="inner-stack">
         <button
           aria-pressed={selectedTokenId === 'surface-raised'}
@@ -133,14 +143,13 @@
           Field
         </button>
       </div>
-    </article>
+    </div>
   </div>
 
   <div class="fixture-grid">
     <article class="fixture-panel">
       <div class="fixture-panel-header">
         <h3>Text hierarchy</h3>
-        <span>Primary, secondary, muted, faint, inverse</span>
       </div>
       <div class="text-stack">
         {#each textInventory as tokenId (tokenId)}
@@ -163,7 +172,6 @@
     <article class="fixture-panel">
       <div class="fixture-panel-header">
         <h3>Accent and links</h3>
-        <span>Interactive emphasis and tinting</span>
       </div>
       <div class="accent-grid">
         {#each accentInventory as tokenId (tokenId)}
@@ -185,7 +193,6 @@
     <article class="fixture-panel">
       <div class="fixture-panel-header">
         <h3>Status pairs</h3>
-        <span>Surface + text combinations</span>
       </div>
       <div class="status-grid">
         {#each ['success', 'warning', 'danger', 'info'] as stem (stem)}
@@ -211,7 +218,6 @@
     <article class="fixture-panel">
       <div class="fixture-panel-header">
         <h3>Controls</h3>
-        <span>Primary, secondary, ghost, and field states</span>
       </div>
       <div class="control-grid">
         <button
@@ -294,7 +300,6 @@
     <article class="fixture-panel">
       <div class="fixture-panel-header">
         <h3>Borders and focus</h3>
-        <span>Quiet, default, strong, and focus treatments</span>
       </div>
       <div class="border-grid">
         {#each borderInventory as tokenId (tokenId)}
@@ -316,7 +321,6 @@
     <article class="fixture-panel fixture-panel-overlay">
       <div class="fixture-panel-header">
         <h3>Overlay and scrim</h3>
-        <span>Shared overlay pattern with only core tokens</span>
       </div>
       <div class="overlay-demo">
         <div class="scrim"></div>
@@ -344,10 +348,9 @@
   .fixture-panel,
   .status-banner {
     border: 1px solid rgba(15, 23, 42, 0.08);
-    border-radius: 1.25rem;
+    border-radius: var(--shell-radius-outer);
     background: rgba(255, 255, 255, 0.88);
     backdrop-filter: blur(12px);
-    box-shadow: 0 20px 40px -28px rgba(15, 23, 42, 0.25);
   }
 
   .status-banner {
@@ -369,7 +372,7 @@
   .stage {
     overflow-y: auto;
     padding: 1.1rem;
-    border-radius: 1.5rem;
+    border-radius: var(--shell-radius-outer);
     background: var(--theme-app);
     color: var(--theme-text);
     transition:
@@ -398,21 +401,28 @@
     align-content: start;
     gap: 0.45rem;
     padding: 1rem;
-    border-radius: 1.25rem;
-    border: 1px solid var(--theme-border);
-    box-shadow: 0 20px 40px -30px rgba(15, 23, 42, 0.45);
+    border-radius: var(--shell-radius-inner);
+    border: none;
   }
 
   .surface-card-app {
     background: var(--theme-app);
+    text-align: left;
+    justify-items: start;
   }
 
   .surface-card-shell {
     background: var(--theme-shell);
+    text-align: left;
+    justify-items: start;
   }
 
   .surface-card-panel {
     background: var(--theme-surface);
+  }
+
+  .surface-card-panel-interactive {
+    cursor: pointer;
   }
 
   .fixture-label {
@@ -420,13 +430,6 @@
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-  }
-
-  .card-select-button {
-    justify-self: start;
-    margin-top: 0.2rem;
-    background: linear-gradient(135deg, #111827, #334155);
-    color: white;
   }
 
   .inner-stack {
@@ -439,7 +442,7 @@
   .nested-surface {
     background: var(--theme-surface-raised);
     color: var(--theme-text);
-    border: 1px solid var(--theme-border);
+    border: none;
   }
 
   .nested-muted {
@@ -463,7 +466,7 @@
   .fixture-panel {
     padding: 1rem;
     background: var(--theme-surface);
-    border: 1px solid var(--theme-border);
+    border: none;
   }
 
   .text-stack {
@@ -477,6 +480,7 @@
     gap: 0.2rem;
     text-align: left;
     background: transparent;
+    border: none;
   }
 
   .text-sample-text {
@@ -515,6 +519,7 @@
     min-height: 4.2rem;
     text-align: left;
     font-weight: 700;
+    border: none;
   }
 
   .accent-sample-accent {
@@ -535,13 +540,11 @@
   .accent-sample-link {
     background: transparent;
     color: var(--theme-link);
-    border-color: var(--theme-link);
   }
 
   .accent-sample-link-hover {
     background: transparent;
     color: var(--theme-link-hover);
-    border-color: var(--theme-link-hover);
   }
 
   .status-grid {
@@ -553,6 +556,7 @@
     gap: 0.25rem;
     min-height: 4.5rem;
     text-align: left;
+    border: none;
   }
 
   .status-card-success {
@@ -583,25 +587,27 @@
   .control-primary {
     background: var(--theme-control-primary);
     color: var(--theme-control-primary-text);
+    border: none;
   }
 
   .control-secondary {
     background: var(--theme-control-secondary);
     color: var(--theme-control-secondary-text);
-    border-color: var(--theme-control-secondary-border);
+    border: none;
   }
 
   .control-ghost {
     background: var(--theme-control-ghost-hover);
     color: var(--theme-text);
+    border: none;
   }
 
   .input-preview {
     display: grid;
     gap: 0.45rem;
     padding: 0.8rem;
-    border-radius: 1rem;
-    border: 1px solid var(--theme-input-border);
+    border-radius: var(--shell-radius-inner);
+    border: none;
     background: var(--theme-input);
     color: var(--theme-text);
   }
@@ -652,7 +658,7 @@
     position: relative;
     margin-top: 0.9rem;
     min-height: 11rem;
-    border-radius: 1rem;
+    border-radius: var(--shell-radius-inner);
     overflow: hidden;
     background: linear-gradient(
       135deg,

@@ -62,7 +62,7 @@
 <style>
   .inventory {
     border: 1px solid var(--theme-border);
-    border-radius: 1.25rem;
+    border-radius: var(--shell-radius-outer);
     padding: 1rem;
     background: var(--theme-surface);
     color: var(--theme-text);
@@ -98,7 +98,7 @@
 
   .inventory-swatch {
     height: 2.5rem;
-    border-radius: 0.8rem;
+    border-radius: var(--shell-radius-inner);
     border: 1px solid color-mix(in srgb, var(--theme-text) 12%, transparent);
   }
 

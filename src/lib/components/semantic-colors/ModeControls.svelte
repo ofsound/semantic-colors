@@ -4,21 +4,28 @@
   let {
     manifest = $bindable(),
     onPersistChange,
+    onActivateAltPreview,
     activeMode,
     updateAltDelta
   }: {
     manifest: ThemeManifest;
     onPersistChange: () => void;
+    onActivateAltPreview: () => void;
     activeMode: ThemeMode;
     updateAltDelta: (channel: 'l' | 'c' | 'h', value: number) => void;
   } = $props();
+
+  function persistAltChange(): void {
+    onActivateAltPreview();
+    onPersistChange();
+  }
 
   function handleAltDeltaInput(
     channel: 'l' | 'c' | 'h',
     event: Event & { currentTarget: EventTarget & HTMLInputElement }
   ): void {
     updateAltDelta(channel, Number(event.currentTarget.value));
-    onPersistChange();
+    persistAltChange();
   }
 </script>
 
@@ -29,15 +36,11 @@
 
   <div class="field-grid alt-grid">
     <div class="field-block">
-      <select aria-label="Alt base" bind:value={manifest.alt.source} onchange={onPersistChange}>
+      <select aria-label="Alt base" bind:value={manifest.alt.source} onchange={persistAltChange}>
         <option value="light">Derive from Light</option>
         <option value="dark">Derive from Dark</option>
       </select>
     </div>
-    <label class="checkbox-row compact">
-      <input bind:checked={manifest.alt.harmonyLock} onchange={onPersistChange} type="checkbox" />
-      <span>Lock harmony</span>
-    </label>
   </div>
 
   <div class={`mode-block ${activeMode === 'alt' ? 'mode-block-promoted' : ''}`}>
@@ -58,7 +61,7 @@
         step="1"
         type="number"
         bind:value={manifest.alt.delta.h}
-        oninput={onPersistChange}
+        oninput={persistAltChange}
       />
     </div>
 
@@ -79,7 +82,7 @@
         step="0.005"
         type="number"
         bind:value={manifest.alt.delta.c}
-        oninput={onPersistChange}
+        oninput={persistAltChange}
       />
     </div>
 
@@ -100,25 +103,58 @@
         step="0.01"
         type="number"
         bind:value={manifest.alt.delta.l}
-        oninput={onPersistChange}
+        oninput={persistAltChange}
       />
     </div>
+
+    <label class="harmony-lock-row">
+      <input bind:checked={manifest.alt.harmonyLock} onchange={persistAltChange} type="checkbox" />
+      <span class="harmony-lock-copy">
+        <span class="harmony-lock-title">Lock harmony</span>
+        <small>Keep accent, links, and focus ring on one shared hue in Alt mode.</small>
+      </span>
+    </label>
   </div>
 </section>
 
 <style>
   .alt-grid {
-    align-items: end;
+    align-items: start;
+    justify-items: start;
   }
 
-  .compact {
-    align-self: end;
+  .harmony-lock-row {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0.45rem;
+    text-align: left;
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid rgba(15, 23, 42, 0.08);
+  }
+
+  .harmony-lock-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .harmony-lock-title {
+    line-height: 1.25;
+  }
+
+  .harmony-lock-copy small {
+    color: var(--color-text-muted, #52606d);
+    line-height: 1.35;
   }
 
   .mode-block {
     margin-top: 0.95rem;
     padding: 0.85rem;
-    border-radius: 1rem;
+    border-radius: var(--shell-radius-inner);
     background: rgba(15, 23, 42, 0.04);
   }
 

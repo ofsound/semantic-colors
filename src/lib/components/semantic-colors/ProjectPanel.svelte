@@ -104,7 +104,7 @@
     gap: 0.55rem;
     margin-top: 0.9rem;
     padding: 0.8rem;
-    border-radius: 1rem;
+    border-radius: var(--shell-radius-inner);
     background: rgba(15, 23, 42, 0.04);
   }
 
@@ -178,7 +178,7 @@
   .setup-guide {
     margin-top: 0.9rem;
     padding: 0.85rem;
-    border-radius: 1rem;
+    border-radius: var(--shell-radius-inner);
     background: rgba(15, 23, 42, 0.04);
   }
 

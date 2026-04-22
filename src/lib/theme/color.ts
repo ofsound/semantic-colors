@@ -66,7 +66,8 @@ export function toCssColor(color: OklchColor): string {
 }
 
 export function toRgbChannels(color: OklchColor): [number, number, number] {
-  const rgb = toRgb(color);
+  const normalized = sanitizeColor(color);
+  const rgb = toRgb({ ...normalized, mode: 'oklch' });
   if (!rgb || rgb.r === undefined || rgb.g === undefined || rgb.b === undefined) {
     return [0, 0, 0];
   }

@@ -46,7 +46,6 @@
     >
       <span>Light</span>
       <span class="swatch" style={`background:${toCssColor(selectedToken.light)}`}></span>
-      <code>{toCssColor(selectedToken.light)}</code>
     </button>
     <button
       aria-label={`Preview ${selectedToken.label} in dark mode: ${toCssColor(selectedToken.dark)}`}
@@ -56,7 +55,6 @@
     >
       <span>Dark</span>
       <span class="swatch" style={`background:${toCssColor(selectedToken.dark)}`}></span>
-      <code>{toCssColor(selectedToken.dark)}</code>
     </button>
     <button
       aria-label={`Preview ${selectedToken.label} in alt mode: ${toCssColor(currentTokenAlt)}`}
@@ -66,153 +64,158 @@
     >
       <span>Alt</span>
       <span class="swatch" style={`background:${toCssColor(currentTokenAlt)}`}></span>
-      <code>{toCssColor(currentTokenAlt)}</code>
     </button>
   </div>
 
-  <div class={`anchor-editor ${activeMode === 'light' ? 'anchor-editor-active' : ''}`}>
-    <div class="anchor-header">
-      <strong>Light anchor</strong>
-      <span>{activeMode === 'light' ? 'Editing focus' : 'Anchor remains inspectable'}</span>
-    </div>
-    <div class="anchor-layout">
-      <AnchorColorPicker bind:color={selectedToken.light} label="Light anchor" {onPersistChange} />
-      <div class="channel-grid">
-        <label class="channel">
-          <span>L</span>
-          <input
-            bind:value={selectedToken.light.l}
-            max="1"
-            min="0"
-            oninput={onPersistChange}
-            step="0.005"
-            type="range"
-          />
-          <input
-            class="number-field"
-            max="1"
-            min="0"
-            oninput={onPersistChange}
-            step="0.005"
-            type="number"
-            bind:value={selectedToken.light.l}
-          />
-        </label>
-        <label class="channel">
-          <span>C</span>
-          <input
-            bind:value={selectedToken.light.c}
-            max="0.37"
-            min="0"
-            oninput={onPersistChange}
-            step="0.005"
-            type="range"
-          />
-          <input
-            class="number-field"
-            max="0.37"
-            min="0"
-            oninput={onPersistChange}
-            step="0.005"
-            type="number"
-            bind:value={selectedToken.light.c}
-          />
-        </label>
-        <label class="channel">
-          <span>H</span>
-          <input
-            bind:value={selectedToken.light.h}
-            max="360"
-            min="0"
-            oninput={onPersistChange}
-            step="1"
-            type="range"
-          />
-          <input
-            class="number-field"
-            max="360"
-            min="0"
-            oninput={onPersistChange}
-            step="1"
-            type="number"
-            bind:value={selectedToken.light.h}
-          />
-        </label>
+  {#if activeMode === 'light'}
+    <div class="anchor-editor anchor-editor-active">
+      <div class="anchor-header">
+        <strong>Light anchor</strong>
+      </div>
+      <div class="anchor-layout">
+        <AnchorColorPicker
+          bind:color={selectedToken.light}
+          label="Light anchor"
+          {onPersistChange}
+        />
+        <div class="channel-grid">
+          <label class="channel">
+            <span>L</span>
+            <input
+              bind:value={selectedToken.light.l}
+              max="1"
+              min="0"
+              oninput={onPersistChange}
+              step="0.005"
+              type="range"
+            />
+            <input
+              class="number-field"
+              max="1"
+              min="0"
+              oninput={onPersistChange}
+              step="0.005"
+              type="number"
+              bind:value={selectedToken.light.l}
+            />
+          </label>
+          <label class="channel">
+            <span>C</span>
+            <input
+              bind:value={selectedToken.light.c}
+              max="0.37"
+              min="0"
+              oninput={onPersistChange}
+              step="0.005"
+              type="range"
+            />
+            <input
+              class="number-field"
+              max="0.37"
+              min="0"
+              oninput={onPersistChange}
+              step="0.005"
+              type="number"
+              bind:value={selectedToken.light.c}
+            />
+          </label>
+          <label class="channel">
+            <span>H</span>
+            <input
+              bind:value={selectedToken.light.h}
+              max="360"
+              min="0"
+              oninput={onPersistChange}
+              step="1"
+              type="range"
+            />
+            <input
+              class="number-field"
+              max="360"
+              min="0"
+              oninput={onPersistChange}
+              step="1"
+              type="number"
+              bind:value={selectedToken.light.h}
+            />
+          </label>
+        </div>
       </div>
     </div>
-  </div>
+  {/if}
 
-  <div class={`anchor-editor ${activeMode === 'dark' ? 'anchor-editor-active' : ''}`}>
-    <div class="anchor-header">
-      <strong>Dark anchor</strong>
-      <span>{activeMode === 'dark' ? 'Editing focus' : 'Anchor remains inspectable'}</span>
-    </div>
-    <div class="anchor-layout">
-      <AnchorColorPicker bind:color={selectedToken.dark} label="Dark anchor" {onPersistChange} />
-      <div class="channel-grid">
-        <label class="channel">
-          <span>L</span>
-          <input
-            bind:value={selectedToken.dark.l}
-            max="1"
-            min="0"
-            oninput={onPersistChange}
-            step="0.005"
-            type="range"
-          />
-          <input
-            class="number-field"
-            max="1"
-            min="0"
-            oninput={onPersistChange}
-            step="0.005"
-            type="number"
-            bind:value={selectedToken.dark.l}
-          />
-        </label>
-        <label class="channel">
-          <span>C</span>
-          <input
-            bind:value={selectedToken.dark.c}
-            max="0.37"
-            min="0"
-            oninput={onPersistChange}
-            step="0.005"
-            type="range"
-          />
-          <input
-            class="number-field"
-            max="0.37"
-            min="0"
-            oninput={onPersistChange}
-            step="0.005"
-            type="number"
-            bind:value={selectedToken.dark.c}
-          />
-        </label>
-        <label class="channel">
-          <span>H</span>
-          <input
-            bind:value={selectedToken.dark.h}
-            max="360"
-            min="0"
-            oninput={onPersistChange}
-            step="1"
-            type="range"
-          />
-          <input
-            class="number-field"
-            max="360"
-            min="0"
-            oninput={onPersistChange}
-            step="1"
-            type="number"
-            bind:value={selectedToken.dark.h}
-          />
-        </label>
+  {#if activeMode === 'dark'}
+    <div class="anchor-editor anchor-editor-active">
+      <div class="anchor-header">
+        <strong>Dark anchor</strong>
+      </div>
+      <div class="anchor-layout">
+        <AnchorColorPicker bind:color={selectedToken.dark} label="Dark anchor" {onPersistChange} />
+        <div class="channel-grid">
+          <label class="channel">
+            <span>L</span>
+            <input
+              bind:value={selectedToken.dark.l}
+              max="1"
+              min="0"
+              oninput={onPersistChange}
+              step="0.005"
+              type="range"
+            />
+            <input
+              class="number-field"
+              max="1"
+              min="0"
+              oninput={onPersistChange}
+              step="0.005"
+              type="number"
+              bind:value={selectedToken.dark.l}
+            />
+          </label>
+          <label class="channel">
+            <span>C</span>
+            <input
+              bind:value={selectedToken.dark.c}
+              max="0.37"
+              min="0"
+              oninput={onPersistChange}
+              step="0.005"
+              type="range"
+            />
+            <input
+              class="number-field"
+              max="0.37"
+              min="0"
+              oninput={onPersistChange}
+              step="0.005"
+              type="number"
+              bind:value={selectedToken.dark.c}
+            />
+          </label>
+          <label class="channel">
+            <span>H</span>
+            <input
+              bind:value={selectedToken.dark.h}
+              max="360"
+              min="0"
+              oninput={onPersistChange}
+              step="1"
+              type="range"
+            />
+            <input
+              class="number-field"
+              max="360"
+              min="0"
+              oninput={onPersistChange}
+              step="1"
+              type="number"
+              bind:value={selectedToken.dark.h}
+            />
+          </label>
+        </div>
       </div>
     </div>
-  </div>
+  {/if}
 
   <div class={`mode-block ${activeMode === 'alt' ? 'mode-block-promoted' : ''}`}>
     <div class="field-grid">
@@ -288,21 +291,15 @@
 
   .swatch {
     height: 2.5rem;
-    border-radius: 0.8rem;
+    border-radius: var(--shell-radius-inner);
     border: 1px solid rgba(15, 23, 42, 0.12);
-  }
-
-  .swatch-card code {
-    font-size: 0.66rem;
-    color: #4b5563;
-    word-break: break-word;
   }
 
   .anchor-editor,
   .mode-block {
     margin-top: 0.95rem;
     padding: 0.85rem;
-    border-radius: 1rem;
+    border-radius: var(--shell-radius-inner);
     background: rgba(15, 23, 42, 0.04);
   }
 
