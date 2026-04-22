@@ -24,29 +24,16 @@
 
 <section class="panel">
   <div class="panel-header">
-    <div>
-      <p class="eyebrow">Theme state</p>
-      <h2>Mode controls</h2>
-    </div>
+    <h2>Alt</h2>
   </div>
 
-  <label class="checkbox-row">
-    <input
-      bind:checked={manifest.alt.grayscalePreview}
-      onchange={onPersistChange}
-      type="checkbox"
-    />
-    <span>Greyscale hierarchy overlay (`L`)</span>
-  </label>
-
   <div class="field-grid alt-grid">
-    <label class="field-block">
-      <span>Alt base</span>
-      <select bind:value={manifest.alt.source} onchange={onPersistChange}>
+    <div class="field-block">
+      <select aria-label="Alt base" bind:value={manifest.alt.source} onchange={onPersistChange}>
         <option value="light">Derive from Light</option>
         <option value="dark">Derive from Dark</option>
       </select>
-    </label>
+    </div>
     <label class="checkbox-row compact">
       <input bind:checked={manifest.alt.harmonyLock} onchange={onPersistChange} type="checkbox" />
       <span>Lock harmony</span>

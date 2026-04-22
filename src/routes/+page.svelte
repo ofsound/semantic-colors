@@ -23,7 +23,7 @@
 
   const SIDEBAR_TABS = [
     { id: 'project', label: 'Project' },
-    { id: 'modes', label: 'Modes' },
+    { id: 'modes', label: 'Alt' },
     { id: 'token', label: 'Token' },
     { id: 'aliases', label: 'Aliases' },
     { id: 'import', label: 'Import' }
@@ -377,6 +377,19 @@
       <div class="stage-status">
         <div class="stage-mode-row">
           <button
+            aria-keyshortcuts="L"
+            aria-label="Grayscale preview (shortcut L)"
+            aria-pressed={manifest.alt.grayscalePreview}
+            class={`sidebar-tab stage-mode-button ${manifest.alt.grayscalePreview ? 'sidebar-tab-active' : ''}`}
+            onclick={() => {
+              manifest.alt.grayscalePreview = !manifest.alt.grayscalePreview;
+              workspace.markPersistDirty();
+            }}
+            type="button"
+          >
+            Grayscale
+          </button>
+          <button
             aria-pressed={activeMode === 'light'}
             class={`sidebar-tab stage-mode-button ${activeMode === 'light' ? 'sidebar-tab-active' : ''}`}
             onclick={() => setTheme('light')}
@@ -402,7 +415,6 @@
           </button>
         </div>
         <div class="stage-meta">
-          <span>Mode: {activeMode}</span>
           <span>Selected: {selectedToken.label}</span>
         </div>
       </div>
