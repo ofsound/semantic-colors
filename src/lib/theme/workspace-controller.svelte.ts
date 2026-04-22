@@ -27,6 +27,30 @@ export function createWorkspaceController(options: WorkspaceControllerOptions) {
   let booted = false;
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
   let bridgeTimer: ReturnType<typeof setTimeout> | null = null;
+  let saveStateTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function clearSaveStateTimer(): void {
+    if (saveStateTimer) {
+      clearTimeout(saveStateTimer);
+      saveStateTimer = null;
+    }
+  }
+
+  function setSaveFeedback(
+    state: SaveState,
+    message: string,
+    resetAfterMs: number | null = null
+  ): void {
+    clearSaveStateTimer();
+    saveState = state;
+    saveMessage = message;
+
+    if (resetAfterMs !== null) {
+      saveStateTimer = setTimeout(() => {
+        saveState = 'idle';
+      }, resetAfterMs);
+    }
+  }
 
   async function responseMessage(response: Response, fallback: string): Promise<string> {
     const contentType = response.headers.get('content-type') ?? '';
@@ -46,20 +70,20 @@ export function createWorkspaceController(options: WorkspaceControllerOptions) {
     const configPath = options.getConfigPath();
     const response = await fetch(`/api/project/load?configPath=${encodeURIComponent(configPath)}`);
     if (!response.ok) {
-      saveState = 'error';
-      saveMessage = await responseMessage(response, `Reload failed with status ${response.status}`);
+      setSaveFeedback(
+        'error',
+        await responseMessage(response, `Reload failed with status ${response.status}`)
+      );
       return;
     }
 
     const nextData = (await response.json()) as WorkspacePageData;
     options.applyPageData(nextData);
-    saveState = 'saved';
-    saveMessage = 'Reloaded project state';
+    setSaveFeedback('saved', 'Reloaded project state', 1800);
   }
 
   async function persistState(): Promise<void> {
-    saveState = 'saving';
-    saveMessage = 'Saving manifest and generated CSS...';
+    setSaveFeedback('saving', 'Saving manifest and generated CSS...');
 
     try {
       const config = $state.snapshot(options.getConfig());
@@ -82,14 +106,16 @@ export function createWorkspaceController(options: WorkspaceControllerOptions) {
         );
       }
 
-      saveState = 'saved';
-      saveMessage = config.bridgeEnabled
-        ? 'Saved manifest and regenerated target CSS.'
-        : 'Saved manifest and config. Bridge output is currently disabled.';
+      setSaveFeedback(
+        'saved',
+        config.bridgeEnabled
+          ? 'Saved manifest and regenerated target CSS.'
+          : 'Saved manifest and config. Bridge output is currently disabled.',
+        1800
+      );
       await publishToBridge(true);
     } catch (error) {
-      saveState = 'error';
-      saveMessage = error instanceof Error ? error.message : 'Save failed';
+      setSaveFeedback('error', error instanceof Error ? error.message : 'Save failed');
     }
   }
 
@@ -119,6 +145,8 @@ export function createWorkspaceController(options: WorkspaceControllerOptions) {
       clearTimeout(bridgeTimer);
       bridgeTimer = null;
     }
+
+    clearSaveStateTimer();
   }
 
   function markPersistDirty(): void {

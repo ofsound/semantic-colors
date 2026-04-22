@@ -91,6 +91,13 @@
           ? 'Bridge output is enabled. Saving updates both the manifest and generated CSS.'
           : 'Bridge output is disabled. Saving updates the local manifest and config only.'
   );
+  const saveToastTone = $derived(
+    workspace.saveState === 'error'
+      ? 'save-toast-error'
+      : workspace.saveState === 'saved'
+        ? 'save-toast-saved'
+        : 'save-toast-saving'
+  );
 
   function applyPageData(value: PageData): void {
     manifest = ensureManifest(value.manifest);
@@ -310,6 +317,18 @@
   <title>Semantic Colors</title>
 </svelte:head>
 
+{#if workspace.saveState !== 'idle'}
+  <div
+    aria-atomic="true"
+    aria-live={workspace.saveState === 'error' ? 'assertive' : 'polite'}
+    class={`save-toast ${saveToastTone}`}
+    role={workspace.saveState === 'error' ? 'alert' : 'status'}
+  >
+    <strong>{saveHeading}</strong>
+    <span>{workspace.saveMessage}</span>
+  </div>
+{/if}
+
 <div
   class={`semantic-colors-app workspace ${sidebarCollapsed ? 'workspace-sidebar-collapsed' : ''}`}
 >
@@ -439,7 +458,7 @@
 
   <main class="stage-shell">
     <div
-      class="stage-header-fixed rounded-b-xl rounded-t-none border-x border-b border-t-0 border-[color:var(--shell-border)] bg-white/90 p-[var(--stage-header-pad-block-start)_1.1rem_1rem] shadow-[var(--shell-shadow)] backdrop-blur-xl"
+      class="stage-header-fixed rounded-t-none rounded-b-xl border-x border-t-0 border-b border-[color:var(--shell-border)] bg-white/90 p-[var(--stage-header-pad-block-start)_1.1rem_1rem] shadow-[var(--shell-shadow)] backdrop-blur-xl"
     >
       <div
         class="stage-header-toolbar flex w-full min-w-0 flex-wrap items-center gap-2"
@@ -574,3 +593,64 @@
     </div>
   </main>
 </div>
+
+<style>
+  .save-toast {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 60;
+    display: grid;
+    gap: 0.15rem;
+    min-width: min(20rem, calc(100vw - 2rem));
+    max-width: min(24rem, calc(100vw - 2rem));
+    padding: 0.85rem 1rem;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 1rem;
+    box-shadow:
+      0 18px 38px rgba(15, 23, 42, 0.12),
+      0 8px 18px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(18px);
+    pointer-events: none;
+  }
+
+  .save-toast strong {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .save-toast span {
+    font-size: 0.92rem;
+    line-height: 1.35;
+  }
+
+  .save-toast-saving {
+    background: rgba(239, 246, 255, 0.92);
+    border-color: rgba(56, 189, 248, 0.26);
+    color: rgb(12, 74, 110);
+  }
+
+  .save-toast-saved {
+    background: rgba(236, 253, 245, 0.92);
+    border-color: rgba(52, 211, 153, 0.28);
+    color: rgb(6, 95, 70);
+  }
+
+  .save-toast-error {
+    background: rgba(254, 242, 242, 0.95);
+    border-color: rgba(248, 113, 113, 0.26);
+    color: rgb(153, 27, 27);
+  }
+
+  @media (max-width: 640px) {
+    .save-toast {
+      left: 0.75rem;
+      right: 0.75rem;
+      top: 0.75rem;
+      min-width: auto;
+      max-width: none;
+    }
+  }
+</style>
