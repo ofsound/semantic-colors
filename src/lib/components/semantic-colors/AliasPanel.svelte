@@ -1,4 +1,8 @@
 <script lang="ts">
+  import * as Card from '$lib/components/ui/card';
+  import { Button } from '$lib/components/ui/button';
+  import { Input } from '$lib/components/ui/input';
+  import ShellSelect from '$lib/components/semantic-colors/ShellSelect.svelte';
   import { ALL_TOKEN_IDS } from '$lib/theme/schema';
   import type { LocalAlias, ThemeManifest, TokenId } from '$lib/theme/schema';
 
@@ -15,64 +19,52 @@
     removeAlias: (index: number) => void;
     updateAlias: (index: number, patch: Partial<LocalAlias>) => void;
   } = $props();
+
+  const tokenOptions = $derived.by(() =>
+    ALL_TOKEN_IDS.map((tokenId) => ({ value: tokenId, label: tokenLabel(tokenId) }))
+  );
 </script>
 
-<section class="panel">
-  <div class="panel-header">
-    <div>
-      <p class="eyebrow">Local aliases</p>
-      <h2>Project-specific names</h2>
+<Card.Root
+  class="gap-4 border border-[color:var(--shell-border)] bg-[color:var(--shell-panel-bg)] py-4 shadow-[var(--shell-shadow)] backdrop-blur-md"
+>
+  <Card.Header class="gap-3 px-4">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <p class="eyebrow">Local aliases</p>
+        <Card.Title>Project-specific names</Card.Title>
+      </div>
+      <Button onclick={addAlias} size="sm" variant="outline">Add alias</Button>
     </div>
-    <button class="ghost-button" onclick={addAlias} type="button">Add alias</button>
-  </div>
+  </Card.Header>
 
-  <div class="alias-list">
+  <Card.Content class="px-4">
     {#if manifest.aliases.length === 0}
-      <p class="empty-state">
+      <p class="empty-state mt-0 rounded-xl bg-slate-900/4 px-4 py-4 text-sm">
         No project aliases yet. Add aliases when you need local CSS variable names mapped to the
         shared semantic tokens.
       </p>
     {:else}
-      {#each manifest.aliases as alias, index (`${alias.name}-${index}`)}
-        <div class="alias-row">
-          <input
-            value={alias.name}
-            oninput={(event) =>
-              updateAlias(index, { name: (event.currentTarget as HTMLInputElement).value })}
-          />
-          <select
-            value={alias.tokenId}
-            oninput={(event) =>
-              updateAlias(index, {
-                tokenId: (event.currentTarget as HTMLSelectElement).value as TokenId
-              })}
+      <div class="grid gap-3">
+        {#each manifest.aliases as alias, index (`${alias.name}-${index}`)}
+          <div
+            class="grid gap-3 rounded-xl bg-slate-900/4 p-3 md:grid-cols-[1.4fr_1fr_auto] md:items-center"
           >
-            {#each ALL_TOKEN_IDS as tokenId (tokenId)}
-              <option value={tokenId}>{tokenLabel(tokenId)}</option>
-            {/each}
-          </select>
-          <button class="ghost-button" onclick={() => removeAlias(index)} type="button"
-            >Remove</button
-          >
-        </div>
-      {/each}
+            <Input
+              value={alias.name}
+              oninput={(event) =>
+                updateAlias(index, { name: (event.currentTarget as HTMLInputElement).value })}
+            />
+            <ShellSelect
+              options={tokenOptions}
+              placeholder="Choose token"
+              onChange={() => updateAlias(index, { tokenId: alias.tokenId })}
+              bind:value={alias.tokenId}
+            />
+            <Button onclick={() => removeAlias(index)} variant="ghost">Remove</Button>
+          </div>
+        {/each}
+      </div>
     {/if}
-  </div>
-</section>
-
-<style>
-  .alias-list {
-    display: grid;
-    gap: 0.75rem;
-  }
-
-  .alias-row {
-    display: grid;
-    gap: 0.75rem;
-    padding: 0.8rem;
-    border-radius: var(--shell-radius-inner);
-    background: rgba(15, 23, 42, 0.04);
-    grid-template-columns: 1.4fr 1fr auto;
-    align-items: center;
-  }
-</style>
+  </Card.Content>
+</Card.Root>

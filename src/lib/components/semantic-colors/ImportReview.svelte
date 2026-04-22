@@ -1,6 +1,10 @@
 <script lang="ts">
-  import { ALL_TOKEN_IDS } from '$lib/theme/schema';
+  import * as Card from '$lib/components/ui/card';
+  import { Button } from '$lib/components/ui/button';
+  import { Input } from '$lib/components/ui/input';
+  import ShellSelect from '$lib/components/semantic-colors/ShellSelect.svelte';
   import { toCssColor } from '$lib/theme/color';
+  import { ALL_TOKEN_IDS } from '$lib/theme/schema';
   import type { ImportProposal, ProjectConfig, TokenId } from '$lib/theme/schema';
 
   let {
@@ -24,113 +28,84 @@
     applyImportReview: () => void;
     confirmResetManifest: () => void;
   } = $props();
+
+  const tokenOptions = $derived.by(() => [
+    { value: '', label: 'Skip mapping' },
+    ...ALL_TOKEN_IDS.map((tokenId) => ({ value: tokenId, label: tokenLabel(tokenId) }))
+  ]);
 </script>
 
-<section class="panel">
-  <div class="panel-header">
-    <div>
-      <p class="eyebrow">Import and migration</p>
-      <h2>CSS review queue</h2>
+<Card.Root
+  class="gap-4 border border-[color:var(--shell-border)] bg-[color:var(--shell-panel-bg)] py-4 shadow-[var(--shell-shadow)] backdrop-blur-md"
+>
+  <Card.Header class="gap-3 px-4">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <p class="eyebrow">Import and migration</p>
+        <Card.Title>CSS review queue</Card.Title>
+      </div>
+      <Button onclick={confirmResetManifest} size="sm" variant="ghost">Reset manifest</Button>
     </div>
-    <button class="ghost-button" onclick={confirmResetManifest} type="button">Reset manifest</button
-    >
-  </div>
+  </Card.Header>
 
-  <label class="field-block">
-    <span>Source CSS path</span>
-    <input
-      bind:value={config.importSourcePath}
-      oninput={onPersistChange}
-      placeholder="../project/src/app.css"
-    />
-  </label>
+  <Card.Content class="space-y-4 px-4">
+    <label class="grid gap-2 text-sm font-medium text-slate-700">
+      <span>Source CSS path</span>
+      <Input
+        bind:value={config.importSourcePath}
+        oninput={onPersistChange}
+        placeholder="../project/src/app.css"
+      />
+    </label>
 
-  <div class="action-row">
-    <button disabled={isImporting || !config.importSourcePath} onclick={runImport} type="button">
-      {isImporting ? 'Importing...' : 'Scan CSS variables'}
-    </button>
+    <div class="flex flex-wrap gap-2">
+      <Button disabled={isImporting || !config.importSourcePath} onclick={runImport}>
+        {isImporting ? 'Importing...' : 'Scan CSS variables'}
+      </Button>
+      {#if importProposal}
+        <Button onclick={applyImportReview} variant="secondary">Apply reviewed mappings</Button>
+      {/if}
+    </div>
+
     {#if importProposal}
-      <button class="secondary-button" onclick={applyImportReview} type="button">
-        Apply reviewed mappings
-      </button>
+      <div class="grid gap-3">
+        {#each importProposal.candidates as candidate (candidate.sourceName)}
+          <article
+            class="grid gap-3 rounded-xl bg-slate-900/4 p-3 lg:grid-cols-[1.3fr_1fr_auto] lg:items-center"
+          >
+            <div class="min-w-0 space-y-1">
+              <strong class="block truncate text-sm text-slate-900">--{candidate.sourceName}</strong
+              >
+              <p class="text-sm text-slate-600">{candidate.rawValue}</p>
+              <small class="text-xs leading-5 text-slate-500">{candidate.reason}</small>
+            </div>
+            <ShellSelect
+              bind:value={importSelection[candidate.sourceName]}
+              options={tokenOptions}
+              placeholder="Skip mapping"
+            />
+            <div class="flex gap-2">
+              <span
+                class="inline-grid h-8 w-8 place-items-center rounded-md border border-slate-900/12 text-[0.7rem] font-bold"
+                style={`background:${candidate.light ? toCssColor(candidate.light) : 'transparent'}`}
+              >
+                L
+              </span>
+              <span
+                class="inline-grid h-8 w-8 place-items-center rounded-md border border-slate-900/12 text-[0.7rem] font-bold"
+                style={`background:${candidate.dark ? toCssColor(candidate.dark) : 'transparent'}`}
+              >
+                D
+              </span>
+            </div>
+          </article>
+        {/each}
+      </div>
+    {:else}
+      <p class="empty-state mt-0 rounded-xl bg-slate-900/4 px-4 py-4 text-sm">
+        Add a source CSS file to scan your current variables, then review the suggested token
+        mappings here before applying them.
+      </p>
     {/if}
-  </div>
-
-  {#if importProposal}
-    <div class="review-queue">
-      {#each importProposal.candidates as candidate (candidate.sourceName)}
-        <article class="review-card">
-          <div>
-            <strong>--{candidate.sourceName}</strong>
-            <p>{candidate.rawValue}</p>
-            <small>{candidate.reason}</small>
-          </div>
-          <select bind:value={importSelection[candidate.sourceName]}>
-            <option value="">Skip mapping</option>
-            {#each ALL_TOKEN_IDS as tokenId (tokenId)}
-              <option value={tokenId}>{tokenLabel(tokenId)}</option>
-            {/each}
-          </select>
-          <div class="review-swatches">
-            <span
-              class="mini-swatch"
-              style={`background:${candidate.light ? toCssColor(candidate.light) : 'transparent'}`}
-            >
-              L
-            </span>
-            <span
-              class="mini-swatch"
-              style={`background:${candidate.dark ? toCssColor(candidate.dark) : 'transparent'}`}
-            >
-              D
-            </span>
-          </div>
-        </article>
-      {/each}
-    </div>
-  {:else}
-    <p class="empty-state">
-      Add a source CSS file to scan your current variables, then review the suggested token mappings
-      here before applying them.
-    </p>
-  {/if}
-</section>
-
-<style>
-  .review-queue {
-    display: grid;
-    gap: 0.75rem;
-  }
-
-  .review-card {
-    display: grid;
-    gap: 0.75rem;
-    padding: 0.8rem;
-    border-radius: var(--shell-radius-inner);
-    background: rgba(15, 23, 42, 0.04);
-    grid-template-columns: 1.3fr 1fr auto;
-    align-items: center;
-  }
-
-  .review-card p {
-    margin-top: 0.25rem;
-    color: #4b5563;
-    font-size: 0.82rem;
-  }
-
-  .review-swatches {
-    display: flex;
-    gap: 0.4rem;
-  }
-
-  .mini-swatch {
-    display: inline-grid;
-    place-items: center;
-    width: 2rem;
-    height: 2rem;
-    border-radius: var(--shell-radius-inner);
-    border: 1px solid rgba(15, 23, 42, 0.12);
-    font-size: 0.7rem;
-    font-weight: 700;
-  }
-</style>
+  </Card.Content>
+</Card.Root>

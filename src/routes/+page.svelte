@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { Button } from '$lib/components/ui/button';
+  import { Kbd } from '$lib/components/ui/kbd';
   import AliasPanel from '$lib/components/semantic-colors/AliasPanel.svelte';
   import FixtureStage from '$lib/components/semantic-colors/FixtureStage.svelte';
   import ImportReview from '$lib/components/semantic-colors/ImportReview.svelte';
@@ -55,6 +57,7 @@
   let activeSidebarTab = $state<SidebarTabId>('token');
   let activeMainTab = $state<MainTabId>('preview');
   let borderPreviewMode = $state<BorderPreviewMode>('none');
+  let grayscalePreview = $state(false);
   let selectedTokenId = $state<TokenId>('surface');
   let activeMode = $state<ThemeMode>('light');
   let holdPreviewStartedAt = 0;
@@ -88,8 +91,10 @@
           ? 'Bridge output is enabled. Saving updates both the manifest and generated CSS.'
           : 'Bridge output is disabled. Saving updates the local manifest and config only.'
   );
+
   function applyPageData(value: PageData): void {
     manifest = ensureManifest(value.manifest);
+    grayscalePreview = value.manifest.alt.grayscalePreview;
     config = {
       ...DEFAULT_PROJECT_CONFIG,
       ...value.config,
@@ -108,7 +113,6 @@
     activeMode === 'light' ? lightTheme : activeMode === 'dark' ? darkTheme : altTheme
   );
   const validations = $derived(validateManifest(manifest));
-  const selectedToken = $derived(manifest.tokens[selectedTokenId]);
   const selectedTokenNotes = $derived(
     summarizeTokenValidation(validations[activeMode].perToken[selectedTokenId])
   );
@@ -180,9 +184,23 @@
       return;
     }
 
-    if (event.key.toLowerCase() === 'l') {
-      manifest.alt.grayscalePreview = !manifest.alt.grayscalePreview;
-      workspace.markPersistDirty();
+    if (event.key.toLowerCase() === 'p') {
+      activeMainTab = 'preview';
+      return;
+    }
+
+    if (event.key.toLowerCase() === 't') {
+      activeMainTab = 'inventory';
+      return;
+    }
+
+    if (event.key.toLowerCase() === 'g') {
+      grayscalePreview = !grayscalePreview;
+      return;
+    }
+
+    if (event.key.toLowerCase() === 'b') {
+      cycleBorderPreviewMode();
     }
   }
 
@@ -255,6 +273,7 @@
 
   function resetManifest(): void {
     manifest = createDefaultManifest();
+    grayscalePreview = manifest.alt.grayscalePreview;
     selectedTokenId = 'surface';
   }
 
@@ -271,6 +290,18 @@
       (BORDER_PREVIEW_MODES.indexOf(borderPreviewMode) + 1) % BORDER_PREVIEW_MODES.length;
     borderPreviewMode = BORDER_PREVIEW_MODES[nextIndex];
   }
+
+  function headerControlClass(selected: boolean): string {
+    return selected
+      ? 'border-sky-500/35 bg-sky-500/12 text-slate-950 shadow-[0_0_0_3px_rgba(59,130,246,0.12)] hover:bg-sky-500/16'
+      : 'border-slate-900/10 bg-white/70 text-slate-900 shadow-none hover:bg-white';
+  }
+
+  function headerShortcutClass(selected: boolean): string {
+    return selected
+      ? 'border-sky-200 bg-white/85 text-sky-900'
+      : 'border-black/10 bg-white/70 text-slate-500';
+  }
 </script>
 
 <svelte:window onkeydown={handleKeydown} onkeyup={handleKeyup} />
@@ -284,16 +315,16 @@
 >
   <aside class={`sidebar ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
     <div class="sidebar-toolbar">
-      <button
+      <Button
         aria-label={sidebarCollapsed ? 'Show authoring panels' : 'Hide authoring panels'}
-        class={`sidebar-tab sidebar-toggle ${sidebarCollapsed ? 'sidebar-toggle-collapsed' : ''}`}
+        class={`border-slate-900/10 bg-white/70 shadow-none hover:bg-white ${sidebarCollapsed ? 'size-11 px-0' : 'px-3'}`}
         onclick={toggleSidebar}
-        type="button"
+        size={sidebarCollapsed ? 'icon-sm' : 'sm'}
+        variant="outline"
       >
         <span
           aria-hidden="true"
-          class="sidebar-toggle-icon"
-          class:sidebar-toggle-icon-collapsed={sidebarCollapsed}
+          class={`sidebar-toggle-icon ${sidebarCollapsed ? 'sidebar-toggle-icon-collapsed' : ''}`}
         >
           <svg class="sidebar-toggle-chevron" viewBox="0 0 24 24">
             <path
@@ -309,28 +340,37 @@
         {#if !sidebarCollapsed}
           <span>Hide</span>
         {/if}
-      </button>
+      </Button>
     </div>
 
     {#if !sidebarCollapsed}
-      <div aria-label="Authoring panels" class="sidebar-tab-strip" role="tablist">
+      <div
+        class="flex flex-wrap items-center gap-2"
+        role="toolbar"
+        aria-label="Authoring panels: token, alt modes, aliases, import, project"
+      >
         {#each SIDEBAR_TABS as tab (tab.id)}
-          <button
-            aria-controls={`sidebar-panel-${tab.id}`}
-            aria-selected={activeSidebarTab === tab.id}
-            class={`sidebar-tab ${activeSidebarTab === tab.id ? 'sidebar-tab-active' : ''}`}
+          <Button
+            aria-controls="sidebar-authoring-panel"
+            aria-label={`${tab.label} panel`}
+            aria-pressed={activeSidebarTab === tab.id}
+            class={`h-9 min-h-9 px-3 ${headerControlClass(activeSidebarTab === tab.id)}`}
             onclick={() => {
               activeSidebarTab = tab.id;
             }}
-            role="tab"
-            type="button"
+            variant="outline"
           >
             {tab.label}
-          </button>
+          </Button>
         {/each}
       </div>
 
-      <div class="sidebar-panel-shell" id={`sidebar-panel-${activeSidebarTab}`} role="tabpanel">
+      <div
+        class="sidebar-panel-shell"
+        id="sidebar-authoring-panel"
+        role="tabpanel"
+        aria-label={SIDEBAR_TABS.find((t) => t.id === activeSidebarTab)?.label}
+      >
         {#if activeSidebarTab === 'token'}
           <TokenEditor
             bind:manifest
@@ -382,84 +422,114 @@
   </aside>
 
   <main class="stage-shell">
-    <header class="stage-header stage-header-fixed">
+    <div
+      class="stage-header-fixed rounded-xl border border-[color:var(--shell-border)] bg-white/90 p-[var(--stage-header-pad-block-start)_1.1rem_1rem] shadow-[var(--shell-shadow)] backdrop-blur-xl"
+    >
       <div
-        aria-label="Main viewport panels"
-        class="sidebar-tab-strip stage-tab-strip"
-        role="tablist"
+        class="stage-header-toolbar flex w-full min-w-0 flex-wrap items-center gap-2"
+        role="toolbar"
+        aria-label="Stage: viewport, preview tools, and theme mode"
       >
-        {#each MAIN_TABS as tab (tab.id)}
-          <button
-            aria-controls={`main-panel-${tab.id}`}
-            aria-selected={activeMainTab === tab.id}
-            class={`sidebar-tab ${activeMainTab === tab.id ? 'sidebar-tab-active' : ''}`}
-            onclick={() => {
-              activeMainTab = tab.id;
-            }}
-            role="tab"
-            type="button"
-          >
-            {tab.label}
-          </button>
-        {/each}
-      </div>
-      <div class="stage-status">
-        <div class="stage-mode-row">
-          <button
-            aria-label={`Border preview mode: ${borderPreviewLabel}`}
-            aria-pressed={borderPreviewMode !== 'none'}
-            class={`sidebar-tab stage-mode-button ${borderPreviewMode !== 'none' ? 'sidebar-tab-active' : ''}`}
-            onclick={cycleBorderPreviewMode}
-            type="button"
-          >
-            {borderPreviewLabel}
-          </button>
-          <button
-            aria-keyshortcuts="L"
-            aria-label="Grayscale preview (shortcut L)"
-            aria-pressed={manifest.alt.grayscalePreview}
-            class={`sidebar-tab stage-mode-button ${manifest.alt.grayscalePreview ? 'sidebar-tab-active' : ''}`}
-            onclick={() => {
-              manifest.alt.grayscalePreview = !manifest.alt.grayscalePreview;
-              workspace.markPersistDirty();
-            }}
-            type="button"
-          >
-            Grayscale
-          </button>
-          <button
-            aria-pressed={activeMode === 'light'}
-            class={`sidebar-tab stage-mode-button ${activeMode === 'light' ? 'sidebar-tab-active' : ''}`}
-            onclick={() => setTheme('light')}
-            type="button"
-          >
-            1 Light
-          </button>
-          <button
-            aria-pressed={activeMode === 'dark'}
-            class={`sidebar-tab stage-mode-button ${activeMode === 'dark' ? 'sidebar-tab-active' : ''}`}
-            onclick={() => setTheme('dark')}
-            type="button"
-          >
-            2 Dark
-          </button>
-          <button
-            aria-pressed={activeMode === 'alt'}
-            class={`sidebar-tab stage-mode-button ${activeMode === 'alt' ? 'sidebar-tab-active' : ''}`}
-            onclick={() => setTheme('alt')}
-            type="button"
-          >
-            3 Alt
-          </button>
+        <div class="flex shrink-0 flex-wrap items-center gap-2">
+          {#each MAIN_TABS as tab (tab.id)}
+            <Button
+              aria-controls="main-viewport-panel"
+              aria-keyshortcuts={tab.id === 'preview' ? 'P' : 'T'}
+              aria-label={`${tab.label} view${tab.id === 'preview' ? ' (shortcut P)' : ' (shortcut T)'}`}
+              aria-pressed={activeMainTab === tab.id}
+              class={headerControlClass(activeMainTab === tab.id)}
+              onclick={() => {
+                activeMainTab = tab.id;
+              }}
+              variant="outline"
+            >
+              <span>{tab.label}</span>
+              <Kbd class={headerShortcutClass(activeMainTab === tab.id)}>{tab.id === 'preview' ? 'P' : 'T'}</Kbd>
+            </Button>
+          {/each}
+        </div>
+
+        <div class="stage-header-toolbar-end flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <Button
+              aria-keyshortcuts="B"
+              aria-label={`Border preview mode: ${borderPreviewLabel} (shortcut B)`}
+              aria-pressed={borderPreviewMode !== 'none'}
+              class={headerControlClass(borderPreviewMode !== 'none')}
+              onclick={cycleBorderPreviewMode}
+              variant="outline"
+            >
+              <span>{borderPreviewLabel}</span>
+              <Kbd class={headerShortcutClass(borderPreviewMode !== 'none')}>B</Kbd>
+            </Button>
+            <Button
+              aria-keyshortcuts="G"
+              aria-label="Grayscale preview (shortcut G)"
+              aria-pressed={grayscalePreview}
+              class={headerControlClass(grayscalePreview)}
+              onclick={() => {
+                grayscalePreview = !grayscalePreview;
+              }}
+              variant="outline"
+            >
+              <span>Grayscale</span>
+              <Kbd class={headerShortcutClass(grayscalePreview)}>G</Kbd>
+            </Button>
+          </div>
+
+          <div
+            class="stage-header-toolbar-divider"
+            role="separator"
+            aria-orientation="vertical"
+            aria-hidden="true"
+          ></div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <Button
+              aria-keyshortcuts="1"
+              aria-pressed={activeMode === 'light'}
+              class={headerControlClass(activeMode === 'light')}
+              onclick={() => setTheme('light')}
+              variant="outline"
+            >
+              <span>Light</span>
+              <Kbd class={headerShortcutClass(activeMode === 'light')}>1</Kbd>
+            </Button>
+            <Button
+              aria-keyshortcuts="2"
+              aria-pressed={activeMode === 'dark'}
+              class={headerControlClass(activeMode === 'dark')}
+              onclick={() => setTheme('dark')}
+              variant="outline"
+            >
+              <span>Dark</span>
+              <Kbd class={headerShortcutClass(activeMode === 'dark')}>2</Kbd>
+            </Button>
+            <Button
+              aria-keyshortcuts="3"
+              aria-pressed={activeMode === 'alt'}
+              class={headerControlClass(activeMode === 'alt')}
+              onclick={() => setTheme('alt')}
+              variant="outline"
+            >
+              <span>Alt</span>
+              <Kbd class={headerShortcutClass(activeMode === 'alt')}>3</Kbd>
+            </Button>
+          </div>
         </div>
       </div>
-    </header>
+    </div>
 
-    <div class="stage-content-shell" id={`main-panel-${activeMainTab}`} role="tabpanel">
+    <div
+      class="stage-content-shell"
+      id="main-viewport-panel"
+      role="region"
+      aria-label={activeMainTab === 'preview' ? 'Fixture preview' : 'Token inventory'}
+    >
       {#if activeMainTab === 'preview'}
         <FixtureStage
           {activeMode}
-          grayscalePreview={manifest.alt.grayscalePreview}
+          {grayscalePreview}
           {hasWarnings}
           {isSelectedUsage}
           saveMessage={workspace.saveMessage}
@@ -473,7 +543,7 @@
       {:else}
         <TokenInventory
           currentColors={currentTheme.colors}
-          grayscalePreview={manifest.alt.grayscalePreview}
+          {grayscalePreview}
           {hasWarnings}
           {isSelectedUsage}
           selectToken={selectPreviewToken}

@@ -2,18 +2,20 @@
   --shell-page-padding: 1.25rem;
   --shell-column-gap: 1.25rem;
   --stage-header-pad-block-start: 0.85rem;
-  --stage-header-height: 5.4rem;
   --shell-radius-outer: 10px;
   --shell-radius-inner: 6px;
   --shell-border: rgba(15, 23, 42, 0.08);
   --shell-panel-bg: rgba(255, 255, 255, 0.88);
   --shell-shadow: 0 20px 40px -28px rgba(15, 23, 42, 0.25);
   --shell-muted: #4b5563;
-}
-
-body {
-  background: #ffffff;
-  color: #111827;
+  --shell-subtle-panel-bg: rgba(248, 250, 252, 0.92);
+  --shell-field-bg: rgba(255, 255, 255, 0.98);
+  --shell-field-bg-hover: rgba(255, 255, 255, 1);
+  --shell-field-border: rgba(51, 65, 85, 0.18);
+  --shell-field-border-strong: rgba(51, 65, 85, 0.26);
+  --shell-field-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shell-popover-bg: rgba(255, 255, 255, 0.98);
+  --shell-slider-track: rgba(148, 163, 184, 0.35);
 }
 
 .semantic-colors-app.workspace {
@@ -61,18 +63,57 @@ body {
   justify-content: center;
 }
 
-.semantic-colors-app .sidebar-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.55rem;
-  white-space: nowrap;
+.semantic-colors-app .sidebar-panel-shell {
+  min-width: 0;
 }
 
-.semantic-colors-app .sidebar-toggle-collapsed {
-  width: 2.75rem;
-  min-width: 2.75rem;
-  padding: 0.65rem;
+.semantic-colors-app .stage-shell {
+  display: grid;
+  gap: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.25rem;
+}
+
+.semantic-colors-app .stage-header-fixed {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.semantic-colors-app .stage-header-toolbar-end {
+  margin-left: auto;
+}
+
+.semantic-colors-app .stage-header-toolbar-divider {
+  flex-shrink: 0;
+  align-self: center;
+  width: 1px;
+  height: 1.65rem;
+  border-radius: 999px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(15, 23, 42, 0.1) 22%,
+    rgba(15, 23, 42, 0.2) 50%,
+    rgba(15, 23, 42, 0.1) 78%,
+    transparent 100%
+  );
+  box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.55);
+}
+
+.semantic-colors-app .stage-content-shell {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  padding-top: 0.25rem;
 }
 
 .semantic-colors-app .sidebar-toggle-icon {
@@ -93,123 +134,12 @@ body {
   height: 1.125rem;
 }
 
-.semantic-colors-app .sidebar-tab-strip {
-  display: flex;
-  gap: 0.55rem;
-  flex-wrap: wrap;
-}
-
-.semantic-colors-app .sidebar-tab {
-  padding: 0.65rem 0.85rem;
-  background: rgba(255, 255, 255, 0.58);
-  font-size: 0.88rem;
-  font-weight: 600;
-}
-
-.semantic-colors-app .sidebar-tab-active {
-  border-color: rgba(59, 130, 246, 0.35);
-  background: rgba(59, 130, 246, 0.1);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
-}
-
-.semantic-colors-app .sidebar-panel-shell {
-  min-width: 0;
-}
-
-.semantic-colors-app .sidebar-panel-shell .panel {
-  margin: 0;
-}
-
-.semantic-colors-app .stage-shell {
-  display: grid;
-  gap: 0;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding-right: 0.25rem;
-}
-
-.semantic-colors-app .stage-header {
-  border: 1px solid var(--shell-border);
-  border-radius: var(--shell-radius-outer);
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(14px);
-  box-shadow: var(--shell-shadow);
-}
-
-.semantic-colors-app .stage-header-fixed {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: flex-start;
-  margin-bottom: 1rem;
-  padding: var(--stage-header-pad-block-start) 1.1rem 1rem;
-}
-
-.semantic-colors-app .stage-tab-strip {
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  min-width: 0;
-}
-
-.semantic-colors-app .stage-status {
-  display: flex;
-  gap: 0.9rem;
-  align-items: center;
-}
-
-.semantic-colors-app .stage-mode-row {
-  display: flex;
-  gap: 0.55rem;
-  align-items: center;
-}
-
-.semantic-colors-app .stage-mode-button {
-  white-space: nowrap;
-}
-
-.semantic-colors-app .stage-content-shell {
-  display: grid;
-  gap: 1rem;
-  min-width: 0;
-  padding-top: 0.25rem;
-}
-
-.semantic-colors-app .panel {
-  border: 1px solid var(--shell-border);
-  border-radius: var(--shell-radius-outer);
-  background: var(--shell-panel-bg);
-  backdrop-filter: blur(12px);
-  box-shadow: var(--shell-shadow);
-  padding: 1rem;
-}
-
-.semantic-colors-app .panel-header,
-.semantic-colors-app .stage-header,
-.semantic-colors-app .fixture-panel-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: flex-start;
-}
-
 .semantic-colors-app h1,
 .semantic-colors-app h2,
 .semantic-colors-app h3,
 .semantic-colors-app h4,
 .semantic-colors-app p {
   margin: 0;
-}
-
-.semantic-colors-app h1 {
-  font-size: 1.3rem;
-}
-
-.semantic-colors-app h2 {
-  font-size: 1.05rem;
 }
 
 .semantic-colors-app .eyebrow {
@@ -226,74 +156,25 @@ body {
   color: var(--shell-muted);
 }
 
-.semantic-colors-app .field-block,
-.semantic-colors-app .channel,
-.semantic-colors-app .checkbox-row {
-  display: grid;
-  gap: 0.45rem;
-}
-
-.semantic-colors-app .field-grid,
-.semantic-colors-app .channel-grid,
-.semantic-colors-app .swatch-row,
-.semantic-colors-app .action-row,
-.semantic-colors-app .mode-row,
-.semantic-colors-app .control-grid,
-.semantic-colors-app .border-grid,
+.semantic-colors-app .hero-grid,
 .semantic-colors-app .accent-grid,
 .semantic-colors-app .status-grid,
-.semantic-colors-app .hero-grid,
+.semantic-colors-app .control-grid,
+.semantic-colors-app .border-grid,
 .semantic-colors-app .inventory-grid {
   display: grid;
   gap: 0.75rem;
 }
 
-.semantic-colors-app .field-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.semantic-colors-app .inventory-grid {
+  grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
 }
 
-.semantic-colors-app .mode-row {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.semantic-colors-app input,
-.semantic-colors-app select,
-.semantic-colors-app button {
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  border-radius: var(--shell-radius-inner);
-  background: rgba(255, 255, 255, 0.95);
-  color: inherit;
-}
-
-.semantic-colors-app input,
-.semantic-colors-app select {
-  width: 100%;
-  padding: 0.68rem 0.8rem;
-}
-
-.semantic-colors-app input[type='range'] {
-  padding: 0;
-}
-
-.semantic-colors-app button {
-  cursor: pointer;
-  padding: 0.7rem 0.9rem;
-}
-
-.semantic-colors-app button:hover {
-  border-color: rgba(59, 130, 246, 0.35);
-}
-
-.semantic-colors-app .ghost-button,
-.semantic-colors-app .secondary-button {
-  background: rgba(255, 255, 255, 0.55);
-}
-
-.semantic-colors-app .empty-state {
-  margin-top: 0.9rem;
-  padding: 0.85rem;
-  border-radius: var(--shell-radius-inner);
-  background: rgba(15, 23, 42, 0.04);
+.semantic-colors-app .fixture-panel-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
 }
 
 .semantic-colors-app .warning {
@@ -316,71 +197,4 @@ body {
   font-size: 0.67rem;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-}
-
-.semantic-colors-app .selected-usage {
-  border-color: color-mix(in srgb, var(--theme-accent-strong) 60%, white);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-accent-strong) 18%, transparent);
-}
-
-@media (max-width: 1100px) {
-  .semantic-colors-app.workspace {
-    grid-template-columns: 1fr;
-    height: auto;
-    min-height: 100dvh;
-    overflow: visible;
-  }
-
-  .semantic-colors-app.workspace-sidebar-collapsed {
-    grid-template-columns: 1fr;
-  }
-
-  .semantic-colors-app .sidebar-collapsed {
-    align-items: flex-start;
-  }
-
-  .semantic-colors-app .sidebar-collapsed .sidebar-toolbar {
-    justify-content: flex-start;
-  }
-
-  .semantic-colors-app .sidebar-tab-strip {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 0.2rem;
-  }
-
-  .semantic-colors-app .stage-header-fixed {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .semantic-colors-app .stage-status {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .semantic-colors-app .stage-mode-row {
-    overflow-x: auto;
-  }
-
-  .semantic-colors-app .sidebar,
-  .semantic-colors-app .stage-shell {
-    overflow: visible;
-    padding-right: 0;
-  }
-
-  .semantic-colors-app .hero-grid,
-  .semantic-colors-app .fixture-grid,
-  .semantic-colors-app .inventory-grid,
-  .semantic-colors-app .field-grid,
-  .semantic-colors-app .channel-grid,
-  .semantic-colors-app .swatch-row,
-  .semantic-colors-app .control-grid,
-  .semantic-colors-app .border-grid,
-  .semantic-colors-app .status-grid,
-  .semantic-colors-app .accent-grid,
-  .semantic-colors-app .alias-row,
-  .semantic-colors-app .review-card {
-    grid-template-columns: 1fr;
-  }
 }

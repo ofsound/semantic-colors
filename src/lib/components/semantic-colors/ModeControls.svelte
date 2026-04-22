@@ -1,5 +1,15 @@
 <script lang="ts">
+  import * as Card from '$lib/components/ui/card';
+  import { Checkbox } from '$lib/components/ui/checkbox';
+  import { Separator } from '$lib/components/ui/separator';
+  import NumberSliderField from '$lib/components/semantic-colors/NumberSliderField.svelte';
+  import ShellSelect from '$lib/components/semantic-colors/ShellSelect.svelte';
   import type { ThemeManifest, ThemeMode } from '$lib/theme/schema';
+
+  const ALT_SOURCE_OPTIONS = [
+    { value: 'light', label: 'Derive from Light' },
+    { value: 'dark', label: 'Derive from Dark' }
+  ] as const;
 
   let {
     manifest = $bindable(),
@@ -20,161 +30,69 @@
     onPersistChange();
   }
 
-  function handleAltDeltaInput(
-    channel: 'l' | 'c' | 'h',
-    event: Event & { currentTarget: EventTarget & HTMLInputElement }
-  ): void {
-    updateAltDelta(channel, Number(event.currentTarget.value));
+  function handleAltDeltaChange(channel: 'l' | 'c' | 'h', value: number): void {
+    updateAltDelta(channel, value);
     persistAltChange();
   }
 </script>
 
-<section class="panel">
-  <div class="panel-header">
-    <h2>Alt</h2>
-  </div>
+<Card.Root
+  class="gap-4 border border-[color:var(--shell-border)] bg-[color:var(--shell-panel-bg)] py-4 shadow-[var(--shell-shadow)] backdrop-blur-md"
+>
+  <Card.Header class="gap-3 px-4">
+    <Card.Title>Alt</Card.Title>
+  </Card.Header>
 
-  <div class="field-grid alt-grid">
-    <div class="field-block">
-      <select aria-label="Alt base" bind:value={manifest.alt.source} onchange={persistAltChange}>
-        <option value="light">Derive from Light</option>
-        <option value="dark">Derive from Dark</option>
-      </select>
-    </div>
-  </div>
-
-  <div class={`mode-block ${activeMode === 'alt' ? 'mode-block-promoted' : ''}`}>
-    <div class="slider-row">
-      <span>Hue shift</span>
-      <input
-        max="180"
-        min="-180"
-        value={manifest.alt.delta.h}
-        oninput={(event) => handleAltDeltaInput('h', event)}
-        step="1"
-        type="range"
+  <Card.Content class="space-y-4 px-4">
+    <label class="grid gap-2 text-sm font-medium text-slate-700">
+      <span>Alt base</span>
+      <ShellSelect
+        bind:value={manifest.alt.source}
+        options={ALT_SOURCE_OPTIONS as unknown as { value: string; label: string }[]}
+        placeholder="Choose Alt source"
+        onChange={persistAltChange}
       />
-      <input
-        class="number-field"
-        max="180"
-        min="-180"
-        step="1"
-        type="number"
-        bind:value={manifest.alt.delta.h}
-        oninput={persistAltChange}
-      />
-    </div>
-
-    <div class="slider-row">
-      <span>Chroma shift</span>
-      <input
-        max="0.16"
-        min="-0.16"
-        value={manifest.alt.delta.c}
-        oninput={(event) => handleAltDeltaInput('c', event)}
-        step="0.005"
-        type="range"
-      />
-      <input
-        class="number-field"
-        max="0.16"
-        min="-0.16"
-        step="0.005"
-        type="number"
-        bind:value={manifest.alt.delta.c}
-        oninput={persistAltChange}
-      />
-    </div>
-
-    <div class="slider-row">
-      <span>Lightness shift</span>
-      <input
-        max="0.2"
-        min="-0.2"
-        value={manifest.alt.delta.l}
-        oninput={(event) => handleAltDeltaInput('l', event)}
-        step="0.01"
-        type="range"
-      />
-      <input
-        class="number-field"
-        max="0.2"
-        min="-0.2"
-        step="0.01"
-        type="number"
-        bind:value={manifest.alt.delta.l}
-        oninput={persistAltChange}
-      />
-    </div>
-
-    <label class="harmony-lock-row">
-      <input bind:checked={manifest.alt.harmonyLock} onchange={persistAltChange} type="checkbox" />
-      <span class="harmony-lock-copy">
-        <span class="harmony-lock-title">Lock harmony</span>
-        <small>Keep accent, links, and focus ring on one shared hue in Alt mode.</small>
-      </span>
     </label>
-  </div>
-</section>
 
-<style>
-  .alt-grid {
-    align-items: start;
-    justify-items: start;
-  }
+    <section
+      class={`space-y-3 rounded-xl border p-4 ${activeMode === 'alt' ? 'border-sky-500/35 bg-sky-500/7' : 'border-[color:var(--shell-border)] bg-[color:var(--shell-subtle-panel-bg)]'}`}
+    >
+      <NumberSliderField
+        label="Hue"
+        max={180}
+        min={-180}
+        onChange={() => handleAltDeltaChange('h', manifest.alt.delta.h)}
+        step={1}
+        bind:value={manifest.alt.delta.h}
+      />
+      <NumberSliderField
+        label="Chroma"
+        max={0.16}
+        min={-0.16}
+        onChange={() => handleAltDeltaChange('c', manifest.alt.delta.c)}
+        step={0.005}
+        bind:value={manifest.alt.delta.c}
+      />
+      <NumberSliderField
+        label="Lightness"
+        max={0.2}
+        min={-0.2}
+        onChange={() => handleAltDeltaChange('l', manifest.alt.delta.l)}
+        step={0.01}
+        bind:value={manifest.alt.delta.l}
+      />
 
-  .harmony-lock-row {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 0.45rem;
-    text-align: left;
-    margin-top: 0.85rem;
-    padding-top: 0.85rem;
-    border-top: 1px solid rgba(15, 23, 42, 0.08);
-  }
+      <Separator class="my-1" />
 
-  .harmony-lock-copy {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    min-width: 0;
-    text-align: left;
-  }
-
-  .harmony-lock-title {
-    line-height: 1.25;
-  }
-
-  .harmony-lock-copy small {
-    color: var(--color-text-muted, #52606d);
-    line-height: 1.35;
-  }
-
-  .mode-block {
-    margin-top: 0.95rem;
-    padding: 0.85rem;
-    border-radius: var(--shell-radius-inner);
-    background: rgba(15, 23, 42, 0.04);
-  }
-
-  .mode-block-promoted {
-    border: 1px solid rgba(59, 130, 246, 0.35);
-    background: rgba(59, 130, 246, 0.07);
-  }
-
-  .slider-row {
-    display: grid;
-    grid-template-columns: 5rem 1fr 5rem;
-    gap: 0.75rem;
-    align-items: center;
-  }
-
-  .slider-row + .slider-row {
-    margin-top: 0.75rem;
-  }
-
-  .number-field {
-    min-width: 0;
-  }
-</style>
+      <label class="flex items-start gap-3 rounded-lg px-1 py-1 text-left">
+        <Checkbox bind:checked={manifest.alt.harmonyLock} onchange={persistAltChange} />
+        <span class="grid gap-1">
+          <span class="text-sm font-medium text-slate-900">Lock harmony</span>
+          <small class="text-sm leading-5 text-slate-600">
+            Keep accent, links, and focus ring on one shared hue in Alt mode.
+          </small>
+        </span>
+      </label>
+    </section>
+  </Card.Content>
+</Card.Root>

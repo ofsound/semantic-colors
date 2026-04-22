@@ -376,6 +376,10 @@
     border: var(--preview-border-width, 0px) solid var(--preview-border-color, transparent);
     background: var(--theme-app);
     color: var(--theme-text);
+    /* Tailwind preflight resets `* { padding: 0 }` and `button { border-radius: 0 }` */
+    --fixture-control-radius: var(--shell-radius-inner);
+    --fixture-control-pad-block: 0.65rem;
+    --fixture-control-pad-inline: 0.8rem;
     transition:
       background-color 160ms ease,
       color 160ms ease,
@@ -426,11 +430,13 @@
     cursor: pointer;
   }
 
-  .fixture-label {
+  .fixture-label,
+  .fixture-panel-header h3 {
     font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
+    color: inherit;
   }
 
   .inner-stack {
@@ -441,9 +447,16 @@
   }
 
   .nested-surface {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 2.5rem;
     background: var(--theme-surface-raised);
     color: var(--theme-text);
     border: var(--preview-border-width, 0px) solid var(--preview-border-color, transparent);
+    border-radius: var(--fixture-control-radius);
+    padding: var(--fixture-control-pad-block) var(--fixture-control-pad-inline);
   }
 
   .nested-muted {
@@ -466,6 +479,7 @@
 
   .fixture-panel {
     padding: 1rem;
+    border-radius: var(--shell-radius-outer);
     background: var(--theme-surface);
     border: var(--preview-border-width, 0px) solid var(--preview-border-color, transparent);
   }
@@ -482,6 +496,8 @@
     text-align: left;
     background: transparent;
     border: var(--preview-border-width, 0px) solid var(--preview-border-color, transparent);
+    border-radius: var(--fixture-control-radius);
+    padding: var(--fixture-control-pad-block) var(--fixture-control-pad-inline);
   }
 
   .text-sample-text {
@@ -521,6 +537,8 @@
     text-align: left;
     font-weight: 700;
     border: var(--preview-border-width, 0px) solid var(--preview-border-color, transparent);
+    border-radius: var(--fixture-control-radius);
+    padding: var(--fixture-control-pad-block) var(--fixture-control-pad-inline);
   }
 
   .accent-sample-accent {
@@ -558,6 +576,8 @@
     min-height: 4.5rem;
     text-align: left;
     border: var(--preview-border-width, 0px) solid var(--preview-border-color, transparent);
+    border-radius: var(--fixture-control-radius);
+    padding: var(--fixture-control-pad-block) var(--fixture-control-pad-inline);
   }
 
   .status-card-success {
@@ -589,18 +609,24 @@
     background: var(--theme-control-primary);
     color: var(--theme-control-primary-text);
     border: var(--preview-border-width, 0px) solid var(--preview-border-color, transparent);
+    border-radius: var(--fixture-control-radius);
+    padding: var(--fixture-control-pad-block) var(--fixture-control-pad-inline);
   }
 
   .control-secondary {
     background: var(--theme-control-secondary);
     color: var(--theme-control-secondary-text);
     border: var(--preview-border-width, 0px) solid var(--preview-border-color, transparent);
+    border-radius: var(--fixture-control-radius);
+    padding: var(--fixture-control-pad-block) var(--fixture-control-pad-inline);
   }
 
   .control-ghost {
     background: var(--theme-control-ghost-hover);
     color: var(--theme-text);
     border: var(--preview-border-width, 0px) solid var(--preview-border-color, transparent);
+    border-radius: var(--fixture-control-radius);
+    padding: var(--fixture-control-pad-block) var(--fixture-control-pad-inline);
   }
 
   .input-preview {
@@ -633,6 +659,8 @@
     background: var(--theme-surface-raised);
     color: var(--theme-text);
     border: var(--preview-border-width, 0px) solid var(--preview-border-color, transparent);
+    border-radius: var(--fixture-control-radius);
+    padding: var(--fixture-control-pad-block) var(--fixture-control-pad-inline);
   }
 
   .border-sample-focus-ring {
@@ -660,6 +688,7 @@
   .scrim {
     position: absolute;
     inset: 0;
+    border-radius: inherit;
     background: color-mix(in srgb, black 35%, transparent);
   }
 
@@ -672,5 +701,6 @@
     background: var(--theme-surface-overlay);
     color: var(--theme-text);
     border: var(--preview-border-width, 0px) solid var(--preview-border-color, transparent);
+    border-radius: var(--fixture-control-radius);
   }
 </style>

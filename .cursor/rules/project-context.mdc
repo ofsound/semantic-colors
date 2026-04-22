@@ -6,7 +6,7 @@ alwaysApply: true
 # Project Context
 
 - **Stack**: Svelte 5, SvelteKit, TypeScript
-- **Styling**: Plain CSS — global rules and variables in `src/app.css`; component `<style>` when scoped styles are needed. This project does not use Tailwind.
+- **Styling**: Tailwind CSS powers the operator shell through local `shadcn-svelte` UI components. Plain CSS still owns global app rules in `src/app.css`, shared shell variables in `src/lib/styles/semantic-colors-shell.css`, and preview/fixture styling. Do not convert preview components to Tailwind unless explicitly requested.
 
 ## Svelte MCP Tools
 

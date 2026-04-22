@@ -1,7 +1,19 @@
 <script lang="ts">
+  import * as Card from '$lib/components/ui/card';
+  import { Input } from '$lib/components/ui/input';
+  import { Separator } from '$lib/components/ui/separator';
   import AnchorColorPicker from '$lib/components/semantic-colors/AnchorColorPicker.svelte';
+  import NumberSliderField from '$lib/components/semantic-colors/NumberSliderField.svelte';
+  import ShellSelect from '$lib/components/semantic-colors/ShellSelect.svelte';
   import { toCssColor } from '$lib/theme/color';
+  import { cn } from '$lib/utils.js';
   import type { OklchColor, ThemeManifest, ThemeMode, TokenId } from '$lib/theme/schema';
+
+  const ALT_BEHAVIOR_OPTIONS = [
+    { value: 'derive', label: 'Derive' },
+    { value: 'pin', label: 'Pin to source anchor' },
+    { value: 'exclude', label: 'Exclude from Alt' }
+  ] as const;
 
   let {
     manifest = $bindable(),
@@ -24,344 +36,272 @@
   } = $props();
 
   const selectedToken = $derived(manifest.tokens[selectedTokenId]);
+
+  function modeButtonClass(mode: ThemeMode) {
+    const on = activeMode === mode;
+    return cn(
+      'flex w-full min-w-0 flex-col items-stretch gap-2 rounded-[var(--shell-radius-outer)] px-2.5 py-2.5 text-left text-xs font-semibold tracking-[0.12em] text-slate-800 uppercase transition-[box-shadow,background-color,border-color] outline-none',
+      on
+        ? 'border border-sky-500/40 bg-sky-500/12 text-slate-900 shadow-[0_0_0_2px_rgba(59,130,246,0.1)]'
+        : 'border border-[color:var(--shell-border)] bg-[color:var(--shell-subtle-panel-bg)] hover:border-slate-300/70 hover:bg-white/95'
+    );
+  }
 </script>
 
-<section class="panel">
-  <div class="panel-header">
-    <div>
-      <p class="eyebrow">Token editor</p>
-      <h2>{selectedToken.label}</h2>
-    </div>
-    <span class="token-group">{selectedToken.group}</span>
-  </div>
-
-  <p class="description">{selectedToken.description}</p>
-
-  <div class="swatch-row">
-    <button
-      aria-label={`Preview ${selectedToken.label} in light mode: ${toCssColor(selectedToken.light)}`}
-      class="swatch-card"
-      onclick={() => setTheme('light')}
-      type="button"
-    >
-      <span>Light</span>
-      <span class="swatch" style={`background:${toCssColor(selectedToken.light)}`}></span>
-    </button>
-    <button
-      aria-label={`Preview ${selectedToken.label} in dark mode: ${toCssColor(selectedToken.dark)}`}
-      class="swatch-card"
-      onclick={() => setTheme('dark')}
-      type="button"
-    >
-      <span>Dark</span>
-      <span class="swatch" style={`background:${toCssColor(selectedToken.dark)}`}></span>
-    </button>
-    <button
-      aria-label={`Preview ${selectedToken.label} in alt mode: ${toCssColor(currentTokenAlt)}`}
-      class="swatch-card"
-      onclick={() => setTheme('alt')}
-      type="button"
-    >
-      <span>Alt</span>
-      <span class="swatch" style={`background:${toCssColor(currentTokenAlt)}`}></span>
-    </button>
-  </div>
-
-  {#if activeMode === 'light'}
-    <div class="anchor-editor anchor-editor-active">
-      <div class="anchor-header">
-        <strong>Light anchor</strong>
+<Card.Root
+  class="gap-4 border border-[color:var(--shell-border)] bg-[color:var(--shell-panel-bg)] py-4 shadow-[var(--shell-shadow)] backdrop-blur-md"
+>
+  <Card.Header class="gap-3 px-4">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <p class="eyebrow">Token editor</p>
+        <Card.Title>{selectedToken.label}</Card.Title>
       </div>
-      <div class="anchor-layout">
-        <AnchorColorPicker
-          bind:color={selectedToken.light}
-          label="Light anchor"
-          {onPersistChange}
-        />
-        <div class="channel-grid">
-          <label class="channel">
-            <span>L</span>
-            <input
-              bind:value={selectedToken.light.l}
-              max="1"
-              min="0"
-              oninput={onPersistChange}
-              step="0.005"
-              type="range"
-            />
-            <input
-              class="number-field"
-              max="1"
-              min="0"
-              oninput={onPersistChange}
-              step="0.005"
-              type="number"
-              bind:value={selectedToken.light.l}
-            />
-          </label>
-          <label class="channel">
-            <span>C</span>
-            <input
-              bind:value={selectedToken.light.c}
-              max="0.37"
-              min="0"
-              oninput={onPersistChange}
-              step="0.005"
-              type="range"
-            />
-            <input
-              class="number-field"
-              max="0.37"
-              min="0"
-              oninput={onPersistChange}
-              step="0.005"
-              type="number"
-              bind:value={selectedToken.light.c}
-            />
-          </label>
-          <label class="channel">
-            <span>H</span>
-            <input
-              bind:value={selectedToken.light.h}
-              max="360"
-              min="0"
-              oninput={onPersistChange}
-              step="1"
-              type="range"
-            />
-            <input
-              class="number-field"
-              max="360"
-              min="0"
-              oninput={onPersistChange}
-              step="1"
-              type="number"
-              bind:value={selectedToken.light.h}
-            />
-          </label>
+      <span
+        class="rounded-full bg-slate-900/8 px-2.5 py-1 text-xs font-semibold text-slate-700 capitalize"
+      >
+        {selectedToken.group}
+      </span>
+    </div>
+  </Card.Header>
+
+  <Card.Content class="space-y-4 px-4">
+    <p class="text-sm text-slate-600">{selectedToken.description}</p>
+
+    <div
+      class="pt-2 sm:pt-2.5"
+      role="group"
+      aria-label="Theme for this token editor: Light, Dark, or Alt"
+    >
+      <div class="grid min-w-0 grid-cols-3 gap-2.5 sm:gap-3">
+        <button
+          type="button"
+          class={cn(modeButtonClass('light'), 'focus-visible:ring-2 focus-visible:ring-sky-500/35')}
+          aria-pressed={activeMode === 'light'}
+          aria-label={`Preview ${selectedToken.label} in light mode: ${toCssColor(selectedToken.light)}`}
+          onclick={() => setTheme('light')}
+        >
+          <span>Light</span>
+          <span
+            class="h-10 w-full rounded-[var(--shell-radius-inner)] border border-slate-900/8 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
+            style={`background:${toCssColor(selectedToken.light)}`}
+            aria-hidden="true"
+          ></span>
+        </button>
+        <button
+          type="button"
+          class={cn(modeButtonClass('dark'), 'focus-visible:ring-2 focus-visible:ring-sky-500/35')}
+          aria-pressed={activeMode === 'dark'}
+          aria-label={`Preview ${selectedToken.label} in dark mode: ${toCssColor(selectedToken.dark)}`}
+          onclick={() => setTheme('dark')}
+        >
+          <span>Dark</span>
+          <span
+            class="h-10 w-full rounded-[var(--shell-radius-inner)] border border-slate-900/8 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
+            style={`background:${toCssColor(selectedToken.dark)}`}
+            aria-hidden="true"
+          ></span>
+        </button>
+        <button
+          type="button"
+          class={cn(modeButtonClass('alt'), 'focus-visible:ring-2 focus-visible:ring-sky-500/35')}
+          aria-pressed={activeMode === 'alt'}
+          aria-label={`Preview ${selectedToken.label} in alt mode: ${toCssColor(currentTokenAlt)}`}
+          onclick={() => setTheme('alt')}
+        >
+          <span>Alt</span>
+          <span
+            class="h-10 w-full rounded-[var(--shell-radius-inner)] border border-slate-900/8 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
+            style={`background:${toCssColor(currentTokenAlt)}`}
+            aria-hidden="true"
+          ></span>
+        </button>
+      </div>
+    </div>
+
+    {#if activeMode === 'light'}
+      <section class="space-y-4 rounded-xl border border-sky-500/35 bg-sky-500/7 p-4">
+        <div class="flex items-center justify-between gap-3">
+          <strong class="text-sm font-semibold text-slate-900">Light anchor</strong>
         </div>
-      </div>
-    </div>
-  {/if}
-
-  {#if activeMode === 'dark'}
-    <div class="anchor-editor anchor-editor-active">
-      <div class="anchor-header">
-        <strong>Dark anchor</strong>
-      </div>
-      <div class="anchor-layout">
-        <AnchorColorPicker bind:color={selectedToken.dark} label="Dark anchor" {onPersistChange} />
-        <div class="channel-grid">
-          <label class="channel">
-            <span>L</span>
-            <input
-              bind:value={selectedToken.dark.l}
-              max="1"
-              min="0"
-              oninput={onPersistChange}
-              step="0.005"
-              type="range"
-            />
-            <input
-              class="number-field"
-              max="1"
-              min="0"
-              oninput={onPersistChange}
-              step="0.005"
-              type="number"
-              bind:value={selectedToken.dark.l}
-            />
-          </label>
-          <label class="channel">
-            <span>C</span>
-            <input
-              bind:value={selectedToken.dark.c}
-              max="0.37"
-              min="0"
-              oninput={onPersistChange}
-              step="0.005"
-              type="range"
-            />
-            <input
-              class="number-field"
-              max="0.37"
-              min="0"
-              oninput={onPersistChange}
-              step="0.005"
-              type="number"
-              bind:value={selectedToken.dark.c}
-            />
-          </label>
-          <label class="channel">
-            <span>H</span>
-            <input
-              bind:value={selectedToken.dark.h}
-              max="360"
-              min="0"
-              oninput={onPersistChange}
-              step="1"
-              type="range"
-            />
-            <input
-              class="number-field"
-              max="360"
-              min="0"
-              oninput={onPersistChange}
-              step="1"
-              type="number"
-              bind:value={selectedToken.dark.h}
-            />
-          </label>
-        </div>
-      </div>
-    </div>
-  {/if}
-
-  {#if activeMode === 'alt'}
-    <div class="anchor-editor anchor-editor-active">
-      <div class="anchor-header">
-        <strong>Alt exception</strong>
-      </div>
-      <div class="field-grid">
-        <label class="field-block">
-          <span>Alt behavior</span>
-          <select bind:value={selectedToken.exception.altBehavior} onchange={onPersistChange}>
-            <option value="derive">Derive</option>
-            <option value="pin">Pin to source anchor</option>
-            <option value="exclude">Exclude from Alt</option>
-          </select>
-        </label>
-        <label class="field-block">
-          <span>Max chroma</span>
-          <input
-            bind:value={selectedToken.exception.maxChroma}
-            max="0.37"
-            min="0"
-            oninput={onPersistChange}
-            step="0.005"
-            type="number"
+        <div class="flex flex-col gap-4">
+          <AnchorColorPicker
+            bind:color={selectedToken.light}
+            label="Light anchor"
+            {onPersistChange}
           />
-        </label>
-      </div>
-
-      {#if selectedToken.altParent}
-        <p class="microcopy">
-          Alt derives from parent token: <strong>{tokenLabel(selectedToken.altParent)}</strong>
-        </p>
-      {/if}
-    </div>
-  {/if}
-
-  <div class="validation-list">
-    <div class="validation-header">
-      <p class="eyebrow">Validation</p>
-      {#if selectedTokenNotes.length > 0}
-        <span class="validation-count">{selectedTokenNotes.length} warning(s)</span>
-      {/if}
-    </div>
-    {#if selectedTokenNotes.length === 0}
-      <p class="validation-ok">No warnings for this token in {activeMode} mode.</p>
-    {:else}
-      {#each selectedTokenNotes as note (note)}
-        <p class="validation-issue">{note}</p>
-      {/each}
+          <div class="flex min-w-0 flex-col gap-3">
+            <NumberSliderField
+              bind:value={selectedToken.light.l}
+              class="w-full"
+              label="L"
+              max={1}
+              min={0}
+              onChange={onPersistChange}
+              step={0.005}
+            />
+            <NumberSliderField
+              bind:value={selectedToken.light.c}
+              class="w-full"
+              label="C"
+              max={0.37}
+              min={0}
+              onChange={onPersistChange}
+              step={0.005}
+            />
+            <NumberSliderField
+              bind:value={selectedToken.light.h}
+              class="w-full"
+              label="H"
+              max={360}
+              min={0}
+              onChange={onPersistChange}
+              step={1}
+            />
+          </div>
+        </div>
+      </section>
     {/if}
-  </div>
-</section>
+
+    {#if activeMode === 'dark'}
+      <section class="space-y-4 rounded-xl border border-sky-500/35 bg-sky-500/7 p-4">
+        <div class="flex items-center justify-between gap-3">
+          <strong class="text-sm font-semibold text-slate-900">Dark anchor</strong>
+        </div>
+        <div class="flex flex-col gap-4">
+          <AnchorColorPicker
+            bind:color={selectedToken.dark}
+            label="Dark anchor"
+            {onPersistChange}
+          />
+          <div class="flex min-w-0 flex-col gap-3">
+            <NumberSliderField
+              bind:value={selectedToken.dark.l}
+              class="w-full"
+              label="L"
+              max={1}
+              min={0}
+              onChange={onPersistChange}
+              step={0.005}
+            />
+            <NumberSliderField
+              bind:value={selectedToken.dark.c}
+              class="w-full"
+              label="C"
+              max={0.37}
+              min={0}
+              onChange={onPersistChange}
+              step={0.005}
+            />
+            <NumberSliderField
+              bind:value={selectedToken.dark.h}
+              class="w-full"
+              label="H"
+              max={360}
+              min={0}
+              onChange={onPersistChange}
+              step={1}
+            />
+          </div>
+        </div>
+      </section>
+    {/if}
+
+    {#if activeMode === 'alt'}
+      <section class="space-y-4 rounded-xl border border-sky-500/35 bg-sky-500/7 p-4">
+        <div class="flex items-center justify-between gap-3">
+          <strong class="text-sm font-semibold text-slate-900">Alt exception</strong>
+        </div>
+        <div class="flex flex-col gap-4">
+          <div
+            class="alt-anchor-top-row"
+            aria-label="Alt color and exception controls"
+          >
+            <div
+              aria-label={`Alt derived color: ${toCssColor(currentTokenAlt)}`}
+              class="alt-anchor-swatch"
+              style={`background-color: ${toCssColor(currentTokenAlt)};`}
+            ></div>
+            <div class="alt-anchor-side flex min-h-0 min-w-0 flex-1 flex-col justify-center gap-3">
+              <label class="grid min-w-0 gap-2 text-sm font-medium text-slate-700">
+                <span>Alt behavior</span>
+                <ShellSelect
+                  bind:value={selectedToken.exception.altBehavior}
+                  options={ALT_BEHAVIOR_OPTIONS as unknown as { value: string; label: string }[]}
+                  placeholder="Choose Alt behavior"
+                  onChange={onPersistChange}
+                />
+              </label>
+              <label class="grid min-w-0 gap-2 text-sm font-medium text-slate-700">
+                <span>Max chroma</span>
+                <Input
+                  bind:value={selectedToken.exception.maxChroma}
+                  max={0.37}
+                  min={0}
+                  oninput={onPersistChange}
+                  step={0.005}
+                  type="number"
+                />
+              </label>
+            </div>
+          </div>
+
+          {#if selectedToken.altParent}
+            <p class="text-sm text-slate-600">
+              Alt derives from parent token: <strong>{tokenLabel(selectedToken.altParent)}</strong>
+            </p>
+          {/if}
+        </div>
+      </section>
+    {/if}
+
+    <Separator />
+
+    <section class="space-y-3">
+      <div class="flex items-center justify-between gap-3">
+        <p class="eyebrow mb-0">Validation</p>
+        {#if selectedTokenNotes.length > 0}
+          <span
+            class="rounded-full bg-red-500/14 px-2.5 py-1 text-[0.72rem] font-bold tracking-[0.08em] text-red-700 uppercase"
+          >
+            {selectedTokenNotes.length} warning(s)
+          </span>
+        {/if}
+      </div>
+      {#if selectedTokenNotes.length === 0}
+        <p class="text-sm font-medium text-emerald-700">
+          No warnings for this token in {activeMode} mode.
+        </p>
+      {:else}
+        <div class="grid gap-2">
+          {#each selectedTokenNotes as note (note)}
+            <p
+              class="rounded-lg border border-red-500/15 bg-red-500/6 px-3 py-2 text-sm text-red-900"
+            >
+              {note}
+            </p>
+          {/each}
+        </div>
+      {/if}
+    </section>
+  </Card.Content>
+</Card.Root>
 
 <style>
-  .token-group {
-    padding: 0.35rem 0.55rem;
-    border-radius: 999px;
-    background: rgba(15, 23, 42, 0.08);
-    font-size: 0.76rem;
-    text-transform: capitalize;
+  .alt-anchor-top-row {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0.75rem;
+    min-width: 0;
+    min-height: clamp(7.5rem, 24vw, 10rem);
   }
 
-  .description,
-  .microcopy {
-    color: #4b5563;
-  }
-
-  .swatch-row {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    margin-top: 0.8rem;
-  }
-
-  .swatch-card {
-    display: grid;
-    gap: 0.5rem;
-    text-align: left;
-  }
-
-  .swatch {
-    height: 2.5rem;
+  .alt-anchor-swatch {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
     border-radius: var(--shell-radius-inner);
     border: 1px solid rgba(15, 23, 42, 0.12);
-  }
-
-  .anchor-editor {
-    margin-top: 0.95rem;
-    padding: 0.85rem;
-    border-radius: var(--shell-radius-inner);
-    background: rgba(15, 23, 42, 0.04);
-  }
-
-  .anchor-editor-active {
-    border: 1px solid rgba(59, 130, 246, 0.35);
-    background: rgba(59, 130, 246, 0.07);
-  }
-
-  .anchor-header,
-  .validation-header {
-    display: flex;
-    justify-content: space-between;
-    gap: 0.75rem;
-    margin-bottom: 0.8rem;
-    align-items: center;
-  }
-
-  .channel-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.85rem;
-  }
-
-  .anchor-layout {
-    display: grid;
-    gap: 0.85rem;
-  }
-
-  .number-field {
-    min-width: 0;
-  }
-
-  .validation-list {
-    margin-top: 1rem;
-  }
-
-  .validation-count {
-    padding: 0.2rem 0.55rem;
-    border-radius: 999px;
-    background: rgba(239, 68, 68, 0.14);
-    color: #b91c1c;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-  }
-
-  .validation-ok {
-    color: #047857;
-  }
-
-  .validation-issue {
-    color: #991b1b;
-  }
-
-  @media (min-width: 900px) {
-    .anchor-layout {
-      grid-template-columns: minmax(0, 1.05fr) minmax(16rem, 1fr);
-      align-items: start;
-    }
   }
 </style>

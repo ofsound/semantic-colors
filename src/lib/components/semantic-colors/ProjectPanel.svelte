@@ -1,4 +1,8 @@
 <script lang="ts">
+  import * as Card from '$lib/components/ui/card';
+  import { Button } from '$lib/components/ui/button';
+  import { Checkbox } from '$lib/components/ui/checkbox';
+  import { Input } from '$lib/components/ui/input';
   import type { ProjectConfig } from '$lib/theme/schema';
 
   let {
@@ -22,142 +26,110 @@
     onReload: () => void | Promise<void>;
     onRetrySave: () => void | Promise<void>;
   } = $props();
+
+  function saveStateClass(state: typeof saveState): string {
+    if (state === 'saving') {
+      return 'bg-sky-500/8';
+    }
+
+    if (state === 'saved') {
+      return 'bg-emerald-500/10';
+    }
+
+    if (state === 'error') {
+      return 'border border-red-500/20 bg-red-500/12';
+    }
+
+    return 'bg-slate-900/4';
+  }
+
+  function savePillClass(state: typeof saveState): string {
+    if (state === 'saving') {
+      return 'bg-sky-500/12 text-sky-700';
+    }
+
+    if (state === 'saved') {
+      return 'bg-emerald-500/14 text-emerald-700';
+    }
+
+    if (state === 'error') {
+      return 'bg-red-500/14 text-red-700';
+    }
+
+    return 'bg-slate-900/8 text-slate-700';
+  }
 </script>
 
-<section class="panel">
-  <div class="panel-header">
-    <div>
-      <p class="eyebrow">Project bridge</p>
-      <h1>Trimodal Semantic Engine</h1>
-    </div>
-    <button class="ghost-button" onclick={onReload} type="button">Reload</button>
-  </div>
-
-  <label class="field-block">
-    <span>Project config path</span>
-    <input bind:value={configPath} oninput={onPersistChange} />
-  </label>
-
-  <label class="field-block">
-    <span>Project root</span>
-    <input
-      bind:value={config.projectRoot}
-      oninput={onPersistChange}
-      placeholder="/absolute/path/to/project"
-    />
-  </label>
-
-  <div class="field-grid">
-    <label class="field-block">
-      <span>Manifest path</span>
-      <input bind:value={config.manifestPath} oninput={onPersistChange} />
-    </label>
-    <label class="field-block">
-      <span>CSS output path</span>
-      <input bind:value={config.cssOutputPath} oninput={onPersistChange} />
-    </label>
-  </div>
-
-  <label class="checkbox-row">
-    <input bind:checked={config.bridgeEnabled} onchange={onPersistChange} type="checkbox" />
-    <span>Write generated CSS into the target project</span>
-  </label>
-
-  <div
-    aria-live={saveState === 'error' ? 'assertive' : 'polite'}
-    class={`save-state save-state-${saveState}`}
-    role={saveState === 'error' ? 'alert' : 'status'}
-  >
-    <div class="save-state-header">
-      <strong>{saveHeading}</strong>
-      <span class={`save-pill save-pill-${saveState}`}>{saveState}</span>
-    </div>
-    <p class="save-message">{saveMessage}</p>
-    <p class="save-hint">{saveHint}</p>
-
-    {#if saveState === 'error'}
-      <div class="save-actions">
-        <button class="secondary-button" onclick={onRetrySave} type="button">Retry save</button>
-        <button class="ghost-button" onclick={onReload} type="button">Reload project</button>
+<Card.Root
+  class="gap-4 border border-[color:var(--shell-border)] bg-[color:var(--shell-panel-bg)] py-4 shadow-[var(--shell-shadow)] backdrop-blur-md"
+>
+  <Card.Header class="gap-3 px-4">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <p class="eyebrow">Project bridge</p>
+        <Card.Title>Trimodal Semantic Engine</Card.Title>
       </div>
-    {/if}
-  </div>
-</section>
+      <Button onclick={onReload} size="sm" variant="outline">Reload</Button>
+    </div>
+  </Card.Header>
 
-<style>
-  .save-state {
-    display: grid;
-    gap: 0.55rem;
-    margin-top: 0.9rem;
-    padding: 0.8rem;
-    border-radius: var(--shell-radius-inner);
-    background: rgba(15, 23, 42, 0.04);
-  }
+  <Card.Content class="space-y-4 px-4">
+    <label class="grid gap-2 text-sm font-medium text-slate-700">
+      <span>Project config path</span>
+      <Input bind:value={configPath} oninput={onPersistChange} />
+    </label>
 
-  .save-state-header {
-    display: flex;
-    justify-content: space-between;
-    gap: 0.75rem;
-    align-items: center;
-  }
+    <label class="grid gap-2 text-sm font-medium text-slate-700">
+      <span>Project root</span>
+      <Input
+        bind:value={config.projectRoot}
+        oninput={onPersistChange}
+        placeholder="/absolute/path/to/project"
+      />
+    </label>
 
-  .save-state-saving {
-    background: rgba(59, 130, 246, 0.08);
-  }
+    <div class="grid gap-4 md:grid-cols-2">
+      <label class="grid gap-2 text-sm font-medium text-slate-700">
+        <span>Manifest path</span>
+        <Input bind:value={config.manifestPath} oninput={onPersistChange} />
+      </label>
+      <label class="grid gap-2 text-sm font-medium text-slate-700">
+        <span>CSS output path</span>
+        <Input bind:value={config.cssOutputPath} oninput={onPersistChange} />
+      </label>
+    </div>
 
-  .save-state-saved {
-    background: rgba(16, 185, 129, 0.09);
-  }
+    <label class="flex items-start gap-3 rounded-lg bg-slate-900/4 px-3 py-3 text-left">
+      <Checkbox bind:checked={config.bridgeEnabled} onchange={onPersistChange} />
+      <span class="grid gap-1">
+        <span class="text-sm font-medium text-slate-900"
+          >Write generated CSS into the target project</span
+        >
+      </span>
+    </label>
 
-  .save-state-error {
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    background: rgba(239, 68, 68, 0.12);
-  }
+    <div
+      aria-live={saveState === 'error' ? 'assertive' : 'polite'}
+      class={`grid gap-3 rounded-xl p-4 ${saveStateClass(saveState)}`}
+      role={saveState === 'error' ? 'alert' : 'status'}
+    >
+      <div class="flex items-center justify-between gap-3">
+        <strong class="text-sm font-semibold text-slate-900">{saveHeading}</strong>
+        <span
+          class={`rounded-full px-2.5 py-1 text-[0.72rem] font-bold tracking-[0.08em] uppercase ${savePillClass(saveState)}`}
+        >
+          {saveState}
+        </span>
+      </div>
+      <p class="text-sm font-semibold text-slate-900">{saveMessage}</p>
+      <p class="text-sm text-slate-600">{saveHint}</p>
 
-  .save-message,
-  .save-hint {
-    margin: 0;
-  }
-
-  .save-message {
-    font-weight: 600;
-  }
-
-  .save-hint {
-    color: #4b5563;
-    font-size: 0.82rem;
-  }
-
-  .save-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.6rem;
-  }
-
-  .save-pill {
-    padding: 0.2rem 0.55rem;
-    border-radius: 999px;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-  }
-
-  .save-pill-idle {
-    background: rgba(15, 23, 42, 0.08);
-  }
-
-  .save-pill-saving {
-    background: rgba(59, 130, 246, 0.12);
-    color: #1d4ed8;
-  }
-
-  .save-pill-saved {
-    background: rgba(16, 185, 129, 0.14);
-    color: #047857;
-  }
-
-  .save-pill-error {
-    background: rgba(239, 68, 68, 0.14);
-    color: #b91c1c;
-  }
-</style>
+      {#if saveState === 'error'}
+        <div class="flex flex-wrap gap-2">
+          <Button onclick={onRetrySave} variant="secondary">Retry save</Button>
+          <Button onclick={onReload} variant="ghost">Reload project</Button>
+        </div>
+      {/if}
+    </div>
+  </Card.Content>
+</Card.Root>

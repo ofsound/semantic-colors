@@ -1,16 +1,16 @@
 {
   "version": 1,
   "name": "Semantic Color System",
-  "updatedAt": "2026-04-22T16:38:02.752Z",
+  "updatedAt": "2026-04-22T18:13:27.438Z",
   "alt": {
-    "source": "light",
+    "source": "dark",
     "delta": {
-      "l": 0,
-      "c": 0,
-      "h": 0
+      "l": 0.05,
+      "c": -0.02,
+      "h": 62
     },
     "harmonyLock": true,
-    "grayscalePreview": true
+    "grayscalePreview": false
   },
   "tokens": {
     "app": {
@@ -20,8 +20,8 @@
       "group": "surfaces",
       "role": "neutral",
       "light": {
-        "l": 0.982,
-        "c": 0.006,
+        "l": 0.98,
+        "c": 0.005,
         "h": 95
       },
       "dark": {
@@ -41,7 +41,7 @@
       "role": "neutral",
       "light": {
         "l": 0.965,
-        "c": 0.008,
+        "c": 0.01,
         "h": 95
       },
       "dark": {
@@ -60,17 +60,19 @@
       "group": "surfaces",
       "role": "neutral",
       "light": {
-        "l": 0.998,
-        "c": 0.003,
-        "h": 95
+        "l": 0.75,
+        "c": 0.24,
+        "h": 140,
+        "alpha": 1
       },
       "dark": {
-        "l": 0.235,
-        "c": 0.013,
-        "h": 265
+        "l": 0.885,
+        "c": 0.12,
+        "h": 206,
+        "alpha": 1
       },
       "exception": {
-        "altBehavior": "derive"
+        "altBehavior": "pin"
       }
     },
     "surface-raised": {
@@ -80,7 +82,7 @@
       "group": "surfaces",
       "role": "neutral",
       "light": {
-        "l": 0.976,
+        "l": 0.975,
         "c": 0.01,
         "h": 95
       },
@@ -203,7 +205,7 @@
       "role": "neutral",
       "light": {
         "l": 0.43,
-        "c": 0.014,
+        "c": 0.015,
         "h": 260
       },
       "dark": {
@@ -468,14 +470,14 @@
       "group": "status",
       "role": "status",
       "light": {
-        "l": 0.595,
-        "c": 0.21,
-        "h": 212
+        "l": 0.65,
+        "c": 0.17,
+        "h": 153
       },
       "dark": {
-        "l": 0.505,
-        "c": 0.23,
-        "h": 72
+        "l": 0.77,
+        "c": 0.14,
+        "h": 153
       },
       "exception": {
         "altBehavior": "pin"

@@ -108,14 +108,12 @@
 <svelte:window onpointermove={handleWindowPointerMove} onpointerup={handleWindowPointerUp} />
 
 <div aria-label={`${label} color picker`} class="picker-shell">
-  <div class="picker-stack">
-    <div class="picker-swatch-row">
-      <div
-        aria-label={`${label} selected color preview`}
-        class="picker-swatch"
-        style={`background-color: ${swatchBackground};`}
-      ></div>
-    </div>
+  <div class="picker-main-row">
+    <div
+      aria-label={`${label} selected color preview`}
+      class="picker-swatch"
+      style={`background-color: ${swatchBackground};`}
+    ></div>
 
     <div
       aria-label={`${label} hue and brightness`}
@@ -144,28 +142,27 @@
     user-select: none;
   }
 
-  .picker-stack {
+  .picker-main-row {
     display: flex;
-    flex-direction: column-reverse;
+    flex-direction: row;
+    align-items: stretch;
     gap: 0.75rem;
-  }
-
-  .picker-swatch-row {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+    min-height: clamp(7.5rem, 24vw, 10rem);
   }
 
   .picker-swatch {
-    width: 100%;
-    min-height: 4.5rem;
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
     border-radius: var(--shell-radius-inner);
     border: 1px solid rgba(15, 23, 42, 0.12);
   }
 
   .picker-panel {
     position: relative;
-    height: clamp(7rem, 23vw, 9.375rem);
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
     overflow: hidden;
     border-radius: var(--shell-radius-inner);
     border: 1px solid rgba(15, 23, 42, 0.12);
@@ -186,19 +183,4 @@
     pointer-events: none;
   }
 
-  @media (min-width: 640px) {
-    .picker-stack {
-      flex-direction: column;
-    }
-
-    .picker-swatch-row {
-      flex-direction: row;
-      align-items: stretch;
-    }
-
-    .picker-swatch {
-      flex: 1 1 auto;
-      min-height: 4.5rem;
-    }
-  }
 </style>
