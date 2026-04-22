@@ -44,7 +44,7 @@
   });
   let configPath = $state('');
   let sidebarCollapsed = $state(false);
-  let activeSidebarTab = $state<SidebarTabId>('project');
+  let activeSidebarTab = $state<SidebarTabId>('token');
   let activeMainTab = $state<MainTabId>('preview');
   let selectedTokenId = $state<TokenId>('surface');
   let activeMode = $state<ThemeMode>('light');
@@ -79,10 +79,6 @@
           ? 'Bridge output is enabled. Saving updates both the manifest and generated CSS.'
           : 'Bridge output is disabled. Saving updates the local manifest and config only.'
   );
-  const showSetupGuide = $derived(
-    !config.bridgeEnabled && !config.importSourcePath && manifest.aliases.length === 0
-  );
-
   function applyPageData(value: PageData): void {
     manifest = ensureManifest(value.manifest);
     config = {
@@ -271,12 +267,25 @@
     <div class="sidebar-toolbar">
       <button
         aria-label={sidebarCollapsed ? 'Show authoring panels' : 'Collapse sidebar'}
-        class={`ghost-button sidebar-toggle ${sidebarCollapsed ? 'sidebar-toggle-collapsed' : ''}`}
+        class={`sidebar-tab sidebar-toggle ${sidebarCollapsed ? 'sidebar-toggle-collapsed' : ''}`}
         onclick={toggleSidebar}
         type="button"
       >
-        <span aria-hidden="true" class="sidebar-toggle-icon">
-          {sidebarCollapsed ? '>' : '<'}
+        <span
+          aria-hidden="true"
+          class="sidebar-toggle-icon"
+          class:sidebar-toggle-icon-collapsed={sidebarCollapsed}
+        >
+          <svg class="sidebar-toggle-chevron" viewBox="0 0 24 24">
+            <path
+              d="M14.5 7.5L9 12l5.5 4.5"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.75"
+            />
+          </svg>
         </span>
         {#if !sidebarCollapsed}
           <span>Collapse Sidebar</span>
@@ -345,7 +354,6 @@
             {saveHint}
             saveMessage={workspace.saveMessage}
             saveState={workspace.saveState}
-            {showSetupGuide}
             onReload={workspace.reloadProject}
             onRetrySave={workspace.retrySave}
           />

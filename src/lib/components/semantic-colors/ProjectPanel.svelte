@@ -9,7 +9,6 @@
     saveHeading,
     saveMessage,
     saveHint,
-    showSetupGuide,
     onReload,
     onRetrySave
   }: {
@@ -20,7 +19,6 @@
     saveHeading: string;
     saveMessage: string;
     saveHint: string;
-    showSetupGuide: boolean;
     onReload: () => void | Promise<void>;
     onRetrySave: () => void | Promise<void>;
   } = $props();
@@ -84,18 +82,6 @@
       </div>
     {/if}
   </div>
-
-  {#if showSetupGuide}
-    <div class="setup-guide" role="note">
-      <strong>First run checklist</strong>
-      <ol>
-        <li>Confirm the project root and output paths above.</li>
-        <li>Add a source CSS path in the import panel.</li>
-        <li>Scan variables or tune tokens directly in the editor.</li>
-        <li>Enable bridge output only after the preview looks correct.</li>
-      </ol>
-    </div>
-  {/if}
 </section>
 
 <style>
@@ -173,27 +159,5 @@
   .save-pill-error {
     background: rgba(239, 68, 68, 0.14);
     color: #b91c1c;
-  }
-
-  .setup-guide {
-    margin-top: 0.9rem;
-    padding: 0.85rem;
-    border-radius: var(--shell-radius-inner);
-    background: rgba(15, 23, 42, 0.04);
-  }
-
-  .setup-guide strong {
-    display: block;
-    margin-bottom: 0.4rem;
-  }
-
-  .setup-guide ol {
-    margin: 0;
-    padding-left: 1.1rem;
-    color: #4b5563;
-  }
-
-  .setup-guide li + li {
-    margin-top: 0.3rem;
   }
 </style>
