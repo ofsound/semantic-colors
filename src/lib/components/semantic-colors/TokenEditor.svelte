@@ -49,25 +49,25 @@
 </script>
 
 <Card.Root
-  class="gap-4 border border-[color:var(--shell-border)] bg-[color:var(--shell-panel-bg)] py-4 shadow-[var(--shell-shadow)] backdrop-blur-md"
+  class="gap-4 border-0 bg-[color:var(--shell-panel-bg)] py-4 shadow-none ring-0 backdrop-blur-md"
 >
-  <Card.Header class="gap-3 px-4">
-    <div class="flex items-start justify-between gap-3">
-      <div>
-        <p class="eyebrow">Token editor</p>
-        <Card.Title>{selectedToken.label}</Card.Title>
+  <Card.Header class="gap-0 px-4">
+    <div
+      class="rounded-[var(--shell-radius-outer)] border border-[color:var(--shell-field-border-strong)] bg-[color:var(--shell-field-bg)] p-3 shadow-[var(--shell-field-shadow)]"
+    >
+      <div class="flex items-start justify-between gap-3">
+        <Card.Title class="leading-snug">{selectedToken.label}</Card.Title>
+        <span
+          class="shrink-0 rounded-full bg-slate-900/8 px-2.5 py-1 text-xs font-semibold text-slate-700 capitalize"
+        >
+          {selectedToken.group}
+        </span>
       </div>
-      <span
-        class="rounded-full bg-slate-900/8 px-2.5 py-1 text-xs font-semibold text-slate-700 capitalize"
-      >
-        {selectedToken.group}
-      </span>
+      <p class="mt-1 text-sm leading-snug text-slate-600">{selectedToken.description}</p>
     </div>
   </Card.Header>
 
   <Card.Content class="space-y-4 px-4">
-    <p class="text-sm text-slate-600">{selectedToken.description}</p>
-
     <div
       class="pt-2 sm:pt-2.5"
       role="group"
@@ -134,7 +134,7 @@
             <NumberSliderField
               bind:value={selectedToken.light.l}
               class="w-full"
-              label="L"
+              label="Lightness"
               max={1}
               min={0}
               onChange={onPersistChange}
@@ -143,7 +143,7 @@
             <NumberSliderField
               bind:value={selectedToken.light.c}
               class="w-full"
-              label="C"
+              label="Chroma"
               max={0.37}
               min={0}
               onChange={onPersistChange}
@@ -152,7 +152,7 @@
             <NumberSliderField
               bind:value={selectedToken.light.h}
               class="w-full"
-              label="H"
+              label="Hue"
               max={360}
               min={0}
               onChange={onPersistChange}
@@ -178,7 +178,7 @@
             <NumberSliderField
               bind:value={selectedToken.dark.l}
               class="w-full"
-              label="L"
+              label="Lightness"
               max={1}
               min={0}
               onChange={onPersistChange}
@@ -187,7 +187,7 @@
             <NumberSliderField
               bind:value={selectedToken.dark.c}
               class="w-full"
-              label="C"
+              label="Chroma"
               max={0.37}
               min={0}
               onChange={onPersistChange}
@@ -196,7 +196,7 @@
             <NumberSliderField
               bind:value={selectedToken.dark.h}
               class="w-full"
-              label="H"
+              label="Hue"
               max={360}
               min={0}
               onChange={onPersistChange}
@@ -213,10 +213,7 @@
           <strong class="text-sm font-semibold text-slate-900">Alt exception</strong>
         </div>
         <div class="flex flex-col gap-4">
-          <div
-            class="alt-anchor-top-row"
-            aria-label="Alt color and exception controls"
-          >
+          <div class="alt-anchor-top-row" aria-label="Alt color and exception controls">
             <div
               aria-label={`Alt derived color: ${toCssColor(currentTokenAlt)}`}
               class="alt-anchor-swatch"

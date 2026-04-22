@@ -61,14 +61,10 @@
 </script>
 
 <Card.Root
-  class="gap-4 border border-[color:var(--shell-border)] bg-[color:var(--shell-panel-bg)] py-4 shadow-[var(--shell-shadow)] backdrop-blur-md"
+  class="gap-4 border-0 ring-0 shadow-none bg-[color:var(--shell-panel-bg)] py-4 backdrop-blur-md"
 >
   <Card.Header class="gap-3 px-4">
-    <div class="flex items-start justify-between gap-3">
-      <div>
-        <p class="eyebrow">Project bridge</p>
-        <Card.Title>Trimodal Semantic Engine</Card.Title>
-      </div>
+    <div class="flex justify-end">
       <Button onclick={onReload} size="sm" variant="outline">Reload</Button>
     </div>
   </Card.Header>

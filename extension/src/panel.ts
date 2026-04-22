@@ -44,6 +44,12 @@ const tabId = chrome.devtools.inspectedWindow.tabId;
 const PICKER_PANEL_BACKGROUND =
   'linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0) 50%), linear-gradient(to bottom, rgba(255, 255, 255, 0) 50%, #fff 100%), linear-gradient(to right, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)';
 
+const OKLCH_CHANNEL_LABEL: Record<'l' | 'c' | 'h', string> = {
+  l: 'Lightness',
+  c: 'Chroma',
+  h: 'Hue'
+};
+
 const state = {
   bridgeUrl: DEFAULT_BRIDGE_URL,
   snapshot: null as BridgeSnapshot | null,
@@ -650,7 +656,7 @@ function sliderMarkup(
 ): string {
   return `
     <div class="slider-row">
-      <span>${channel.toUpperCase()}</span>
+      <span>${escapeHtml(OKLCH_CHANNEL_LABEL[channel])}</span>
       <input
         type="range"
         min="${min}"
@@ -1342,9 +1348,9 @@ function renderOverrideSliders(): void {
     max: number;
     step: number;
   }> = [
-    { key: 'l', label: 'L', min: 0, max: 1, step: 0.001 },
-    { key: 'c', label: 'C', min: 0, max: 0.4, step: 0.001 },
-    { key: 'h', label: 'H', min: 0, max: 360, step: 0.1 }
+    { key: 'l', label: 'Lightness', min: 0, max: 1, step: 0.001 },
+    { key: 'c', label: 'Chroma', min: 0, max: 0.4, step: 0.001 },
+    { key: 'h', label: 'Hue', min: 0, max: 360, step: 0.1 }
   ];
 
   el.overrideSliders.innerHTML = `

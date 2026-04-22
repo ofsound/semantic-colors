@@ -1,6 +1,6 @@
 .semantic-colors-app {
   --shell-page-padding: 1.25rem;
-  --shell-column-gap: 1.25rem;
+  --shell-column-gap: 50px;
   --stage-header-pad-block-start: 0.85rem;
   --shell-radius-outer: 10px;
   --shell-radius-inner: 6px;
@@ -43,7 +43,7 @@
   gap: 1rem;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding-top: var(--stage-header-pad-block-start);
+  padding-top: calc(var(--stage-header-pad-block-start) + 90px);
   padding-right: 0.25rem;
 }
 

@@ -26,12 +26,11 @@
 </script>
 
 <Card.Root
-  class="gap-4 border border-[color:var(--shell-border)] bg-[color:var(--shell-panel-bg)] py-4 shadow-[var(--shell-shadow)] backdrop-blur-md"
+  class="gap-4 border-0 ring-0 shadow-none bg-[color:var(--shell-panel-bg)] py-4 backdrop-blur-md"
 >
   <Card.Header class="gap-3 px-4">
     <div class="flex items-start justify-between gap-3">
       <div>
-        <p class="eyebrow">Local aliases</p>
         <Card.Title>Project-specific names</Card.Title>
       </div>
       <Button onclick={addAlias} size="sm" variant="outline">Add alias</Button>

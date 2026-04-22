@@ -1,13 +1,13 @@
 {
   "version": 1,
   "name": "Semantic Color System",
-  "updatedAt": "2026-04-22T18:13:27.438Z",
+  "updatedAt": "2026-04-22T18:46:05.424Z",
   "alt": {
     "source": "dark",
     "delta": {
-      "l": 0.05,
-      "c": -0.02,
-      "h": 62
+      "l": 0.02,
+      "c": 0.03,
+      "h": 28
     },
     "harmonyLock": true,
     "grayscalePreview": false
@@ -40,8 +40,8 @@
       "group": "surfaces",
       "role": "neutral",
       "light": {
-        "l": 0.965,
-        "c": 0.01,
+        "l": 0.98,
+        "c": 0.045,
         "h": 95
       },
       "dark": {
@@ -60,19 +60,18 @@
       "group": "surfaces",
       "role": "neutral",
       "light": {
-        "l": 0.75,
-        "c": 0.24,
-        "h": 140,
+        "l": 0.97,
+        "c": 0.005,
+        "h": 265,
         "alpha": 1
       },
       "dark": {
-        "l": 0.885,
-        "c": 0.12,
-        "h": 206,
-        "alpha": 1
+        "l": 0.235,
+        "c": 0.015,
+        "h": 265
       },
       "exception": {
-        "altBehavior": "pin"
+        "altBehavior": "derive"
       }
     },
     "surface-raised": {
@@ -82,7 +81,7 @@
       "group": "surfaces",
       "role": "neutral",
       "light": {
-        "l": 0.975,
+        "l": 0.976,
         "c": 0.01,
         "h": 95
       },
@@ -205,7 +204,7 @@
       "role": "neutral",
       "light": {
         "l": 0.43,
-        "c": 0.015,
+        "c": 0.014,
         "h": 260
       },
       "dark": {

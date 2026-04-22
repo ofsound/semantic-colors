@@ -314,55 +314,71 @@
   class={`semantic-colors-app workspace ${sidebarCollapsed ? 'workspace-sidebar-collapsed' : ''}`}
 >
   <aside class={`sidebar ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-    <div class="sidebar-toolbar">
-      <Button
-        aria-label={sidebarCollapsed ? 'Show authoring panels' : 'Hide authoring panels'}
-        class={`border-slate-900/10 bg-white/70 shadow-none hover:bg-white ${sidebarCollapsed ? 'size-11 px-0' : 'px-3'}`}
-        onclick={toggleSidebar}
-        size={sidebarCollapsed ? 'icon-sm' : 'sm'}
-        variant="outline"
-      >
-        <span
-          aria-hidden="true"
-          class={`sidebar-toggle-icon ${sidebarCollapsed ? 'sidebar-toggle-icon-collapsed' : ''}`}
+    {#if sidebarCollapsed}
+      <div class="sidebar-toolbar">
+        <Button
+          aria-label="Show authoring panels"
+          class="shrink-0 border-slate-900/10 bg-white/70 shadow-none hover:bg-white"
+          onclick={toggleSidebar}
+          size="icon"
+          variant="outline"
         >
-          <svg class="sidebar-toggle-chevron" viewBox="0 0 24 24">
-            <path
-              d="M14.5 7.5L9 12l5.5 4.5"
-              fill="none"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.75"
-            />
-          </svg>
-        </span>
-        {#if !sidebarCollapsed}
-          <span>Hide</span>
-        {/if}
-      </Button>
-    </div>
-
-    {#if !sidebarCollapsed}
-      <div
-        class="flex flex-wrap items-center gap-2"
-        role="toolbar"
-        aria-label="Authoring panels: token, alt modes, aliases, import, project"
-      >
-        {#each SIDEBAR_TABS as tab (tab.id)}
-          <Button
-            aria-controls="sidebar-authoring-panel"
-            aria-label={`${tab.label} panel`}
-            aria-pressed={activeSidebarTab === tab.id}
-            class={`h-9 min-h-9 px-3 ${headerControlClass(activeSidebarTab === tab.id)}`}
-            onclick={() => {
-              activeSidebarTab = tab.id;
-            }}
-            variant="outline"
-          >
-            {tab.label}
-          </Button>
-        {/each}
+          <span aria-hidden="true" class="sidebar-toggle-icon sidebar-toggle-icon-collapsed">
+            <svg class="sidebar-toggle-chevron" viewBox="0 0 24 24">
+              <path
+                d="M14.5 7.5L9 12l5.5 4.5"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.75"
+              />
+            </svg>
+          </span>
+        </Button>
+      </div>
+    {:else}
+      <div class="flex w-full min-w-0 items-center gap-2">
+        <div
+          class="flex min-w-0 flex-1 flex-wrap items-center gap-2"
+          role="toolbar"
+          aria-label="Authoring panels: token, alt modes, aliases, import, project"
+        >
+          {#each SIDEBAR_TABS as tab (tab.id)}
+            <Button
+              aria-controls="sidebar-authoring-panel"
+              aria-label={`${tab.label} panel`}
+              aria-pressed={activeSidebarTab === tab.id}
+              class={`h-9 min-h-9 px-3 ${headerControlClass(activeSidebarTab === tab.id)}`}
+              onclick={() => {
+                activeSidebarTab = tab.id;
+              }}
+              variant="outline"
+            >
+              {tab.label}
+            </Button>
+          {/each}
+        </div>
+        <Button
+          aria-label="Hide authoring panels"
+          class="shrink-0 border-slate-900/10 bg-white/70 shadow-none hover:bg-white"
+          onclick={toggleSidebar}
+          size="icon"
+          variant="outline"
+        >
+          <span aria-hidden="true" class="sidebar-toggle-icon">
+            <svg class="sidebar-toggle-chevron" viewBox="0 0 24 24">
+              <path
+                d="M14.5 7.5L9 12l5.5 4.5"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.75"
+              />
+            </svg>
+          </span>
+        </Button>
       </div>
 
       <div
@@ -423,7 +439,7 @@
 
   <main class="stage-shell">
     <div
-      class="stage-header-fixed rounded-xl border border-[color:var(--shell-border)] bg-white/90 p-[var(--stage-header-pad-block-start)_1.1rem_1rem] shadow-[var(--shell-shadow)] backdrop-blur-xl"
+      class="stage-header-fixed rounded-b-xl rounded-t-none border-x border-b border-t-0 border-[color:var(--shell-border)] bg-white/90 p-[var(--stage-header-pad-block-start)_1.1rem_1rem] shadow-[var(--shell-shadow)] backdrop-blur-xl"
     >
       <div
         class="stage-header-toolbar flex w-full min-w-0 flex-wrap items-center gap-2"
@@ -444,7 +460,9 @@
               variant="outline"
             >
               <span>{tab.label}</span>
-              <Kbd class={headerShortcutClass(activeMainTab === tab.id)}>{tab.id === 'preview' ? 'P' : 'T'}</Kbd>
+              <Kbd class={headerShortcutClass(activeMainTab === tab.id)}
+                >{tab.id === 'preview' ? 'P' : 'T'}</Kbd
+              >
             </Button>
           {/each}
         </div>

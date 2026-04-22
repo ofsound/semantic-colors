@@ -146,201 +146,206 @@
     </div>
   </div>
 
-  <div class="fixture-grid">
-    <article class="fixture-panel">
-      <div class="fixture-panel-header">
-        <h3>Text hierarchy</h3>
-      </div>
-      <div class="text-stack">
-        {#each textInventory as tokenId (tokenId)}
-          <button
-            aria-pressed={selectedTokenId === tokenId}
-            class:selected-usage={isSelectedUsage([tokenId])}
-            class:warning={hasWarnings([tokenId])}
-            class={`text-sample text-sample-${tokenId}`}
-            onclick={() => selectToken(tokenId)}
-            type="button"
-          >
-            <WarningBadge summary={warningSummary([tokenId])} visible={hasWarnings([tokenId])} />
-            <span>{tokenLabel(tokenId)}</span>
-            <strong>The quick brown fox jumps over the lazy dog.</strong>
-          </button>
-        {/each}
-      </div>
-    </article>
+  <div class="fixture-shell-wrap" aria-label="Token samples shown on shell background">
+    <div class="fixture-grid">
+      <article class="fixture-panel">
+        <div class="fixture-panel-header">
+          <h3>Text hierarchy</h3>
+        </div>
+        <div class="text-stack">
+          {#each textInventory as tokenId (tokenId)}
+            <button
+              aria-pressed={selectedTokenId === tokenId}
+              class:selected-usage={isSelectedUsage([tokenId])}
+              class:warning={hasWarnings([tokenId])}
+              class={`text-sample text-sample-${tokenId}`}
+              onclick={() => selectToken(tokenId)}
+              type="button"
+            >
+              <WarningBadge summary={warningSummary([tokenId])} visible={hasWarnings([tokenId])} />
+              <span>{tokenLabel(tokenId)}</span>
+              <strong>The quick brown fox jumps over the lazy dog.</strong>
+            </button>
+          {/each}
+        </div>
+      </article>
 
-    <article class="fixture-panel">
-      <div class="fixture-panel-header">
-        <h3>Accent and links</h3>
-      </div>
-      <div class="accent-grid">
-        {#each accentInventory as tokenId (tokenId)}
-          <button
-            aria-pressed={selectedTokenId === tokenId}
-            class:selected-usage={isSelectedUsage([tokenId])}
-            class:warning={hasWarnings([tokenId])}
-            class={`accent-sample accent-sample-${tokenId}`}
-            onclick={() => selectToken(tokenId)}
-            type="button"
-          >
-            <WarningBadge summary={warningSummary([tokenId])} visible={hasWarnings([tokenId])} />
-            <span>{tokenLabel(tokenId)}</span>
-          </button>
-        {/each}
-      </div>
-    </article>
+      <article class="fixture-panel">
+        <div class="fixture-panel-header">
+          <h3>Accent and links</h3>
+        </div>
+        <div class="accent-grid">
+          {#each accentInventory as tokenId (tokenId)}
+            <button
+              aria-pressed={selectedTokenId === tokenId}
+              class:selected-usage={isSelectedUsage([tokenId])}
+              class:warning={hasWarnings([tokenId])}
+              class={`accent-sample accent-sample-${tokenId}`}
+              onclick={() => selectToken(tokenId)}
+              type="button"
+            >
+              <WarningBadge summary={warningSummary([tokenId])} visible={hasWarnings([tokenId])} />
+              <span>{tokenLabel(tokenId)}</span>
+            </button>
+          {/each}
+        </div>
+      </article>
 
-    <article class="fixture-panel">
-      <div class="fixture-panel-header">
-        <h3>Status pairs</h3>
-      </div>
-      <div class="status-grid">
-        {#each ['success', 'warning', 'danger', 'info'] as stem (stem)}
+      <article class="fixture-panel">
+        <div class="fixture-panel-header">
+          <h3>Status pairs</h3>
+        </div>
+        <div class="status-grid">
+          {#each ['success', 'warning', 'danger', 'info'] as stem (stem)}
+            <button
+              aria-pressed={selectedTokenId === (stem as TokenId)}
+              class:selected-usage={isSelectedUsage([
+                stem as TokenId,
+                `${stem}-surface` as TokenId
+              ])}
+              class:warning={hasWarnings([stem as TokenId, `${stem}-surface` as TokenId])}
+              class={`status-card status-card-${stem}`}
+              onclick={() => selectToken(stem as TokenId)}
+              type="button"
+            >
+              <WarningBadge
+                summary={warningSummary([stem as TokenId, `${stem}-surface` as TokenId])}
+                visible={hasWarnings([stem as TokenId, `${stem}-surface` as TokenId])}
+              />
+              <strong>{stem}</strong>
+              <span>{tokenLabel(stem as TokenId)}</span>
+            </button>
+          {/each}
+        </div>
+      </article>
+
+      <article class="fixture-panel">
+        <div class="fixture-panel-header">
+          <h3>Controls</h3>
+        </div>
+        <div class="control-grid">
           <button
-            aria-pressed={selectedTokenId === (stem as TokenId)}
-            class:selected-usage={isSelectedUsage([stem as TokenId, `${stem}-surface` as TokenId])}
-            class:warning={hasWarnings([stem as TokenId, `${stem}-surface` as TokenId])}
-            class={`status-card status-card-${stem}`}
-            onclick={() => selectToken(stem as TokenId)}
+            aria-pressed={selectedTokenId === 'control-primary'}
+            class:selected-usage={isSelectedUsage(['control-primary', 'control-primary-text'])}
+            class:warning={hasWarnings(['control-primary', 'control-primary-text'])}
+            class="control-primary"
+            onclick={() => selectToken('control-primary')}
             type="button"
           >
             <WarningBadge
-              summary={warningSummary([stem as TokenId, `${stem}-surface` as TokenId])}
-              visible={hasWarnings([stem as TokenId, `${stem}-surface` as TokenId])}
+              summary={warningSummary(['control-primary', 'control-primary-text'])}
+              visible={hasWarnings(['control-primary', 'control-primary-text'])}
             />
-            <strong>{stem}</strong>
-            <span>{tokenLabel(stem as TokenId)}</span>
+            Primary action
           </button>
-        {/each}
-      </div>
-    </article>
-
-    <article class="fixture-panel">
-      <div class="fixture-panel-header">
-        <h3>Controls</h3>
-      </div>
-      <div class="control-grid">
-        <button
-          aria-pressed={selectedTokenId === 'control-primary'}
-          class:selected-usage={isSelectedUsage(['control-primary', 'control-primary-text'])}
-          class:warning={hasWarnings(['control-primary', 'control-primary-text'])}
-          class="control-primary"
-          onclick={() => selectToken('control-primary')}
-          type="button"
-        >
-          <WarningBadge
-            summary={warningSummary(['control-primary', 'control-primary-text'])}
-            visible={hasWarnings(['control-primary', 'control-primary-text'])}
-          />
-          Primary action
-        </button>
-        <button
-          aria-pressed={selectedTokenId === 'control-secondary'}
-          class:selected-usage={isSelectedUsage([
-            'control-secondary',
-            'control-secondary-border',
-            'control-secondary-text'
-          ])}
-          class:warning={hasWarnings([
-            'control-secondary',
-            'control-secondary-border',
-            'control-secondary-text'
-          ])}
-          class="control-secondary"
-          onclick={() => selectToken('control-secondary')}
-          type="button"
-        >
-          <WarningBadge
-            summary={warningSummary([
-              'control-secondary',
-              'control-secondary-border',
-              'control-secondary-text'
-            ])}
-            visible={hasWarnings([
-              'control-secondary',
-              'control-secondary-border',
-              'control-secondary-text'
-            ])}
-          />
-          Secondary
-        </button>
-        <button
-          aria-pressed={selectedTokenId === 'control-ghost-hover'}
-          class:selected-usage={isSelectedUsage(['control-ghost-hover'])}
-          class:warning={hasWarnings(['control-ghost-hover'])}
-          class="control-ghost"
-          onclick={() => selectToken('control-ghost-hover')}
-          type="button"
-        >
-          <WarningBadge
-            summary={warningSummary(['control-ghost-hover'])}
-            visible={hasWarnings(['control-ghost-hover'])}
-          />
-          Ghost hover
-        </button>
-        <label
-          class:selected-usage={isSelectedUsage(['input', 'input-border', 'input-placeholder'])}
-          class:warning={hasWarnings(['input', 'input-border', 'input-placeholder'])}
-          class="input-preview"
-        >
-          <WarningBadge
-            summary={warningSummary(['input', 'input-border', 'input-placeholder'])}
-            visible={hasWarnings(['input', 'input-border', 'input-placeholder'])}
-          />
-          <span>Input field</span>
-          <input
-            onfocus={() => selectToken('input')}
-            onclick={() => selectToken('input')}
-            placeholder="Input placeholder"
-          />
-        </label>
-      </div>
-    </article>
-
-    <article class="fixture-panel">
-      <div class="fixture-panel-header">
-        <h3>Borders and focus</h3>
-      </div>
-      <div class="border-grid">
-        {#each borderInventory as tokenId (tokenId)}
           <button
-            aria-pressed={selectedTokenId === tokenId}
-            class:selected-usage={isSelectedUsage([tokenId])}
-            class:warning={hasWarnings([tokenId])}
-            class={`border-sample border-sample-${tokenId}`}
-            onclick={() => selectToken(tokenId)}
+            aria-pressed={selectedTokenId === 'control-secondary'}
+            class:selected-usage={isSelectedUsage([
+              'control-secondary',
+              'control-secondary-border',
+              'control-secondary-text'
+            ])}
+            class:warning={hasWarnings([
+              'control-secondary',
+              'control-secondary-border',
+              'control-secondary-text'
+            ])}
+            class="control-secondary"
+            onclick={() => selectToken('control-secondary')}
             type="button"
           >
-            <WarningBadge summary={warningSummary([tokenId])} visible={hasWarnings([tokenId])} />
-            {tokenLabel(tokenId)}
+            <WarningBadge
+              summary={warningSummary([
+                'control-secondary',
+                'control-secondary-border',
+                'control-secondary-text'
+              ])}
+              visible={hasWarnings([
+                'control-secondary',
+                'control-secondary-border',
+                'control-secondary-text'
+              ])}
+            />
+            Secondary
           </button>
-        {/each}
-      </div>
-    </article>
+          <button
+            aria-pressed={selectedTokenId === 'control-ghost-hover'}
+            class:selected-usage={isSelectedUsage(['control-ghost-hover'])}
+            class:warning={hasWarnings(['control-ghost-hover'])}
+            class="control-ghost"
+            onclick={() => selectToken('control-ghost-hover')}
+            type="button"
+          >
+            <WarningBadge
+              summary={warningSummary(['control-ghost-hover'])}
+              visible={hasWarnings(['control-ghost-hover'])}
+            />
+            Ghost hover
+          </button>
+          <label
+            class:selected-usage={isSelectedUsage(['input', 'input-border', 'input-placeholder'])}
+            class:warning={hasWarnings(['input', 'input-border', 'input-placeholder'])}
+            class="input-preview"
+          >
+            <WarningBadge
+              summary={warningSummary(['input', 'input-border', 'input-placeholder'])}
+              visible={hasWarnings(['input', 'input-border', 'input-placeholder'])}
+            />
+            <span>Input field</span>
+            <input
+              onfocus={() => selectToken('input')}
+              onclick={() => selectToken('input')}
+              placeholder="Input placeholder"
+            />
+          </label>
+        </div>
+      </article>
 
-    <article class="fixture-panel fixture-panel-overlay">
-      <div class="fixture-panel-header">
-        <h3>Overlay and scrim</h3>
-      </div>
-      <div class="overlay-demo">
-        <div class="scrim"></div>
-        <button
-          aria-pressed={selectedTokenId === 'surface-overlay'}
-          class:selected-usage={isSelectedUsage(['surface-overlay', 'text', 'border'])}
-          class:warning={hasWarnings(['surface-overlay', 'text', 'border'])}
-          class="overlay-card"
-          onclick={() => selectToken('surface-overlay')}
-          type="button"
-        >
-          <WarningBadge
-            summary={warningSummary(['surface-overlay', 'text', 'border'])}
-            visible={hasWarnings(['surface-overlay', 'text', 'border'])}
-          />
-          <strong>Overlay surface</strong>
-          <p>Modal, popover, or detached chrome should read from the same semantic surface.</p>
-        </button>
-      </div>
-    </article>
+      <article class="fixture-panel">
+        <div class="fixture-panel-header">
+          <h3>Borders and focus</h3>
+        </div>
+        <div class="border-grid">
+          {#each borderInventory as tokenId (tokenId)}
+            <button
+              aria-pressed={selectedTokenId === tokenId}
+              class:selected-usage={isSelectedUsage([tokenId])}
+              class:warning={hasWarnings([tokenId])}
+              class={`border-sample border-sample-${tokenId}`}
+              onclick={() => selectToken(tokenId)}
+              type="button"
+            >
+              <WarningBadge summary={warningSummary([tokenId])} visible={hasWarnings([tokenId])} />
+              {tokenLabel(tokenId)}
+            </button>
+          {/each}
+        </div>
+      </article>
+
+      <article class="fixture-panel fixture-panel-overlay">
+        <div class="fixture-panel-header">
+          <h3>Overlay and scrim</h3>
+        </div>
+        <div class="overlay-demo">
+          <div class="scrim"></div>
+          <button
+            aria-pressed={selectedTokenId === 'surface-overlay'}
+            class:selected-usage={isSelectedUsage(['surface-overlay', 'text', 'border'])}
+            class:warning={hasWarnings(['surface-overlay', 'text', 'border'])}
+            class="overlay-card"
+            onclick={() => selectToken('surface-overlay')}
+            type="button"
+          >
+            <WarningBadge
+              summary={warningSummary(['surface-overlay', 'text', 'border'])}
+              visible={hasWarnings(['surface-overlay', 'text', 'border'])}
+            />
+            <strong>Overlay surface</strong>
+            <p>Modal, popover, or detached chrome should read from the same semantic surface.</p>
+          </button>
+        </div>
+      </article>
+    </div>
   </div>
 </section>
 
@@ -469,6 +474,14 @@
 
   .nested-field {
     background: var(--theme-field);
+  }
+
+  .fixture-shell-wrap {
+    background: var(--theme-shell);
+    color: var(--theme-text);
+    border-radius: var(--shell-radius-outer);
+    border: var(--preview-border-width, 0px) solid var(--preview-border-color, transparent);
+    padding: 1.1rem;
   }
 
   .fixture-grid {
