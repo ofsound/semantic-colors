@@ -5,6 +5,7 @@
   import AnchorColorPicker from '$lib/components/semantic-colors/AnchorColorPicker.svelte';
   import NumberSliderField from '$lib/components/semantic-colors/NumberSliderField.svelte';
   import ShellSelect from '$lib/components/semantic-colors/ShellSelect.svelte';
+  import TailwindSwatchPicker from '$lib/components/semantic-colors/TailwindSwatchPicker.svelte';
   import { toCssColor } from '$lib/theme/color';
   import { cn } from '$lib/utils.js';
   import type { OklchColor, ThemeManifest, ThemeMode, TokenId } from '$lib/theme/schema';
@@ -159,6 +160,11 @@
               step={1}
             />
           </div>
+          <TailwindSwatchPicker
+            bind:color={selectedToken.light}
+            label="Light anchor"
+            {onPersistChange}
+          />
         </div>
       </section>
     {/if}
@@ -203,6 +209,11 @@
               step={1}
             />
           </div>
+          <TailwindSwatchPicker
+            bind:color={selectedToken.dark}
+            label="Dark anchor"
+            {onPersistChange}
+          />
         </div>
       </section>
     {/if}

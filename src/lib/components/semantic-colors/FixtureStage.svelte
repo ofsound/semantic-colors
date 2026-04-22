@@ -421,6 +421,9 @@
     --fixture-control-radius: var(--shell-radius-inner);
     --fixture-control-pad-block: 0.65rem;
     --fixture-control-pad-inline: 0.8rem;
+    --preview-hover-ring-color: color-mix(in srgb, var(--theme-focus-ring) 72%, white 16%);
+    --preview-hover-ring-soft: color-mix(in srgb, var(--theme-focus-ring) 30%, transparent);
+    --preview-hover-shadow: color-mix(in srgb, var(--theme-focus-ring) 42%, transparent);
     transition:
       background-color 160ms ease,
       color 160ms ease,
@@ -429,6 +432,30 @@
 
   .stage.grayscale {
     filter: grayscale(1);
+  }
+
+  .stage :is(button, [role='button'], .input-preview) {
+    position: relative;
+    cursor: pointer;
+    transition:
+      box-shadow 160ms ease,
+      border-color 160ms ease,
+      filter 160ms ease,
+      background-color 160ms ease,
+      color 160ms ease;
+  }
+
+  .stage :is(button, [role='button'], .input-preview):is(:hover, :focus-visible),
+  .stage .input-preview:focus-within {
+    box-shadow:
+      0 0 0 1px var(--preview-hover-ring-color),
+      0 0 0 0.42rem var(--preview-hover-ring-soft),
+      0 1.1rem 2.2rem -1.2rem var(--preview-hover-shadow);
+    filter: saturate(1.08) brightness(1.03);
+  }
+
+  .stage :is(button, [role='button'], .input-preview):hover {
+    animation: preview-target-hover-pulse 880ms ease-in-out infinite alternate;
   }
 
   .hero-grid {
@@ -732,6 +759,7 @@
     background: var(--theme-input);
     border: var(--preview-border-width, 0px) solid var(--preview-border-color, transparent);
     color: var(--theme-text);
+    cursor: pointer;
   }
 
   .input-preview input::placeholder {
@@ -787,5 +815,21 @@
     color: var(--theme-text);
     border: var(--preview-border-width, 0px) solid var(--preview-border-color, transparent);
     border-radius: var(--fixture-control-radius);
+  }
+
+  @keyframes preview-target-hover-pulse {
+    from {
+      box-shadow:
+        0 0 0 1px var(--preview-hover-ring-color),
+        0 0 0 0.32rem color-mix(in srgb, var(--preview-hover-ring-soft) 92%, transparent),
+        0 0.95rem 1.9rem -1.3rem color-mix(in srgb, var(--preview-hover-shadow) 88%, transparent);
+    }
+
+    to {
+      box-shadow:
+        0 0 0 1px var(--preview-hover-ring-color),
+        0 0 0 0.56rem color-mix(in srgb, var(--preview-hover-ring-soft) 128%, transparent),
+        0 1.3rem 2.45rem -1.05rem color-mix(in srgb, var(--preview-hover-shadow) 128%, transparent);
+    }
   }
 </style>

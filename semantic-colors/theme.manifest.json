@@ -1,7 +1,7 @@
 {
   "version": 1,
   "name": "Semantic Color System",
-  "updatedAt": "2026-04-22T20:13:01.275Z",
+  "updatedAt": "2026-04-22T20:33:09.274Z",
   "alt": {
     "source": "dark",
     "delta": {
@@ -60,14 +60,16 @@
       "group": "surfaces",
       "role": "neutral",
       "light": {
-        "l": 1,
-        "c": 0.005,
-        "h": 95
+        "l": 0.37,
+        "c": 0.045,
+        "h": 257,
+        "alpha": 1
       },
       "dark": {
-        "l": 0.235,
-        "c": 0.015,
-        "h": 265
+        "l": 0.52,
+        "c": 0.105,
+        "h": 223,
+        "alpha": 1
       },
       "exception": {
         "altBehavior": "derive"
@@ -208,7 +210,7 @@
       },
       "dark": {
         "l": 0.78,
-        "c": 0.012,
+        "c": 0.01,
         "h": 95
       },
       "exception": {
