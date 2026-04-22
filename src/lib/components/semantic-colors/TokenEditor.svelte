@@ -217,35 +217,40 @@
     </div>
   {/if}
 
-  <div class={`mode-block ${activeMode === 'alt' ? 'mode-block-promoted' : ''}`}>
-    <div class="field-grid">
-      <label class="field-block">
-        <span>Alt behavior</span>
-        <select bind:value={selectedToken.exception.altBehavior} onchange={onPersistChange}>
-          <option value="derive">Derive</option>
-          <option value="pin">Pin to source anchor</option>
-          <option value="exclude">Exclude from Alt</option>
-        </select>
-      </label>
-      <label class="field-block">
-        <span>Max chroma</span>
-        <input
-          bind:value={selectedToken.exception.maxChroma}
-          max="0.37"
-          min="0"
-          oninput={onPersistChange}
-          step="0.005"
-          type="number"
-        />
-      </label>
-    </div>
+  {#if activeMode === 'alt'}
+    <div class="anchor-editor anchor-editor-active">
+      <div class="anchor-header">
+        <strong>Alt exception</strong>
+      </div>
+      <div class="field-grid">
+        <label class="field-block">
+          <span>Alt behavior</span>
+          <select bind:value={selectedToken.exception.altBehavior} onchange={onPersistChange}>
+            <option value="derive">Derive</option>
+            <option value="pin">Pin to source anchor</option>
+            <option value="exclude">Exclude from Alt</option>
+          </select>
+        </label>
+        <label class="field-block">
+          <span>Max chroma</span>
+          <input
+            bind:value={selectedToken.exception.maxChroma}
+            max="0.37"
+            min="0"
+            oninput={onPersistChange}
+            step="0.005"
+            type="number"
+          />
+        </label>
+      </div>
 
-    {#if selectedToken.altParent}
-      <p class="microcopy">
-        Alt derives from parent token: <strong>{tokenLabel(selectedToken.altParent)}</strong>
-      </p>
-    {/if}
-  </div>
+      {#if selectedToken.altParent}
+        <p class="microcopy">
+          Alt derives from parent token: <strong>{tokenLabel(selectedToken.altParent)}</strong>
+        </p>
+      {/if}
+    </div>
+  {/if}
 
   <div class="validation-list">
     <div class="validation-header">
@@ -295,16 +300,14 @@
     border: 1px solid rgba(15, 23, 42, 0.12);
   }
 
-  .anchor-editor,
-  .mode-block {
+  .anchor-editor {
     margin-top: 0.95rem;
     padding: 0.85rem;
     border-radius: var(--shell-radius-inner);
     background: rgba(15, 23, 42, 0.04);
   }
 
-  .anchor-editor-active,
-  .mode-block-promoted {
+  .anchor-editor-active {
     border: 1px solid rgba(59, 130, 246, 0.35);
     background: rgba(59, 130, 246, 0.07);
   }

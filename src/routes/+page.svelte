@@ -32,9 +32,17 @@
     { id: 'preview', label: 'Preview' },
     { id: 'inventory', label: 'Tokens' }
   ] as const;
+  const BORDER_PREVIEW_MODES = ['none', 'border', 'border-subtle', 'border-strong'] as const;
+  const BORDER_PREVIEW_LABELS = {
+    none: 'No Border',
+    border: 'Border',
+    'border-subtle': 'Border Subtle',
+    'border-strong': 'Border Strong'
+  } as const;
 
   type SidebarTabId = (typeof SIDEBAR_TABS)[number]['id'];
   type MainTabId = (typeof MAIN_TABS)[number]['id'];
+  type BorderPreviewMode = (typeof BORDER_PREVIEW_MODES)[number];
 
   let { data }: { data: PageData } = $props();
 
@@ -46,6 +54,7 @@
   let sidebarCollapsed = $state(false);
   let activeSidebarTab = $state<SidebarTabId>('token');
   let activeMainTab = $state<MainTabId>('preview');
+  let borderPreviewMode = $state<BorderPreviewMode>('none');
   let selectedTokenId = $state<TokenId>('surface');
   let activeMode = $state<ThemeMode>('light');
   let holdPreviewStartedAt = 0;
@@ -104,6 +113,10 @@
     summarizeTokenValidation(validations[activeMode].perToken[selectedTokenId])
   );
   const stageStyle = $derived(`${themeCssVariables(currentTheme)}\n`);
+  const borderPreviewLabel = $derived(BORDER_PREVIEW_LABELS[borderPreviewMode]);
+  const previewStageStyle = $derived(
+    `${stageStyle}  --preview-border-color: ${borderPreviewMode === 'none' ? 'transparent' : `var(--theme-${borderPreviewMode})`};\n  --preview-border-width: 1px;\n`
+  );
   const currentTokenAlt = $derived(altTheme.colors[selectedTokenId]);
 
   $effect(() => {
@@ -252,6 +265,12 @@
   function toggleSidebar(): void {
     sidebarCollapsed = !sidebarCollapsed;
   }
+
+  function cycleBorderPreviewMode(): void {
+    const nextIndex =
+      (BORDER_PREVIEW_MODES.indexOf(borderPreviewMode) + 1) % BORDER_PREVIEW_MODES.length;
+    borderPreviewMode = BORDER_PREVIEW_MODES[nextIndex];
+  }
 </script>
 
 <svelte:window onkeydown={handleKeydown} onkeyup={handleKeyup} />
@@ -387,6 +406,15 @@
       <div class="stage-status">
         <div class="stage-mode-row">
           <button
+            aria-label={`Border preview mode: ${borderPreviewLabel}`}
+            aria-pressed={borderPreviewMode !== 'none'}
+            class={`sidebar-tab stage-mode-button ${borderPreviewMode !== 'none' ? 'sidebar-tab-active' : ''}`}
+            onclick={cycleBorderPreviewMode}
+            type="button"
+          >
+            {borderPreviewLabel}
+          </button>
+          <button
             aria-keyshortcuts="L"
             aria-label="Grayscale preview (shortcut L)"
             aria-pressed={manifest.alt.grayscalePreview}
@@ -424,9 +452,6 @@
             3 Alt
           </button>
         </div>
-        <div class="stage-meta">
-          <span>Selected: {selectedToken.label}</span>
-        </div>
       </div>
     </header>
 
@@ -441,7 +466,7 @@
           saveState={workspace.saveState}
           selectToken={selectPreviewToken}
           {selectedTokenId}
-          {stageStyle}
+          stageStyle={previewStageStyle}
           {tokenLabel}
           {warningSummary}
         />
@@ -453,7 +478,7 @@
           {isSelectedUsage}
           selectToken={selectPreviewToken}
           {selectedTokenId}
-          {stageStyle}
+          stageStyle={previewStageStyle}
           {tokenLabel}
           {warningSummary}
         />

@@ -59,7 +59,7 @@
 
 <style>
   .inventory {
-    border: 1px solid var(--theme-border);
+    border: var(--preview-border-width, 0px) solid var(--preview-border-color, transparent);
     border-radius: var(--shell-radius-outer);
     padding: 1rem;
     background: var(--theme-app);
@@ -84,6 +84,9 @@
     gap: 1rem;
     margin-top: 36px;
     margin-bottom: 0.75rem;
+    border: var(--preview-border-width, 0px) solid var(--preview-border-color, transparent);
+    border-radius: var(--shell-radius-inner);
+    padding: 0.6rem 0.7rem;
   }
 
   .inventory-card code {
@@ -101,7 +104,7 @@
     padding: 0.65rem 0.7rem;
     background: transparent;
     color: var(--theme-text);
-    border: 0;
+    border: var(--preview-border-width, 0px) solid var(--preview-border-color, transparent);
     box-shadow: none;
   }
 
@@ -117,7 +120,7 @@
   .inventory-swatch {
     height: 2.5rem;
     border-radius: var(--shell-radius-inner);
-    border: 0;
+    border: var(--preview-border-width, 0px) solid var(--preview-border-color, transparent);
     box-shadow: none;
   }
 

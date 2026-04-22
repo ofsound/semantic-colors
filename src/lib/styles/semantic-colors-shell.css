@@ -171,14 +171,6 @@ body {
   white-space: nowrap;
 }
 
-.semantic-colors-app .stage-meta {
-  display: flex;
-  gap: 0.8rem;
-  color: #4b5563;
-  font-size: 0.85rem;
-  white-space: nowrap;
-}
-
 .semantic-colors-app .stage-content-shell {
   display: grid;
   gap: 1rem;
@@ -369,10 +361,6 @@ body {
 
   .semantic-colors-app .stage-mode-row {
     overflow-x: auto;
-  }
-
-  .semantic-colors-app .stage-meta {
-    white-space: normal;
   }
 
   .semantic-colors-app .sidebar,
