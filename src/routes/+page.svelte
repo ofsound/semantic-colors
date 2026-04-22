@@ -266,7 +266,7 @@
   <aside class={`sidebar ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
     <div class="sidebar-toolbar">
       <button
-        aria-label={sidebarCollapsed ? 'Show authoring panels' : 'Collapse sidebar'}
+        aria-label={sidebarCollapsed ? 'Show authoring panels' : 'Hide authoring panels'}
         class={`sidebar-tab sidebar-toggle ${sidebarCollapsed ? 'sidebar-toggle-collapsed' : ''}`}
         onclick={toggleSidebar}
         type="button"
@@ -288,7 +288,7 @@
           </svg>
         </span>
         {#if !sidebarCollapsed}
-          <span>Collapse Sidebar</span>
+          <span>Hide</span>
         {/if}
       </button>
     </div>

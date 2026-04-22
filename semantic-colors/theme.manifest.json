@@ -1,7 +1,7 @@
 {
   "version": 1,
   "name": "Semantic Color System",
-  "updatedAt": "2026-04-22T06:08:03.245Z",
+  "updatedAt": "2026-04-22T06:18:49.626Z",
   "alt": {
     "source": "dark",
     "delta": {
@@ -63,9 +63,9 @@
       "group": "surfaces",
       "role": "neutral",
       "light": {
-        "l": 0.45,
+        "l": 0.969218534532583,
         "c": 0,
-        "h": 161.07390498488388,
+        "h": 217.62768296919066,
         "alpha": 1
       },
       "dark": {

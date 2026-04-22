@@ -1,6 +1,7 @@
 .semantic-colors-app {
   --shell-page-padding: 1.25rem;
   --shell-column-gap: 1.25rem;
+  --stage-header-pad-block-start: 0.85rem;
   --stage-header-height: 5.4rem;
   --shell-radius-outer: 10px;
   --shell-radius-inner: 6px;
@@ -40,7 +41,7 @@ body {
   gap: 1rem;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding-top: var(--shell-page-padding);
+  padding-top: var(--stage-header-pad-block-start);
   padding-right: 0.25rem;
 }
 
@@ -143,9 +144,9 @@ body {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 1rem;
-  padding: 0.85rem 1.1rem 1rem;
+  padding: var(--stage-header-pad-block-start) 1.1rem 1rem;
 }
 
 .semantic-colors-app .stage-tab-strip {
