@@ -7,6 +7,8 @@
   let {
     selectedTokenId,
     currentColors,
+    stageStyle,
+    grayscalePreview,
     isSelectedUsage,
     hasWarnings,
     warningSummary,
@@ -15,6 +17,8 @@
   }: {
     selectedTokenId: TokenId;
     currentColors: Record<TokenId, OklchColor>;
+    stageStyle: string;
+    grayscalePreview: boolean;
     isSelectedUsage: (tokenIds: TokenId[]) => boolean;
     hasWarnings: (tokenIds: TokenId[]) => boolean;
     warningSummary: (tokenIds: TokenId[]) => string;
@@ -23,7 +27,7 @@
   } = $props();
 </script>
 
-<article class="inventory">
+<article class="inventory" class:grayscale={grayscalePreview} style={stageStyle}>
   <div class="fixture-panel-header">
     <h3>Token inventory</h3>
     <span>Every shared token is visible and selectable here.</span>
@@ -64,12 +68,20 @@
     border: 1px solid var(--theme-border);
     border-radius: var(--shell-radius-outer);
     padding: 1rem;
-    background: var(--theme-surface);
+    background: var(--theme-app);
     color: var(--theme-text);
+    transition:
+      background-color 160ms ease,
+      color 160ms ease,
+      filter 160ms ease;
   }
 
   .inventory {
     margin-top: 1rem;
+  }
+
+  .inventory.grayscale {
+    filter: grayscale(1);
   }
 
   .inventory-group + .inventory-group {
@@ -83,30 +95,48 @@
     margin-bottom: 0.75rem;
   }
 
-  .inventory-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .inventory .fixture-panel-header > span,
+  .inventory-group-header > span,
+  .inventory-card code {
+    color: var(--theme-text-secondary);
   }
 
-  .inventory-card {
+  .inventory-grid {
+    grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+  }
+
+  .inventory .inventory-card {
     display: grid;
     gap: 0.45rem;
     text-align: left;
-    background: rgba(255, 255, 255, 0.04);
+    padding: 0.65rem 0.7rem;
+    background: transparent;
     color: var(--theme-text);
-    border-color: var(--theme-border);
+    border: 0;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--theme-text) 8%, transparent);
+  }
+
+  .inventory .inventory-card:hover {
+    background: color-mix(in srgb, var(--theme-accent) 10%, transparent);
+  }
+
+  .inventory .inventory-card:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--theme-accent) 72%, white);
+    outline-offset: 2px;
   }
 
   .inventory-swatch {
     height: 2.5rem;
     border-radius: var(--shell-radius-inner);
-    border: 1px solid color-mix(in srgb, var(--theme-text) 12%, transparent);
+    border: 0;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--theme-text) 8%, transparent);
+  }
+
+  .inventory .inventory-card.selected-usage {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-accent-strong) 20%, transparent);
   }
 
   .inventory-title {
     font-weight: 700;
-  }
-
-  .inventory-card code {
-    color: var(--theme-text-muted);
   }
 </style>

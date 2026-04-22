@@ -444,10 +444,12 @@
       {:else}
         <TokenInventory
           currentColors={currentTheme.colors}
+          grayscalePreview={manifest.alt.grayscalePreview}
           {hasWarnings}
           {isSelectedUsage}
           {selectToken}
           {selectedTokenId}
+          {stageStyle}
           {tokenLabel}
           {warningSummary}
         />
