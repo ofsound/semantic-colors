@@ -21,6 +21,16 @@
   import type { PageData } from './$types';
   import '$lib/styles/semantic-colors-shell.css';
 
+  const SIDEBAR_TABS = [
+    { id: 'project', label: 'Project' },
+    { id: 'modes', label: 'Modes' },
+    { id: 'token', label: 'Token' },
+    { id: 'aliases', label: 'Aliases' },
+    { id: 'import', label: 'Import' }
+  ] as const;
+
+  type SidebarTabId = (typeof SIDEBAR_TABS)[number]['id'];
+
   let { data }: { data: PageData } = $props();
 
   let manifest = $state(ensureManifest(createDefaultManifest()));
@@ -29,6 +39,7 @@
   });
   let configPath = $state('');
   let sidebarCollapsed = $state(false);
+  let activeSidebarTab = $state<SidebarTabId>('project');
   let selectedTokenId = $state<TokenId>('surface');
   let activeMode = $state<ThemeMode>('light');
   let holdPreviewStartedAt = 0;
@@ -246,59 +257,93 @@
   <title>Semantic Colors</title>
 </svelte:head>
 
-<a class="skip-link" href="#preview-stage">Skip to preview harness</a>
-
 <div
   class={`semantic-colors-app workspace ${sidebarCollapsed ? 'workspace-sidebar-collapsed' : ''}`}
 >
   <aside class={`sidebar ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
     <div class="sidebar-toolbar">
-      <button class="ghost-button" onclick={toggleSidebar} type="button">
-        {sidebarCollapsed ? 'Show Authoring Panels' : 'Collapse Sidebar'}
+      <button
+        aria-label={sidebarCollapsed ? 'Show authoring panels' : 'Collapse sidebar'}
+        class={`ghost-button sidebar-toggle ${sidebarCollapsed ? 'sidebar-toggle-collapsed' : ''}`}
+        onclick={toggleSidebar}
+        type="button"
+      >
+        <span aria-hidden="true" class="sidebar-toggle-icon">
+          {sidebarCollapsed ? '>' : '<'}
+        </span>
+        {#if !sidebarCollapsed}
+          <span>Collapse Sidebar</span>
+        {/if}
       </button>
     </div>
-    <ProjectPanel
-      bind:config
-      bind:configPath
-      onPersistChange={workspace.markPersistDirty}
-      {saveHeading}
-      {saveHint}
-      saveMessage={workspace.saveMessage}
-      saveState={workspace.saveState}
-      {showSetupGuide}
-      onReload={workspace.reloadProject}
-      onRetrySave={workspace.retrySave}
-    />
+
     {#if !sidebarCollapsed}
-      <ModeControls
-        bind:manifest
-        onPersistChange={workspace.markPersistDirty}
-        {activeMode}
-        {setTheme}
-        {updateAltDelta}
-      />
-      <TokenEditor
-        bind:manifest
-        {activeMode}
-        {currentTokenAlt}
-        onPersistChange={workspace.markPersistDirty}
-        {selectedTokenId}
-        {selectedTokenNotes}
-        {setTheme}
-        {tokenLabel}
-      />
-      <AliasPanel {addAlias} {manifest} {removeAlias} {tokenLabel} {updateAlias} />
-      <ImportReview
-        bind:config
-        bind:importSelection={workspace.importSelection}
-        applyImportReview={workspace.applyImportReview}
-        {confirmResetManifest}
-        importProposal={workspace.importProposal}
-        isImporting={workspace.isImporting}
-        onPersistChange={workspace.markPersistDirty}
-        runImport={workspace.runImport}
-        {tokenLabel}
-      />
+      <div aria-label="Authoring panels" class="sidebar-tab-strip" role="tablist">
+        {#each SIDEBAR_TABS as tab (tab.id)}
+          <button
+            aria-controls={`sidebar-panel-${tab.id}`}
+            aria-selected={activeSidebarTab === tab.id}
+            class={`sidebar-tab ${activeSidebarTab === tab.id ? 'sidebar-tab-active' : ''}`}
+            onclick={() => {
+              activeSidebarTab = tab.id;
+            }}
+            role="tab"
+            type="button"
+          >
+            {tab.label}
+          </button>
+        {/each}
+      </div>
+
+      <div class="sidebar-panel-shell" id={`sidebar-panel-${activeSidebarTab}`} role="tabpanel">
+        {#if activeSidebarTab === 'project'}
+          <ProjectPanel
+            bind:config
+            bind:configPath
+            onPersistChange={workspace.markPersistDirty}
+            {saveHeading}
+            {saveHint}
+            saveMessage={workspace.saveMessage}
+            saveState={workspace.saveState}
+            {showSetupGuide}
+            onReload={workspace.reloadProject}
+            onRetrySave={workspace.retrySave}
+          />
+        {:else if activeSidebarTab === 'modes'}
+          <ModeControls
+            bind:manifest
+            onPersistChange={workspace.markPersistDirty}
+            {activeMode}
+            {setTheme}
+            {updateAltDelta}
+          />
+        {:else if activeSidebarTab === 'token'}
+          <TokenEditor
+            bind:manifest
+            {activeMode}
+            {currentTokenAlt}
+            onPersistChange={workspace.markPersistDirty}
+            {selectedTokenId}
+            {selectedTokenNotes}
+            {setTheme}
+            {tokenLabel}
+          />
+        {:else if activeSidebarTab === 'aliases'}
+          <AliasPanel {addAlias} {manifest} {removeAlias} {tokenLabel} {updateAlias} />
+        {:else}
+          <ImportReview
+            bind:config
+            bind:importSelection={workspace.importSelection}
+            applyImportReview={workspace.applyImportReview}
+            {confirmResetManifest}
+            importProposal={workspace.importProposal}
+            isImporting={workspace.isImporting}
+            onPersistChange={workspace.markPersistDirty}
+            runImport={workspace.runImport}
+            {tokenLabel}
+          />
+        {/if}
+      </div>
     {/if}
   </aside>
 

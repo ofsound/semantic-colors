@@ -1,12 +1,12 @@
 {
   "version": 1,
   "name": "Semantic Color System",
-  "updatedAt": "2026-04-21T18:12:36.353Z",
+  "updatedAt": "2026-04-22T03:08:22.140Z",
   "alt": {
     "source": "dark",
     "delta": {
-      "l": 0.19,
-      "c": 0.095,
+      "l": 0.09,
+      "c": 0,
       "h": 58
     },
     "harmonyLock": true,
@@ -183,9 +183,10 @@
       "group": "text",
       "role": "neutral",
       "light": {
-        "l": 0.22,
-        "c": 0.016,
-        "h": 260
+        "l": 0.475,
+        "c": 0.03838067541035738,
+        "h": 188.5726619790358,
+        "alpha": 1
       },
       "dark": {
         "l": 0.94,
