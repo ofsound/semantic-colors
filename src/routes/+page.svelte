@@ -339,26 +339,6 @@
       </div>
     {:else}
       <div class="flex w-full min-w-0 items-center gap-2">
-        <div
-          class="flex min-w-0 flex-1 flex-wrap items-center gap-2"
-          role="toolbar"
-          aria-label="Authoring panels: token, alt modes, aliases, import, project"
-        >
-          {#each SIDEBAR_TABS as tab (tab.id)}
-            <Button
-              aria-controls="sidebar-authoring-panel"
-              aria-label={`${tab.label} panel`}
-              aria-pressed={activeSidebarTab === tab.id}
-              class={`h-9 min-h-9 px-3 ${headerControlClass(activeSidebarTab === tab.id)}`}
-              onclick={() => {
-                activeSidebarTab = tab.id;
-              }}
-              variant="outline"
-            >
-              {tab.label}
-            </Button>
-          {/each}
-        </div>
         <Button
           aria-label="Hide authoring panels"
           class="shrink-0 border-slate-900/10 bg-white/70 shadow-none hover:bg-white"
@@ -379,6 +359,26 @@
             </svg>
           </span>
         </Button>
+        <div
+          class="flex min-w-0 flex-1 flex-wrap items-center gap-2"
+          role="toolbar"
+          aria-label="Authoring panels: token, alt modes, aliases, import, project"
+        >
+          {#each SIDEBAR_TABS as tab (tab.id)}
+            <Button
+              aria-controls="sidebar-authoring-panel"
+              aria-label={`${tab.label} panel`}
+              aria-pressed={activeSidebarTab === tab.id}
+              class={`h-9 min-h-9 px-3 ${headerControlClass(activeSidebarTab === tab.id)}`}
+              onclick={() => {
+                activeSidebarTab = tab.id;
+              }}
+              variant="outline"
+            >
+              {tab.label}
+            </Button>
+          {/each}
+        </div>
       </div>
 
       <div

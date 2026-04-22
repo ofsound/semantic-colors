@@ -43,12 +43,12 @@
   gap: 1rem;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding-top: calc(var(--stage-header-pad-block-start) + 90px);
+  padding-top: calc(var(--stage-header-pad-block-start) + 70px);
   padding-right: 0.25rem;
 }
 
 .semantic-colors-app .sidebar-collapsed {
-  align-items: center;
+  align-items: stretch;
   overflow: visible;
   padding-right: 0;
 }
@@ -60,7 +60,7 @@
 
 .semantic-colors-app .sidebar-collapsed .sidebar-toolbar {
   width: 100%;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .semantic-colors-app .sidebar-panel-shell {

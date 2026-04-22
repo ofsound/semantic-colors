@@ -1,7 +1,7 @@
 {
   "version": 1,
   "name": "Semantic Color System",
-  "updatedAt": "2026-04-22T18:46:05.424Z",
+  "updatedAt": "2026-04-22T20:13:01.275Z",
   "alt": {
     "source": "dark",
     "delta": {
@@ -40,8 +40,8 @@
       "group": "surfaces",
       "role": "neutral",
       "light": {
-        "l": 0.98,
-        "c": 0.045,
+        "l": 0.965,
+        "c": 0.01,
         "h": 95
       },
       "dark": {
@@ -60,10 +60,9 @@
       "group": "surfaces",
       "role": "neutral",
       "light": {
-        "l": 0.97,
+        "l": 1,
         "c": 0.005,
-        "h": 265,
-        "alpha": 1
+        "h": 95
       },
       "dark": {
         "l": 0.235,
@@ -141,8 +140,8 @@
       "group": "surfaces",
       "role": "neutral",
       "light": {
-        "l": 0.992,
-        "c": 0.006,
+        "l": 1,
+        "c": 0.005,
         "h": 95,
         "alpha": 0.92
       },
@@ -184,7 +183,7 @@
       "role": "neutral",
       "light": {
         "l": 0.22,
-        "c": 0.016,
+        "c": 0.015,
         "h": 260
       },
       "dark": {
@@ -284,7 +283,7 @@
       "role": "neutral",
       "light": {
         "l": 0.82,
-        "c": 0.012,
+        "c": 0.01,
         "h": 95
       },
       "dark": {
@@ -324,7 +323,7 @@
       "role": "neutral",
       "light": {
         "l": 0.72,
-        "c": 0.014,
+        "c": 0.015,
         "h": 95
       },
       "dark": {
@@ -672,7 +671,7 @@
       "group": "controls",
       "role": "control",
       "light": {
-        "l": 0.976,
+        "l": 0.975,
         "c": 0.01,
         "h": 95
       },
@@ -736,12 +735,12 @@
       "role": "control",
       "light": {
         "l": 0.925,
-        "c": 0.011,
+        "c": 0.01,
         "h": 95
       },
       "dark": {
         "l": 0.37,
-        "c": 0.016,
+        "c": 0.015,
         "h": 265
       },
       "altParent": "surface-subtle",
@@ -756,8 +755,8 @@
       "group": "controls",
       "role": "control",
       "light": {
-        "l": 0.998,
-        "c": 0.002,
+        "l": 1,
+        "c": 0,
         "h": 95
       },
       "dark": {

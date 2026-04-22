@@ -89,12 +89,25 @@
     padding: 0.6rem 0.7rem;
   }
 
+  .inventory-group-header h4 {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: inherit;
+  }
+
   .inventory-card code {
     color: var(--theme-text-secondary);
   }
 
   .inventory-grid {
     grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+    background: var(--theme-surface);
+    border-radius: var(--shell-radius-inner);
+    padding: 0.75rem;
+    transition: background-color 160ms ease;
   }
 
   .inventory .inventory-card {
