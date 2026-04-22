@@ -5,13 +5,11 @@
     manifest = $bindable(),
     onPersistChange,
     activeMode,
-    setTheme,
     updateAltDelta
   }: {
     manifest: ThemeManifest;
     onPersistChange: () => void;
     activeMode: ThemeMode;
-    setTheme: (mode: ThemeMode) => void;
     updateAltDelta: (channel: 'l' | 'c' | 'h', value: number) => void;
   } = $props();
 
@@ -30,33 +28,6 @@
       <p class="eyebrow">Theme state</p>
       <h2>Mode controls</h2>
     </div>
-  </div>
-
-  <div class="mode-row">
-    <button
-      aria-pressed={activeMode === 'light'}
-      class:active={activeMode === 'light'}
-      onclick={() => setTheme('light')}
-      type="button"
-    >
-      1 Light
-    </button>
-    <button
-      aria-pressed={activeMode === 'dark'}
-      class:active={activeMode === 'dark'}
-      onclick={() => setTheme('dark')}
-      type="button"
-    >
-      2 Dark
-    </button>
-    <button
-      aria-pressed={activeMode === 'alt'}
-      class:active={activeMode === 'alt'}
-      onclick={() => setTheme('alt')}
-      type="button"
-    >
-      3 Alt
-    </button>
   </div>
 
   <label class="checkbox-row">
@@ -149,11 +120,6 @@
 </section>
 
 <style>
-  .mode-row button.active {
-    background: linear-gradient(135deg, #111827, #334155);
-    color: white;
-  }
-
   .alt-grid {
     align-items: end;
   }

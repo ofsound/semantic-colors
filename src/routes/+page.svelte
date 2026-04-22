@@ -320,7 +320,6 @@
             bind:manifest
             onPersistChange={workspace.markPersistDirty}
             {activeMode}
-            {setTheme}
             {updateAltDelta}
           />
         {:else if activeSidebarTab === 'token'}
@@ -375,9 +374,37 @@
           </button>
         {/each}
       </div>
-      <div class="stage-meta">
-        <span>Mode: {activeMode}</span>
-        <span>Selected: {selectedToken.label}</span>
+      <div class="stage-status">
+        <div class="stage-mode-row">
+          <button
+            aria-pressed={activeMode === 'light'}
+            class={`sidebar-tab stage-mode-button ${activeMode === 'light' ? 'sidebar-tab-active' : ''}`}
+            onclick={() => setTheme('light')}
+            type="button"
+          >
+            1 Light
+          </button>
+          <button
+            aria-pressed={activeMode === 'dark'}
+            class={`sidebar-tab stage-mode-button ${activeMode === 'dark' ? 'sidebar-tab-active' : ''}`}
+            onclick={() => setTheme('dark')}
+            type="button"
+          >
+            2 Dark
+          </button>
+          <button
+            aria-pressed={activeMode === 'alt'}
+            class={`sidebar-tab stage-mode-button ${activeMode === 'alt' ? 'sidebar-tab-active' : ''}`}
+            onclick={() => setTheme('alt')}
+            type="button"
+          >
+            3 Alt
+          </button>
+        </div>
+        <div class="stage-meta">
+          <span>Mode: {activeMode}</span>
+          <span>Selected: {selectedToken.label}</span>
+        </div>
       </div>
     </header>
 

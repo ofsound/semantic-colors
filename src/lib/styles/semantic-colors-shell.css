@@ -20,7 +20,7 @@ body {
   grid-template-columns: minmax(22rem, 30rem) 1fr;
   height: 100dvh;
   gap: var(--shell-column-gap);
-  padding: var(--shell-page-padding);
+  padding: 0 var(--shell-page-padding) var(--shell-page-padding);
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -40,6 +40,7 @@ body {
   gap: 1rem;
   overflow-y: auto;
   overscroll-behavior: contain;
+  padding-top: var(--shell-page-padding);
   padding-right: 0.25rem;
 }
 
@@ -131,7 +132,6 @@ body {
   justify-content: space-between;
   gap: 1rem;
   align-items: center;
-  margin-top: calc(-1 * var(--shell-page-padding));
   margin-bottom: 1rem;
   padding: 0.85rem 1.1rem 1rem;
 }
@@ -140,6 +140,22 @@ body {
   flex-wrap: nowrap;
   overflow-x: auto;
   min-width: 0;
+}
+
+.semantic-colors-app .stage-status {
+  display: flex;
+  gap: 0.9rem;
+  align-items: center;
+}
+
+.semantic-colors-app .stage-mode-row {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.semantic-colors-app .stage-mode-button {
+  white-space: nowrap;
 }
 
 .semantic-colors-app .stage-meta {
@@ -337,6 +353,15 @@ body {
   .semantic-colors-app .stage-header-fixed {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .semantic-colors-app .stage-status {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .semantic-colors-app .stage-mode-row {
+    overflow-x: auto;
   }
 
   .semantic-colors-app .stage-meta {
