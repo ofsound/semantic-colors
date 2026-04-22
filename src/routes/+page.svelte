@@ -598,7 +598,7 @@
   .save-toast {
     position: fixed;
     top: 1rem;
-    right: 1rem;
+    left: 1rem;
     z-index: 60;
     display: grid;
     gap: 0.15rem;

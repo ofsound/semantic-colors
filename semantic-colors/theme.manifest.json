@@ -1,13 +1,13 @@
 {
   "version": 1,
   "name": "Semantic Color System",
-  "updatedAt": "2026-04-22T20:51:41.873Z",
+  "updatedAt": "2026-04-22T21:35:24.239Z",
   "alt": {
     "source": "dark",
     "delta": {
       "l": 0.02,
       "c": 0.03,
-      "h": 57
+      "h": 28
     },
     "harmonyLock": true,
     "grayscalePreview": false
@@ -20,9 +20,10 @@
       "group": "surfaces",
       "role": "neutral",
       "light": {
-        "l": 0.98,
-        "c": 0.005,
-        "h": 95
+        "l": 0.8382100606542399,
+        "c": 0.18033975474652295,
+        "h": 107.6266707931051,
+        "alpha": 1
       },
       "dark": {
         "l": 0.16,
@@ -41,7 +42,7 @@
       "role": "neutral",
       "light": {
         "l": 0.965,
-        "c": 0.01,
+        "c": 0.008,
         "h": 95
       },
       "dark": {
@@ -60,16 +61,14 @@
       "group": "surfaces",
       "role": "neutral",
       "light": {
-        "l": 0.42,
-        "c": 0.24,
-        "h": 102.212,
-        "alpha": 1
+        "l": 0.998,
+        "c": 0.003,
+        "h": 95
       },
       "dark": {
-        "l": 0.52,
-        "c": 0.105,
-        "h": 223,
-        "alpha": 1
+        "l": 0.235,
+        "c": 0.013,
+        "h": 265
       },
       "exception": {
         "altBehavior": "derive"
@@ -142,8 +141,8 @@
       "group": "surfaces",
       "role": "neutral",
       "light": {
-        "l": 1,
-        "c": 0.005,
+        "l": 0.992,
+        "c": 0.006,
         "h": 95,
         "alpha": 0.92
       },
@@ -185,7 +184,7 @@
       "role": "neutral",
       "light": {
         "l": 0.22,
-        "c": 0.015,
+        "c": 0.016,
         "h": 260
       },
       "dark": {
@@ -205,12 +204,12 @@
       "role": "neutral",
       "light": {
         "l": 0.43,
-        "c": 0.015,
+        "c": 0.014,
         "h": 260
       },
       "dark": {
         "l": 0.78,
-        "c": 0.01,
+        "c": 0.012,
         "h": 95
       },
       "exception": {
@@ -285,7 +284,7 @@
       "role": "neutral",
       "light": {
         "l": 0.82,
-        "c": 0.01,
+        "c": 0.012,
         "h": 95
       },
       "dark": {
@@ -325,7 +324,7 @@
       "role": "neutral",
       "light": {
         "l": 0.72,
-        "c": 0.015,
+        "c": 0.014,
         "h": 95
       },
       "dark": {
@@ -673,7 +672,7 @@
       "group": "controls",
       "role": "control",
       "light": {
-        "l": 0.975,
+        "l": 0.976,
         "c": 0.01,
         "h": 95
       },
@@ -737,12 +736,12 @@
       "role": "control",
       "light": {
         "l": 0.925,
-        "c": 0.01,
+        "c": 0.011,
         "h": 95
       },
       "dark": {
         "l": 0.37,
-        "c": 0.015,
+        "c": 0.016,
         "h": 265
       },
       "altParent": "surface-subtle",
@@ -757,8 +756,8 @@
       "group": "controls",
       "role": "control",
       "light": {
-        "l": 1,
-        "c": 0,
+        "l": 0.998,
+        "c": 0.002,
         "h": 95
       },
       "dark": {
