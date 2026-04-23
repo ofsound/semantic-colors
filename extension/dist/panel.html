@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <title>Semantic Colors</title>
+    <link rel="stylesheet" href="panel-ui.css" />
     <link rel="stylesheet" href="panel.css" />
   </head>
   <body>
@@ -63,7 +64,8 @@
     </section>
 
     <nav class="tabs" role="tablist">
-      <button type="button" role="tab" data-tab="authoring" class="is-active">Authoring</button>
+      <button type="button" role="tab" data-tab="token" class="is-active">Token</button>
+      <button type="button" role="tab" data-tab="alt">Alt</button>
       <button type="button" role="tab" data-tab="aliases">Aliases</button>
       <button type="button" role="tab" data-tab="coverage">Coverage</button>
       <button type="button" role="tab" data-tab="contrast">Contrast</button>
@@ -71,30 +73,12 @@
     </nav>
 
     <main class="panel-body">
-      <section class="tab-panel is-active" data-tab-panel="authoring">
-        <section class="card">
-          <div class="card-header">
-            <div>
-              <p class="eyebrow">Focused token</p>
-            </div>
-          </div>
-          <div class="panel-row">
-            <label for="editor-token">Token</label>
-            <select id="editor-token"></select>
-          </div>
-          <div id="token-editor" class="editor-stack"></div>
-          <div id="token-validation" class="report"></div>
-        </section>
+      <section class="tab-panel is-active" data-tab-panel="token">
+        <div id="token-authoring-root" class="authoring-root"></div>
+      </section>
 
-        <section class="card">
-          <div class="card-header">
-            <div>
-              <p class="eyebrow">Theme state</p>
-              <h2>Mode controls</h2>
-            </div>
-          </div>
-          <div id="mode-editor" class="editor-stack"></div>
-        </section>
+      <section class="tab-panel" data-tab-panel="alt">
+        <div id="alt-authoring-root" class="authoring-root"></div>
       </section>
 
       <section class="tab-panel" data-tab-panel="aliases">

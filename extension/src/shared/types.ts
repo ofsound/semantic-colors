@@ -15,6 +15,12 @@ export interface TokenRecord {
   role: string;
   light: OklchColor;
   dark: OklchColor;
+  altParent?: string;
+  harmonyGroup?: string;
+  exception: {
+    altBehavior: 'derive' | 'pin' | 'exclude';
+    maxChroma?: number | null;
+  };
 }
 
 export interface ImportCandidate {

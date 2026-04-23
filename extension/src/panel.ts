@@ -1,32 +1,23 @@
+import { mount } from 'svelte';
 import { BridgeClient } from './shared/bridge-client';
 import type { BridgeStatus } from './shared/bridge-client';
+import AltAuthoringPanel from './components/AltAuthoringPanel.svelte';
+import TokenAuthoringPanel from './components/TokenAuthoringPanel.svelte';
+import { ExtensionAuthoringState } from './components/authoring-state.svelte';
 import { DEFAULT_BRIDGE_URL, STORAGE_KEYS } from './shared/constants';
-import {
-  formatOklch,
-  hsvToRgb,
-  oklchToCss,
-  oklchToHex,
-  oklchToRgb,
-  pickerPointToHsv,
-  pickerPositionFromHsv,
-  rgbToHsv,
-  rgbToOklch
-} from './shared/color';
+import { formatOklch, oklchToCss } from './shared/color';
 import {
   addAlias,
   primaryTokenFromSelection,
   removeAlias,
   resolvedModeForSnapshot,
   resetManifest,
-  updateAlias,
-  updateAltSettings,
-  updateTokenColor,
-  updateTokenException,
-  validationNotes
+  updateAlias
 } from './shared/draft';
 import { panelPortName } from './shared/messaging';
 import type { ContentMessageEnvelope, PanelMessageEnvelope } from './shared/messaging';
 import type {
+  BridgeDraftCommand,
   BridgeConfigState,
   BridgeSnapshot,
   ContentToPanelMessage,
@@ -39,16 +30,9 @@ import type {
   ThemeMode,
   TokenRecord
 } from './shared/types';
+import './panel-ui.css';
 
 const tabId = chrome.devtools.inspectedWindow.tabId;
-const PICKER_PANEL_BACKGROUND =
-  'linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0) 50%), linear-gradient(to bottom, rgba(255, 255, 255, 0) 50%, #fff 100%), linear-gradient(to right, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)';
-
-const OKLCH_CHANNEL_LABEL: Record<'l' | 'c' | 'h', string> = {
-  l: 'Lightness',
-  c: 'Chroma',
-  h: 'Hue'
-};
 const COVERAGE_SCAN_TIMEOUT_MS = 12000;
 const CONTRAST_AUDIT_TIMEOUT_MS = 12000;
 
@@ -74,12 +58,7 @@ const state = {
   bridgeOutputStatus: 'Load target config' as string,
   inPageDrawerVisible: false,
   coverageScanTimeout: null as number | null,
-  contrastAuditTimeout: null as number | null,
-  pickerDrag: null as {
-    tokenId: string;
-    mode: 'light' | 'dark';
-    rect: DOMRect;
-  } | null
+  contrastAuditTimeout: null as number | null
 };
 
 const el = {
@@ -102,10 +81,8 @@ const el = {
   tabPanels: document.querySelectorAll<HTMLElement>('[data-tab-panel]'),
   hoverToggle: document.getElementById('hover-toggle') as HTMLInputElement,
   clearSelection: document.getElementById('clear-selection') as HTMLButtonElement,
-  editorToken: document.getElementById('editor-token') as HTMLSelectElement,
-  tokenEditor: document.getElementById('token-editor') as HTMLDivElement,
-  tokenValidation: document.getElementById('token-validation') as HTMLDivElement,
-  modeEditor: document.getElementById('mode-editor') as HTMLDivElement,
+  tokenAuthoringRoot: document.getElementById('token-authoring-root') as HTMLDivElement,
+  altAuthoringRoot: document.getElementById('alt-authoring-root') as HTMLDivElement,
   aliasList: document.getElementById('alias-list') as HTMLDivElement,
   addAlias: document.getElementById('add-alias') as HTMLButtonElement,
   addAliasCurrent: document.getElementById('add-alias-current') as HTMLButtonElement,
@@ -122,6 +99,29 @@ const el = {
   clearOverrides: document.getElementById('clear-overrides') as HTMLButtonElement,
   pushOverride: document.getElementById('push-override') as HTMLButtonElement
 };
+
+const authoringState = new ExtensionAuthoringState();
+
+mount(TokenAuthoringPanel, {
+  target: el.tokenAuthoringRoot,
+  props: {
+    authoring: authoringState,
+    onApplyDraft: applyAuthoringDraft,
+    onFocusToken: focusTokenFromAuthoring,
+    onSetTheme: setPreviewMode,
+    onError: (message: string) => setConnectionStatus('error', message)
+  }
+});
+
+mount(AltAuthoringPanel, {
+  target: el.altAuthoringRoot,
+  props: {
+    authoring: authoringState,
+    onApplyDraft: applyAuthoringDraft,
+    onSetTheme: setPreviewMode,
+    onError: (message: string) => setConnectionStatus('error', message)
+  }
+});
 
 let port: chrome.runtime.Port | null = null;
 
@@ -229,7 +229,7 @@ function handleContentMessage(message: ContentToPanelMessage): void {
       } else if (primaryTokenId) {
         state.focusedTokenId = primaryTokenId;
       }
-      setActiveTab('authoring');
+      setActiveTab('token');
       renderAll();
       break;
     }
@@ -274,6 +274,16 @@ function focusTokenFromInPageDrawer(tokenId: string, source: InPageDrawerSource)
   if (source === 'preview') {
     sendToContent({ kind: 'focus-token', tokenId });
   }
+}
+
+async function applyAuthoringDraft(commands: BridgeDraftCommand[]): Promise<void> {
+  if (!state.snapshot) return;
+  await bridge.applyDraft(commands, { configPath: state.snapshot.configPath });
+}
+
+function focusTokenFromAuthoring(tokenId: string): void {
+  state.focusedTokenId = tokenId;
+  renderAuthoring();
 }
 
 const bridge = new BridgeClient({
@@ -509,10 +519,30 @@ async function applyTargetConfig(value: string): Promise<void> {
 function setActiveTab(id: string): void {
   el.tabs.forEach((btn) => {
     btn.classList.toggle('is-active', btn.dataset.tab === id);
+    btn.setAttribute('aria-selected', String(btn.dataset.tab === id));
   });
   el.tabPanels.forEach((panel) => {
     panel.classList.toggle('is-active', panel.dataset.tabPanel === id);
   });
+}
+
+function syncModeSwitch(): void {
+  el.modeSwitch.querySelectorAll<HTMLButtonElement>('button').forEach((button) => {
+    const raw = button.dataset.mode ?? 'null';
+    const mode = raw === 'null' ? null : (raw as ThemeMode);
+    button.classList.toggle('is-active', mode === state.activeMode);
+  });
+}
+
+function setPreviewMode(mode: ThemeMode | null): void {
+  state.activeMode = mode;
+  syncModeSwitch();
+  sendToContent({ kind: 'set-theme', mode: state.activeMode });
+  if (state.overrideTokenId) {
+    syncOverrideFromSnapshot();
+  }
+  renderAll();
+  pushSnapshotToContent();
 }
 
 el.tabs.forEach((btn) => {
@@ -525,17 +555,8 @@ el.tabs.forEach((btn) => {
 
 el.modeSwitch.querySelectorAll<HTMLButtonElement>('button').forEach((btn) => {
   btn.addEventListener('click', () => {
-    el.modeSwitch
-      .querySelectorAll<HTMLButtonElement>('button')
-      .forEach((button) => button.classList.toggle('is-active', button === btn));
     const raw = btn.dataset.mode ?? 'null';
-    state.activeMode = raw === 'null' ? null : (raw as ThemeMode);
-    sendToContent({ kind: 'set-theme', mode: state.activeMode });
-    if (state.overrideTokenId) {
-      syncOverrideFromSnapshot();
-    }
-    renderAll();
-    pushSnapshotToContent();
+    setPreviewMode(raw === 'null' ? null : (raw as ThemeMode));
   });
 });
 
@@ -597,11 +618,6 @@ el.resetManifest.addEventListener('click', async () => {
   } catch (error) {
     setConnectionStatus('error', error instanceof Error ? error.message : 'reset failed');
   }
-});
-
-el.editorToken.addEventListener('change', () => {
-  state.focusedTokenId = el.editorToken.value;
-  renderAuthoring();
 });
 
 el.addAlias.addEventListener('click', async () => {
@@ -732,7 +748,6 @@ function renderAll(): void {
   renderBridgeOutputControl();
   renderInPageDrawerControl();
   renderDraftStatus();
-  renderEditorTokenOptions();
   renderAuthoring();
   renderAliasList();
   renderCoverage();
@@ -768,431 +783,13 @@ function tokenRecord(tokenId: string): TokenRecord | null {
   return state.snapshot?.manifest.tokens[tokenId] ?? null;
 }
 
-function tokenAnchorColor(token: TokenRecord, mode: 'light' | 'dark'): OklchColor {
-  return mode === 'dark' ? token.dark : token.light;
-}
-
-function pickerMarkup(mode: 'light' | 'dark', color: OklchColor): string {
-  const hexValue = oklchToHex(color);
-  const rgbValue = oklchToRgb(color);
-  const hsvValue = rgbToHsv({ r: rgbValue.r, g: rgbValue.g, b: rgbValue.b });
-  const pointer = pickerPositionFromHsv(hsvValue);
-
-  return `
-    <div class="picker-shell">
-      <div class="picker-stack">
-        <div class="picker-swatch-row">
-          <div
-            class="picker-swatch"
-            style="background-color:${escapeHtml(hexValue)}"
-            aria-label="${mode} anchor selected color preview"
-          ></div>
-        </div>
-        <div
-          class="picker-panel"
-          style="background:${PICKER_PANEL_BACKGROUND}"
-          role="slider"
-          tabindex="0"
-          aria-label="${mode} anchor hue and brightness"
-          aria-valuemin="0"
-          aria-valuemax="100"
-          aria-valuenow="${Math.round(hsvValue.v)}"
-          aria-valuetext="${escapeHtml(`Hue: ${Math.round(hsvValue.h)}°, Saturation: ${Math.round(hsvValue.s)}%, Value: ${Math.round(hsvValue.v)}%`)}"
-          data-picker-plane="${mode}"
-        >
-          <div
-            class="picker-handle"
-            style="left:${pointer.xPercent}; top:${pointer.yPercent};"
-          ></div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderEditorTokenOptions(): void {
-  if (!state.snapshot) {
-    el.editorToken.innerHTML = '<option value="">Connect to the engine first</option>';
-    return;
-  }
-
-  const tokens = tokenRecords();
-  el.editorToken.innerHTML = tokens
-    .map((token) => `<option value="${token.id}">${escapeHtml(token.label)} (${token.id})</option>`)
-    .join('');
-
-  if (!state.focusedTokenId) {
-    state.focusedTokenId = tokens[0]?.id ?? '';
-  }
-  el.editorToken.value = state.focusedTokenId;
-}
-
-function sliderMarkup(
-  prefix: string,
-  channel: 'l' | 'c' | 'h',
-  value: number,
-  min: number,
-  max: number,
-  step: number
-): string {
-  return `
-    <div class="slider-row">
-      <span>${escapeHtml(OKLCH_CHANNEL_LABEL[channel])}</span>
-      <input
-        type="range"
-        min="${min}"
-        max="${max}"
-        step="${step}"
-        value="${value}"
-        data-slider-prefix="${prefix}"
-        data-channel="${channel}"
-      />
-      <input
-        type="number"
-        min="${min}"
-        max="${max}"
-        step="${step}"
-        value="${value}"
-        data-slider-prefix="${prefix}"
-        data-channel="${channel}"
-      />
-    </div>
-  `;
-}
-
-async function applyTokenColorChange(
-  tokenId: string,
-  mode: 'light' | 'dark',
-  channel: 'l' | 'c' | 'h',
-  value: number
-): Promise<void> {
-  const token = tokenRecord(tokenId);
-  if (!token || !state.snapshot) return;
-  const color = { ...(mode === 'dark' ? token.dark : token.light), [channel]: value };
-  await applyTokenModeColor(tokenId, mode, color);
-}
-
-async function applyTokenModeColor(
-  tokenId: string,
-  mode: 'light' | 'dark',
-  color: OklchColor
-): Promise<void> {
-  if (!state.snapshot) return;
-  await bridge.applyDraft([updateTokenColor(tokenId, mode, color)], {
-    configPath: state.snapshot.configPath
-  });
-}
-
-async function applyPickerHsv(
-  tokenId: string,
-  mode: 'light' | 'dark',
-  hue: number,
-  saturation: number,
-  value: number
-): Promise<void> {
-  const rgb = hsvToRgb({ h: hue, s: saturation, v: value });
-  await applyTokenModeColor(tokenId, mode, rgbToOklch(rgb.r, rgb.g, rgb.b));
-}
-
-async function applyPickerPoint(
-  tokenId: string,
-  mode: 'light' | 'dark',
-  rect: DOMRect,
-  clientX: number,
-  clientY: number
-): Promise<void> {
-  const hsv = pickerPointToHsv(rect.width, rect.height, clientX - rect.left, clientY - rect.top);
-  await applyPickerHsv(tokenId, mode, hsv.h, hsv.s, hsv.v);
-}
-
-function pickerModeFromDataset(value: string | undefined): 'light' | 'dark' | null {
-  return value === 'light' || value === 'dark' ? value : null;
-}
-
-function attachTokenEditorHandlers(tokenId: string): void {
-  el.tokenEditor.querySelectorAll<HTMLInputElement>('[data-slider-prefix]').forEach((input) => {
-    input.addEventListener('input', async () => {
-      const prefix = input.dataset.sliderPrefix;
-      const channel = input.dataset.channel as 'l' | 'c' | 'h' | undefined;
-      if (!prefix || !channel) return;
-      try {
-        await applyTokenColorChange(
-          tokenId,
-          prefix as 'light' | 'dark',
-          channel,
-          Number(input.value)
-        );
-      } catch (error) {
-        setConnectionStatus(
-          'error',
-          error instanceof Error ? error.message : 'token update failed'
-        );
-      }
-    });
-  });
-
-  el.tokenEditor.querySelectorAll<HTMLElement>('[data-picker-plane]').forEach((plane) => {
-    plane.addEventListener('pointerdown', (event) => {
-      const mode = pickerModeFromDataset(plane.dataset.pickerPlane);
-      if (!mode || !(event.currentTarget instanceof HTMLDivElement)) return;
-
-      state.pickerDrag = {
-        tokenId,
-        mode,
-        rect: event.currentTarget.getBoundingClientRect()
-      };
-
-      void applyPickerPoint(
-        tokenId,
-        mode,
-        state.pickerDrag.rect,
-        event.clientX,
-        event.clientY
-      ).catch((error) => {
-        setConnectionStatus(
-          'error',
-          error instanceof Error ? error.message : 'token update failed'
-        );
-      });
-    });
-
-    plane.addEventListener('keydown', (event) => {
-      const mode = pickerModeFromDataset(plane.dataset.pickerPlane);
-      if (!mode) return;
-
-      const token = tokenRecord(tokenId);
-      if (!token) return;
-
-      const currentColor = tokenAnchorColor(token, mode);
-      const rgb = oklchToRgb(currentColor);
-      const hsv = rgbToHsv({ r: rgb.r, g: rgb.g, b: rgb.b });
-      const pointer = pickerPositionFromHsv(hsv);
-      let nextX = Number.parseFloat(pointer.xPercent);
-      let nextY = Number.parseFloat(pointer.yPercent);
-
-      if (event.key === 'ArrowLeft') {
-        nextX -= 2;
-      } else if (event.key === 'ArrowRight') {
-        nextX += 2;
-      } else if (event.key === 'ArrowUp') {
-        nextY -= 2;
-      } else if (event.key === 'ArrowDown') {
-        nextY += 2;
-      } else {
-        return;
-      }
-
-      event.preventDefault();
-      const nextHsv = pickerPointToHsv(100, 100, nextX, nextY);
-      void applyPickerHsv(tokenId, mode, nextHsv.h, nextHsv.s, nextHsv.v).catch((error) => {
-        setConnectionStatus(
-          'error',
-          error instanceof Error ? error.message : 'token update failed'
-        );
-      });
-    });
-  });
-
-  el.tokenEditor
-    .querySelectorAll<HTMLSelectElement>('[data-token-exception], [data-token-max-chroma]')
-    .forEach((field) => {
-      const handler = async () => {
-        try {
-          const altBehavior = (
-            el.tokenEditor.querySelector('[data-token-exception]') as HTMLSelectElement | null
-          )?.value as 'derive' | 'pin' | 'exclude' | undefined;
-          const maxChromaRaw = (
-            el.tokenEditor.querySelector('[data-token-max-chroma]') as HTMLInputElement | null
-          )?.value;
-          await bridge.applyDraft(
-            [
-              updateTokenException(tokenId, {
-                altBehavior,
-                maxChroma: maxChromaRaw === '' ? null : Number(maxChromaRaw)
-              })
-            ],
-            { configPath: state.snapshot?.configPath }
-          );
-        } catch (error) {
-          setConnectionStatus(
-            'error',
-            error instanceof Error ? error.message : 'exception update failed'
-          );
-        }
-      };
-
-      field.addEventListener('change', handler);
-      field.addEventListener('input', handler);
-    });
-}
-
-function attachModeEditorHandlers(): void {
-  el.modeEditor
-    .querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-alt-setting]')
-    .forEach((field) => {
-      const apply = async () => {
-        if (!state.snapshot) return;
-        const setting = field.dataset.altSetting;
-        if (!setting) return;
-
-        let patch: Parameters<typeof updateAltSettings>[0];
-        if (setting === 'source') {
-          patch = { source: (field as HTMLSelectElement).value as 'light' | 'dark' };
-        } else if (setting === 'harmonyLock') {
-          patch = { harmonyLock: (field as HTMLInputElement).checked };
-        } else if (setting === 'grayscalePreview') {
-          patch = { grayscalePreview: (field as HTMLInputElement).checked };
-        } else {
-          patch = {
-            delta: {
-              [setting]: Number((field as HTMLInputElement).value)
-            }
-          };
-        }
-
-        try {
-          await bridge.applyDraft([updateAltSettings(patch)], {
-            configPath: state.snapshot.configPath
-          });
-        } catch (error) {
-          setConnectionStatus(
-            'error',
-            error instanceof Error ? error.message : 'alt update failed'
-          );
-        }
-      };
-
-      field.addEventListener('change', apply);
-      field.addEventListener('input', apply);
-    });
-}
-
 function renderAuthoring(): void {
-  if (!state.snapshot || !state.focusedTokenId) {
-    el.tokenEditor.innerHTML = '<p class="empty-state">Select a token to edit it.</p>';
-    el.modeEditor.innerHTML =
-      '<p class="empty-state">Connect to the engine to edit theme state.</p>';
-    el.tokenValidation.innerHTML = '<p class="empty-state">No validation details yet.</p>';
-    return;
-  }
-
-  const token = tokenRecord(state.focusedTokenId);
-  if (!token) {
-    el.tokenEditor.innerHTML = '<p class="empty-state">Selected token is unavailable.</p>';
-    return;
-  }
-
-  const resolvedMode = resolvedModeForPreview();
-  const resolvedColor = state.snapshot.resolved[resolvedMode].colors[token.id];
-  const notes = validationNotes(state.snapshot, token.id, resolvedMode);
-
-  el.tokenEditor.innerHTML = `
-    <div class="preview-row">
-      <span class="swatch" style="background:${escapeHtml(oklchToCss(resolvedColor))}"></span>
-      <div>
-        <strong>${escapeHtml(token.label)}</strong>
-        <div class="meta">${escapeHtml(token.description)}</div>
-        <code>${escapeHtml(formatOklch(resolvedColor))}</code>
-      </div>
-    </div>
-    <div class="editor-block">
-      <h3>Light anchor</h3>
-      <div class="anchor-editor-layout">
-        ${pickerMarkup('light', token.light)}
-        <div class="anchor-slider-stack">
-          ${sliderMarkup('light', 'l', token.light.l, 0, 1, 0.005)}
-          ${sliderMarkup('light', 'c', token.light.c, 0, 0.37, 0.005)}
-          ${sliderMarkup('light', 'h', token.light.h, 0, 360, 1)}
-        </div>
-      </div>
-    </div>
-    <div class="editor-block">
-      <h3>Dark anchor</h3>
-      <div class="anchor-editor-layout">
-        ${pickerMarkup('dark', token.dark)}
-        <div class="anchor-slider-stack">
-          ${sliderMarkup('dark', 'l', token.dark.l, 0, 1, 0.005)}
-          ${sliderMarkup('dark', 'c', token.dark.c, 0, 0.37, 0.005)}
-          ${sliderMarkup('dark', 'h', token.dark.h, 0, 360, 1)}
-        </div>
-      </div>
-    </div>
-    <div class="editor-block">
-      <h3>Alt exception</h3>
-      <div class="field-grid">
-        <label class="field-block">
-          <span>Alt behavior</span>
-          <select data-token-exception>
-            <option value="derive" ${token.exception.altBehavior === 'derive' ? 'selected' : ''}>Derive</option>
-            <option value="pin" ${token.exception.altBehavior === 'pin' ? 'selected' : ''}>Pin to source anchor</option>
-            <option value="exclude" ${token.exception.altBehavior === 'exclude' ? 'selected' : ''}>Exclude from Alt</option>
-          </select>
-        </label>
-        <label class="field-block">
-          <span>Max chroma</span>
-          <input type="number" min="0" max="0.37" step="0.005" value="${token.exception.maxChroma ?? ''}" data-token-max-chroma />
-        </label>
-      </div>
-      <div class="meta">${
-        token.altParent
-          ? `Alt derives from ${escapeHtml(token.altParent)}.`
-          : 'No alt parent override.'
-      }</div>
-    </div>
-  `;
-
-  el.modeEditor.innerHTML = `
-    <div class="editor-block">
-      <div class="field-grid">
-        <label class="field-block">
-          <span>Alt base</span>
-          <select data-alt-setting="source">
-            <option value="light" ${state.snapshot.manifest.alt.source === 'light' ? 'selected' : ''}>Derive from Light</option>
-            <option value="dark" ${state.snapshot.manifest.alt.source === 'dark' ? 'selected' : ''}>Derive from Dark</option>
-          </select>
-        </label>
-        <label class="field-block">
-          <span>Lock harmony</span>
-          <input type="checkbox" ${state.snapshot.manifest.alt.harmonyLock ? 'checked' : ''} data-alt-setting="harmonyLock" />
-        </label>
-      </div>
-      <label class="switch">
-        <input type="checkbox" ${state.snapshot.manifest.alt.grayscalePreview ? 'checked' : ''} data-alt-setting="grayscalePreview" />
-        <span>Greyscale hierarchy overlay</span>
-      </label>
-    </div>
-    <div class="editor-block">
-      <h3>Alt deltas</h3>
-      ${sliderMarkup('alt', 'h', state.snapshot.manifest.alt.delta.h, -180, 180, 1).replaceAll(
-        'data-slider-prefix="alt"',
-        'data-alt-setting="h"'
-      )}
-      ${sliderMarkup(
-        'alt',
-        'c',
-        state.snapshot.manifest.alt.delta.c,
-        -0.16,
-        0.16,
-        0.005
-      ).replaceAll('data-slider-prefix="alt"', 'data-alt-setting="c"')}
-      ${sliderMarkup('alt', 'l', state.snapshot.manifest.alt.delta.l, -0.2, 0.2, 0.01).replaceAll(
-        'data-slider-prefix="alt"',
-        'data-alt-setting="l"'
-      )}
-    </div>
-  `;
-
-  el.tokenValidation.innerHTML = notes.length
-    ? `<div class="report-list">${notes
-        .map(
-          (note) =>
-            `<div class="report-item severity-warn"><span>${escapeHtml(note)}</span><span></span><span></span></div>`
-        )
-        .join('')}</div>`
-    : '<p class="empty-state">No validation warnings for the focused token in the active preview mode.</p>';
-
-  attachTokenEditorHandlers(token.id);
-  attachModeEditorHandlers();
+  const activeMode = resolvedModeForPreview();
+  authoringState.update({
+    snapshot: state.snapshot,
+    focusedTokenId: state.focusedTokenId,
+    activeMode
+  });
 }
 
 function renderAliasList(): void {
@@ -1277,7 +874,7 @@ function renderAliasList(): void {
 
 function focusToken(tokenId: string, reveal = false, switchToAuthoring = false): void {
   state.focusedTokenId = tokenId;
-  if (switchToAuthoring) setActiveTab('authoring');
+  if (switchToAuthoring) setActiveTab('token');
   if (reveal) {
     state.highlightedToken = tokenId;
     sendToContent({ kind: 'reveal-token-usage', tokenId });
@@ -1490,24 +1087,6 @@ function escapeHtml(text: string): string {
     }
   });
 }
-
-window.addEventListener('pointermove', (event) => {
-  if (!state.pickerDrag) return;
-
-  void applyPickerPoint(
-    state.pickerDrag.tokenId,
-    state.pickerDrag.mode,
-    state.pickerDrag.rect,
-    event.clientX,
-    event.clientY
-  ).catch((error) => {
-    setConnectionStatus('error', error instanceof Error ? error.message : 'token update failed');
-  });
-});
-
-window.addEventListener('pointerup', () => {
-  state.pickerDrag = null;
-});
 
 (async () => {
   await loadBridgePreferences();

@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 import { build, context } from 'esbuild';
+import tailwindcss from '@tailwindcss/vite';
 import { cp, mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { svelte, vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+import { build as viteBuild } from 'vite';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = __dirname;
+const projectRoot = path.resolve(root, '..');
 const srcDir = path.join(root, 'src');
 const distDir = path.join(root, 'dist');
 const watchMode = process.argv.includes('--watch');
@@ -13,7 +17,6 @@ const watchMode = process.argv.includes('--watch');
 const entryPoints = {
   background: path.join(srcDir, 'background.ts'),
   devtools: path.join(srcDir, 'devtools.ts'),
-  panel: path.join(srcDir, 'panel.ts'),
   drawer: path.join(srcDir, 'drawer.ts'),
   'content-bridge': path.join(srcDir, 'content-bridge.ts')
 };
@@ -43,15 +46,58 @@ const buildOptions = {
   }
 };
 
+const panelBuildOptions = {
+  configFile: false,
+  root: projectRoot,
+  publicDir: false,
+  logLevel: 'info',
+  plugins: [
+    tailwindcss(),
+    svelte({
+      preprocess: vitePreprocess()
+    })
+  ],
+  resolve: {
+    alias: {
+      $lib: path.join(projectRoot, 'src/lib')
+    }
+  },
+  build: {
+    emptyOutDir: false,
+    outDir: distDir,
+    sourcemap: watchMode ? 'inline' : false,
+    minify: !watchMode,
+    lib: {
+      entry: path.join(srcDir, 'panel.ts'),
+      formats: ['iife'],
+      name: 'SemanticColorsPanel',
+      fileName: () => 'panel.js',
+      cssFileName: 'panel-ui'
+    },
+    rollupOptions: {
+      output: {
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name === 'panel-ui.css' || assetInfo.names?.includes('panel-ui.css')) {
+            return 'panel-ui.css';
+          }
+          return 'assets/[name][extname]';
+        }
+      }
+    }
+  }
+};
+
 async function runBuild() {
   await rm(distDir, { recursive: true, force: true });
   await copyStatic();
   if (watchMode) {
     const ctx = await context(buildOptions);
     await ctx.watch();
+    await viteBuild({ ...panelBuildOptions, build: { ...panelBuildOptions.build, watch: {} } });
     console.log('[extension] watching for changes...');
   } else {
     await build(buildOptions);
+    await viteBuild(panelBuildOptions);
     console.log('[extension] build complete:', path.relative(process.cwd(), distDir));
   }
 }

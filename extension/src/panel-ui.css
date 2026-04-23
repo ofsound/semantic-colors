@@ -1,0 +1,16 @@
+@import '../../src/app.css';
+@import '../../src/lib/styles/semantic-colors-shell.css';
+
+@source './**/*.{svelte,ts}';
+@source '../../src/lib/components/**/*.{svelte,ts}';
+
+.semantic-colors-app.extension-authoring {
+  --shell-page-padding: 0;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.authoring-root {
+  width: 100%;
+  min-width: 0;
+}
