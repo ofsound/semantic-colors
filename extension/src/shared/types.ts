@@ -135,10 +135,16 @@ export interface ElementTokenMatch {
   cssValue: string | null;
 }
 
+export interface SemanticClassMatch {
+  className: string;
+  tokenId: string;
+}
+
 export interface HoverElementPayload {
   selector: string;
   tagName: string;
   classes: string[];
+  semanticClassMatches: SemanticClassMatch[];
   role: string | null;
   computedColor: string | null;
   computedBackground: string | null;
@@ -177,10 +183,16 @@ export interface ContrastReport {
   findings: ContrastFinding[];
 }
 
+export interface BridgeConfigState {
+  configPath: string;
+  bridgeEnabled: boolean;
+}
+
 // Message envelopes between panel <-> content-bridge (relayed by background).
 
 export type PanelToContentMessage =
   | { kind: 'ping' }
+  | { kind: 'clear-snapshot' }
   | { kind: 'set-theme'; mode: ThemeMode | null }
   | { kind: 'hover-inspector'; enabled: boolean }
   | { kind: 'select-element' }

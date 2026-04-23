@@ -113,7 +113,12 @@ export function validationNotes(
 }
 
 export function primaryTokenFromSelection(
-  selection: { matches: Array<{ tokenId: string | null }> } | null
+  selection: {
+    semanticClassMatches?: Array<{ tokenId: string }>;
+    matches: Array<{ tokenId: string | null }>;
+  } | null
 ): string | null {
+  const semanticClassToken = selection?.semanticClassMatches?.[0]?.tokenId;
+  if (semanticClassToken) return semanticClassToken;
   return selection?.matches.find((match) => match.tokenId)?.tokenId ?? null;
 }

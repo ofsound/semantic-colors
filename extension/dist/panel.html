@@ -7,21 +7,30 @@
   </head>
   <body>
     <header class="app-header">
-      <div class="brand">
-        <span class="brand-dot" aria-hidden="true"></span>
-        <div>
-          <h1>Semantic Colors</h1>
-          <p class="eyebrow">DOM-first authoring</p>
-        </div>
-      </div>
       <div class="connection">
         <label class="bridge-url">
           <span>Engine</span>
           <input id="bridge-url" type="url" placeholder="http://localhost:5173" />
         </label>
         <button id="bridge-connect" type="button">Connect</button>
+        <label class="bridge-url">
+          <span>Target</span>
+          <input
+            id="target-config-path"
+            type="text"
+            list="recent-target-configs"
+            placeholder="apps/site/semantic-colors.project.json"
+          />
+        </label>
+        <button id="target-config-load" type="button">Load target</button>
+        <label class="switch bridge-output-toggle">
+          <input type="checkbox" id="bridge-output-enabled" />
+          <span>Write generated CSS</span>
+        </label>
+        <span id="bridge-output-status" class="hint bridge-output-status">Load target config</span>
         <span id="bridge-status" class="status status-idle">idle</span>
       </div>
+      <datalist id="recent-target-configs"></datalist>
       <div class="mode-switch" role="group" aria-label="Theme mode">
         <button type="button" data-mode="null" class="is-active">Live</button>
         <button type="button" data-mode="light">Light</button>

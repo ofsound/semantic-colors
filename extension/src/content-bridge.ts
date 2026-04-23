@@ -16,6 +16,7 @@ import type {
   CoverageReport,
   ElementTokenMatch,
   HoverElementPayload,
+  SemanticClassMatch,
   PanelToContentMessage
 } from './shared/types';
 
@@ -28,6 +29,7 @@ const state = {
   overrides: new Map<string, string>(),
   tokenColorMap: new Map<string, string>(),
   tokenCssByTokenId: new Map<string, string>(),
+  tokenClassSet: new Set<string>(),
   aliasMap: new Map<string, string>(),
   liveThemeBaseline: null as { hadAttribute: boolean; value: string | null } | null
 };
@@ -80,6 +82,61 @@ function aliasesForToken(tokenId: string | null): string[] {
   return aliases;
 }
 
+function resolveTokenClassCandidate(candidate: string): string | null {
+  if (!candidate) return null;
+  const normalized = candidate.split('/')[0] ?? candidate;
+  if (state.tokenClassSet.has(normalized)) return normalized;
+  return state.aliasMap.get(normalized) ?? null;
+}
+
+function tokenIdFromClassName(className: string): string | null {
+  const baseClass = className.split(':').at(-1) ?? className;
+  const directMatch = resolveTokenClassCandidate(baseClass);
+  if (directMatch) return directMatch;
+
+  const utilityPrefixes = [
+    'text-',
+    'bg-',
+    'border-',
+    'outline-',
+    'ring-',
+    'fill-',
+    'stroke-',
+    'caret-',
+    'accent-',
+    'decoration-',
+    'from-',
+    'via-',
+    'to-'
+  ];
+
+  for (const prefix of utilityPrefixes) {
+    if (!baseClass.startsWith(prefix)) continue;
+    const tokenCandidate = baseClass.slice(prefix.length);
+    const tokenId = resolveTokenClassCandidate(tokenCandidate);
+    if (tokenId) return tokenId;
+  }
+
+  return null;
+}
+
+function semanticTokenClassesForElement(el: HTMLElement): SemanticClassMatch[] {
+  if (state.tokenClassSet.size === 0 || el.classList.length === 0) return [];
+  const matches: SemanticClassMatch[] = [];
+  for (const className of el.classList) {
+    const tokenId = tokenIdFromClassName(className);
+    if (!tokenId) continue;
+    matches.push({ className, tokenId });
+  }
+  const uniqueByClassName = new Map<string, SemanticClassMatch>();
+  for (const match of matches) {
+    if (!uniqueByClassName.has(match.className)) {
+      uniqueByClassName.set(match.className, match);
+    }
+  }
+  return [...uniqueByClassName.values()];
+}
+
 function findOpaqueBackground(el: Element): { el: Element; color: string } | null {
   let current: Element | null = el;
   while (current && current !== document.documentElement) {
@@ -111,6 +168,28 @@ function ensureInspectorStyle(): void {
       background: rgba(124, 158, 255, 0.12);
       border-radius: 2px;
       transition: all 60ms ease-out;
+    }
+    #${INSPECTOR_OVERLAY_ID}::before {
+      content: attr(data-semantic-token-label);
+      position: absolute;
+      left: 0;
+      max-width: min(44rem, calc(100vw - 1rem));
+      padding: 0.1rem 0.45rem;
+      border-radius: 0.3rem;
+      background: rgba(10, 14, 25, 0.95);
+      color: #f4f7ff;
+      font: 600 0.66rem/1.35 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    }
+    #${INSPECTOR_OVERLAY_ID}[data-semantic-token-position="above"]::before {
+      bottom: calc(100% + 6px);
+    }
+    #${INSPECTOR_OVERLAY_ID}[data-semantic-token-position="below"]::before {
+      top: calc(100% + 6px);
     }
     [${HIGHLIGHT_ATTR}] {
       outline: 2px dashed #ff7ab6 !important;
@@ -146,10 +225,20 @@ function positionOverlay(target: HTMLElement | null): void {
 
   const overlay = ensureInspectorOverlay();
   const rect = target.getBoundingClientRect();
+  const semanticClassMatches = semanticTokenClassesForElement(target);
+  const labelEntries = semanticClassMatches.map((match) =>
+    match.className === match.tokenId ? match.className : `${match.className} -> ${match.tokenId}`
+  );
+  const label = labelEntries.length
+    ? `Semantic token class: ${labelEntries.join(', ')}`
+    : 'Semantic token class: none';
+
   overlay.style.left = `${rect.left}px`;
   overlay.style.top = `${rect.top}px`;
   overlay.style.width = `${rect.width}px`;
   overlay.style.height = `${rect.height}px`;
+  overlay.setAttribute('data-semantic-token-label', label);
+  overlay.setAttribute('data-semantic-token-position', rect.top < 24 ? 'below' : 'above');
 }
 
 function elementMatches(el: HTMLElement): ElementTokenMatch[] {
@@ -184,6 +273,7 @@ function buildElementPayload(el: HTMLElement, selected: boolean): HoverElementPa
   const computed = window.getComputedStyle(el);
   const bg = findOpaqueBackground(el);
   const fg = computed.color;
+  const semanticClassMatches = semanticTokenClassesForElement(el);
 
   let contrastLc: number | null = null;
   const fgParsed = parseCssColor(fg);
@@ -198,6 +288,7 @@ function buildElementPayload(el: HTMLElement, selected: boolean): HoverElementPa
     selector: elementSelector(el),
     tagName: el.tagName.toLowerCase(),
     classes: [...el.classList],
+    semanticClassMatches,
     role: el.getAttribute('role'),
     computedColor: fg,
     computedBackground: bg?.color ?? computed.backgroundColor,
@@ -417,6 +508,7 @@ function clearAllOverrides(): void {
 function rebuildTokenLookup(): void {
   state.tokenColorMap.clear();
   state.tokenCssByTokenId.clear();
+  state.tokenClassSet.clear();
   state.aliasMap.clear();
 
   if (!state.snapshot) {
@@ -425,6 +517,10 @@ function rebuildTokenLookup(): void {
 
   const rootStyle = window.getComputedStyle(document.documentElement);
   const resolved = state.snapshot.resolved[previewMode()] ?? state.snapshot.resolved.light;
+  for (const tokenId of Object.keys(state.snapshot.manifest.tokens)) {
+    state.tokenClassSet.add(tokenId);
+  }
+
   for (const [tokenId, resolvedColor] of Object.entries(resolved.colors)) {
     state.tokenCssByTokenId.set(tokenId, resolvedColor.css);
 
@@ -452,6 +548,18 @@ function rebuildTokenLookup(): void {
 function applySnapshot(snapshot: BridgeSnapshot): void {
   state.snapshot = snapshot;
   rebuildTokenLookup();
+  flushPreviewStyle();
+  emitSelectionPayload();
+  emitHoverPayload();
+}
+
+function clearSnapshot(): void {
+  state.snapshot = null;
+  state.highlightedToken = null;
+  state.tokenColorMap.clear();
+  state.tokenCssByTokenId.clear();
+  state.tokenClassSet.clear();
+  state.aliasMap.clear();
   flushPreviewStyle();
   emitSelectionPayload();
   emitHoverPayload();
@@ -527,26 +635,29 @@ function scanContrast(): ContrastReport {
   const findings: ContrastFinding[] = [];
   const candidates = document.querySelectorAll<HTMLElement>('body *');
   let sampled = 0;
-  const limit = 1500;
+  const sampleLimit = 1500;
+  const candidateLimit = 12000;
+  let candidatesChecked = 0;
 
-  candidates.forEach((el) => {
-    if (sampled > limit) return;
-    if (!hasDirectText(el)) return;
+  for (const el of candidates) {
+    if (sampled >= sampleLimit || candidatesChecked >= candidateLimit) break;
+    candidatesChecked += 1;
+    if (!hasDirectText(el)) continue;
     const rect = el.getBoundingClientRect();
-    if (rect.width * rect.height < 4) return;
+    if (rect.width * rect.height < 4) continue;
     sampled += 1;
 
     const computed = window.getComputedStyle(el);
     const fgValue = computed.color;
     const bg = findOpaqueBackground(el);
-    if (!bg) return;
+    if (!bg) continue;
     const fg = parseCssColor(fgValue);
     const bgParsed = parseCssColor(bg.color);
-    if (!fg || !bgParsed) return;
+    if (!fg || !bgParsed) continue;
 
     const lc = apcaContrast(fg, bgParsed);
     const severity = apcaSeverity(lc);
-    if (severity === 'ok') return;
+    if (severity === 'ok') continue;
 
     findings.push({
       selector: elementSelector(el),
@@ -558,7 +669,7 @@ function scanContrast(): ContrastReport {
       severity,
       context: (el.textContent ?? '').trim().slice(0, 80)
     });
-  });
+  }
 
   findings.sort((a, b) => Math.abs(a.contrastLc) - Math.abs(b.contrastLc));
 
@@ -575,6 +686,9 @@ function handlePanelMessage(message: PanelToContentMessage): void {
         title: document.title,
         theme: document.documentElement.dataset.theme ?? null
       });
+      break;
+    case 'clear-snapshot':
+      clearSnapshot();
       break;
     case 'hover-inspector':
       setHoverActive(message.enabled);

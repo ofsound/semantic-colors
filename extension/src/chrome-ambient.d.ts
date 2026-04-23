@@ -54,6 +54,20 @@ declare namespace chrome {
     ): void;
   }
 
+  namespace scripting {
+    interface InjectionTarget {
+      tabId: number;
+    }
+
+    function executeScript(
+      injection: {
+        target: InjectionTarget;
+        files?: string[];
+      },
+      callback?: () => void
+    ): void;
+  }
+
   namespace storage {
     interface StorageArea {
       get(keys: string | string[] | null): Promise<Record<string, unknown>>;

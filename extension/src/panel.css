@@ -136,7 +136,8 @@ code {
   display: flex;
   gap: 8px;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
 }
 
 .bridge-url {
@@ -148,7 +149,7 @@ code {
 }
 
 .bridge-url input {
-  min-width: 220px;
+  min-width: 180px;
 }
 
 .mode-switch {
@@ -300,6 +301,14 @@ code {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.bridge-output-toggle {
+  color: var(--text-muted);
+}
+
+.bridge-output-status {
+  font-size: 10px;
 }
 
 .hint,

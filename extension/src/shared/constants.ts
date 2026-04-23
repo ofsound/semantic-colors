@@ -1,7 +1,8 @@
 export const DEFAULT_BRIDGE_URL = 'http://localhost:5173';
 export const STORAGE_KEYS = {
   bridgeUrl: 'semanticColors.bridgeUrl',
-  lastSnapshot: 'semanticColors.lastSnapshot'
+  targetConfigPath: 'semanticColors.targetConfigPath',
+  recentTargetConfigPaths: 'semanticColors.recentTargetConfigPaths'
 } as const;
 
 export const OVERRIDE_ATTR = 'data-semantic-colors-override';

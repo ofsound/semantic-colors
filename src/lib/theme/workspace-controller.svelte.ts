@@ -28,6 +28,12 @@ export function createWorkspaceController(options: WorkspaceControllerOptions) {
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
   let bridgeTimer: ReturnType<typeof setTimeout> | null = null;
   let saveStateTimer: ReturnType<typeof setTimeout> | null = null;
+  let bridgeSubscription: (() => void) | null = null;
+  let bridgeSubscriptionConfigPath = '';
+
+  function bridgeQuery(configPath: string): string {
+    return `configPath=${encodeURIComponent(configPath)}`;
+  }
 
   function clearSaveStateTimer(): void {
     if (saveStateTimer) {
@@ -79,6 +85,7 @@ export function createWorkspaceController(options: WorkspaceControllerOptions) {
 
     const nextData = (await response.json()) as WorkspacePageData;
     options.applyPageData(nextData);
+    ensureBridgeSubscription();
     setSaveFeedback('saved', 'Reloaded project state', 1800);
   }
 
@@ -113,6 +120,7 @@ export function createWorkspaceController(options: WorkspaceControllerOptions) {
           : 'Saved manifest and config. Bridge output is currently disabled.',
         1800
       );
+      ensureBridgeSubscription();
       await publishToBridge(true);
     } catch (error) {
       setSaveFeedback('error', error instanceof Error ? error.message : 'Save failed');
@@ -121,6 +129,7 @@ export function createWorkspaceController(options: WorkspaceControllerOptions) {
 
   async function publishToBridge(persisted = false): Promise<void> {
     try {
+      ensureBridgeSubscription();
       await fetch('/api/bridge/publish', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -149,6 +158,54 @@ export function createWorkspaceController(options: WorkspaceControllerOptions) {
     clearSaveStateTimer();
   }
 
+  function ensureBridgeSubscription(): void {
+    const configPath = options.getConfigPath();
+    if (typeof window === 'undefined' || typeof EventSource === 'undefined' || !configPath) {
+      return;
+    }
+
+    if (bridgeSubscription && bridgeSubscriptionConfigPath === configPath) {
+      return;
+    }
+
+    bridgeSubscription?.();
+    bridgeSubscription = null;
+    bridgeSubscriptionConfigPath = configPath;
+
+    const source = new EventSource(`/api/bridge/events?${bridgeQuery(configPath)}`);
+    source.addEventListener('snapshot', (event) => {
+      try {
+        const message = JSON.parse((event as MessageEvent<string>).data) as {
+          snapshot?: {
+            configPath?: string;
+            draft?: { dirty?: boolean };
+            origin?: string;
+            manifest?: unknown;
+          };
+        };
+        if (
+          !message.snapshot ||
+          message.snapshot.origin === 'ui' ||
+          message.snapshot.configPath !== options.getConfigPath()
+        ) {
+          return;
+        }
+
+        options.replaceManifest(ensureManifest(message.snapshot.manifest as never));
+        saveMessage = message.snapshot.draft?.dirty
+          ? `Applied staged update from ${message.snapshot.origin} via bridge.`
+          : `Applied committed update from ${message.snapshot.origin} via bridge.`;
+      } catch {
+        // Ignore malformed snapshots.
+      }
+    });
+    source.onerror = () => {
+      source.close();
+    };
+
+    bridgeSubscription = () => source.close();
+  }
+
   function markPersistDirty(): void {
     if (!booted) {
       return;
@@ -165,47 +222,17 @@ export function createWorkspaceController(options: WorkspaceControllerOptions) {
       clearTimeout(bridgeTimer);
     }
     bridgeTimer = setTimeout(() => {
+      ensureBridgeSubscription();
       void publishToBridge();
     }, 80);
   }
 
-  function subscribeToBridge(): () => void {
-    if (typeof window === 'undefined' || typeof EventSource === 'undefined') {
-      return () => {};
-    }
-
-    const source = new EventSource('/api/bridge/events');
-    source.addEventListener('snapshot', (event) => {
-      try {
-        const message = JSON.parse((event as MessageEvent<string>).data) as {
-          snapshot?: {
-            draft?: { dirty?: boolean };
-            origin?: string;
-            manifest?: unknown;
-          };
-        };
-        if (!message.snapshot || message.snapshot.origin === 'ui') {
-          return;
-        }
-
-        options.replaceManifest(ensureManifest(message.snapshot.manifest as never));
-        saveMessage = message.snapshot.draft?.dirty
-          ? `Applied staged update from ${message.snapshot.origin} via bridge.`
-          : `Applied committed update from ${message.snapshot.origin} via bridge.`;
-      } catch {
-        // Ignore malformed snapshots.
-      }
-    });
-    source.onerror = () => {
-      source.close();
-    };
-
-    return () => source.close();
-  }
-
   async function syncBridgeOnConnect(): Promise<void> {
     try {
-      const response = await fetch('/api/bridge/snapshot', { cache: 'no-store' });
+      const configPath = options.getConfigPath();
+      const response = await fetch(`/api/bridge/snapshot?${bridgeQuery(configPath)}`, {
+        cache: 'no-store'
+      });
       if (!response.ok) {
         await publishToBridge(true);
         return;
@@ -236,12 +263,14 @@ export function createWorkspaceController(options: WorkspaceControllerOptions) {
 
   function connect(): () => void {
     booted = true;
-    const unsubscribe = subscribeToBridge();
+    ensureBridgeSubscription();
     void syncBridgeOnConnect();
 
     return () => {
       booted = false;
-      unsubscribe();
+      bridgeSubscription?.();
+      bridgeSubscription = null;
+      bridgeSubscriptionConfigPath = '';
       clearTimers();
     };
   }

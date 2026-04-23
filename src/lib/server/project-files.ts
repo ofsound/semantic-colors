@@ -1,3 +1,4 @@
+import { realpathSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createDefaultManifest } from '$lib/theme/defaults';
@@ -34,14 +35,30 @@ async function ensureParent(filePath: string): Promise<void> {
   await mkdir(path.dirname(filePath), { recursive: true });
 }
 
+function canonicalizePath(targetPath: string): string {
+  const resolvedPath = path.resolve(targetPath);
+  try {
+    return realpathSync.native(resolvedPath);
+  } catch {
+    try {
+      return path.join(
+        realpathSync.native(path.dirname(resolvedPath)),
+        path.basename(resolvedPath)
+      );
+    } catch {
+      return resolvedPath;
+    }
+  }
+}
+
 function isPathWithin(root: string, targetPath: string): boolean {
-  const relativePath = path.relative(path.resolve(root), path.resolve(targetPath));
+  const relativePath = path.relative(canonicalizePath(root), canonicalizePath(targetPath));
   return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
 }
 
 function assertPathWithin(root: string, targetPath: string, label: string): void {
   if (!isPathWithin(root, targetPath)) {
-    throw new ProjectFilesAccessError(`${label} must stay within ${path.resolve(root)}.`);
+    throw new ProjectFilesAccessError(`${label} must stay within ${canonicalizePath(root)}.`);
   }
 }
 
@@ -59,8 +76,9 @@ function resolveConfigPath(cwd: string, configPath?: string): string {
       : path.resolve(cwd, configPath)
     : defaultConfigPath(cwd);
 
-  assertPathWithin(cwd, resolvedConfigPath, 'Config path');
-  return resolvedConfigPath;
+  const canonicalConfigPath = canonicalizePath(resolvedConfigPath);
+  assertPathWithin(cwd, canonicalConfigPath, 'Config path');
+  return canonicalConfigPath;
 }
 
 function resolveProjectRoot(configPath: string, projectRoot: string): string {
@@ -82,6 +100,10 @@ function resolveProjectPath(projectRoot: string, targetPath: string, label: stri
 
 function defaultConfigPath(cwd: string): string {
   return path.join(cwd, DEFAULT_CONFIG_PATH);
+}
+
+export function resolveWorkspaceConfigPath(cwd: string, configPath?: string): string {
+  return resolveConfigPath(cwd, configPath);
 }
 
 async function readSession(cwd: string): Promise<SessionState> {
@@ -206,6 +228,37 @@ export async function saveWorkspaceState(
   }
 
   await writeSession(cwd, configPath);
+}
+
+export async function updateWorkspaceBridgeEnabled(
+  cwd: string,
+  configPathInput: string,
+  bridgeEnabled: boolean
+): Promise<{ configPath: string; bridgeEnabled: boolean }> {
+  const { configPath, config, manifest } = await loadWorkspaceState(cwd, configPathInput);
+  const nextConfig = configWithDefaults(path.dirname(configPath), { ...config, bridgeEnabled });
+  const projectRoot = resolveProjectRoot(configPath, nextConfig.projectRoot);
+  const cssOutputPath = resolveProjectPath(
+    projectRoot,
+    nextConfig.cssOutputPath,
+    'CSS output path'
+  );
+
+  await ensureParent(configPath);
+  await writeFile(configPath, JSON.stringify(nextConfig, null, 2));
+
+  if (nextConfig.bridgeEnabled) {
+    const css = generateThemeCss(manifest);
+    await ensureParent(cssOutputPath);
+    await writeFile(cssOutputPath, css);
+  }
+
+  await writeSession(cwd, configPath);
+
+  return {
+    configPath,
+    bridgeEnabled: nextConfig.bridgeEnabled
+  };
 }
 
 export async function importFromCss(

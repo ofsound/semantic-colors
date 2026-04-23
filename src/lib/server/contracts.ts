@@ -252,13 +252,26 @@ const bridgeDraftCommandSchema = z.discriminatedUnion('kind', [
 
 export const bridgeDraftRequestSchema = z
   .object({
-    configPath: z.string().trim().min(1).optional(),
+    configPath: z.string().trim().min(1),
     commands: z.array(bridgeDraftCommandSchema).min(1)
   })
   .strict();
 
 export const bridgeCommitRequestSchema = z
   .object({
-    configPath: z.string().trim().min(1).optional()
+    configPath: z.string().trim().min(1)
+  })
+  .strict();
+
+export const bridgeConfigQuerySchema = z
+  .object({
+    configPath: z.string().trim().min(1)
+  })
+  .strict();
+
+export const bridgeConfigUpdateRequestSchema = z
+  .object({
+    configPath: z.string().trim().min(1),
+    bridgeEnabled: z.boolean()
   })
   .strict();

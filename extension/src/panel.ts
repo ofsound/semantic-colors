@@ -28,6 +28,7 @@ import {
 import { panelPortName } from './shared/messaging';
 import type { ContentMessageEnvelope, PanelMessageEnvelope } from './shared/messaging';
 import type {
+  BridgeConfigState,
   BridgeSnapshot,
   ContentToPanelMessage,
   ContrastReport,
@@ -49,9 +50,13 @@ const OKLCH_CHANNEL_LABEL: Record<'l' | 'c' | 'h', string> = {
   c: 'Chroma',
   h: 'Hue'
 };
+const COVERAGE_SCAN_TIMEOUT_MS = 12000;
+const CONTRAST_AUDIT_TIMEOUT_MS = 12000;
 
 const state = {
   bridgeUrl: DEFAULT_BRIDGE_URL,
+  targetConfigPath: '',
+  recentTargetConfigPaths: [] as string[],
   snapshot: null as BridgeSnapshot | null,
   coverage: null as CoverageReport | null,
   contrast: null as ContrastReport | null,
@@ -70,6 +75,11 @@ const state = {
   importSourcePath: '',
   importProposal: null as ImportProposal | null,
   importSelection: {} as Record<string, string>,
+  bridgeOutputEnabled: null as boolean | null,
+  bridgeOutputPending: false,
+  bridgeOutputStatus: 'Load target config' as string,
+  coverageScanTimeout: null as number | null,
+  contrastAuditTimeout: null as number | null,
   pickerDrag: null as {
     tokenId: string;
     mode: 'light' | 'dark';
@@ -81,6 +91,11 @@ const el = {
   status: document.getElementById('bridge-status') as HTMLSpanElement,
   bridgeInput: document.getElementById('bridge-url') as HTMLInputElement,
   bridgeBtn: document.getElementById('bridge-connect') as HTMLButtonElement,
+  targetConfigInput: document.getElementById('target-config-path') as HTMLInputElement,
+  targetConfigLoad: document.getElementById('target-config-load') as HTMLButtonElement,
+  bridgeOutputEnabled: document.getElementById('bridge-output-enabled') as HTMLInputElement,
+  bridgeOutputStatus: document.getElementById('bridge-output-status') as HTMLSpanElement,
+  targetConfigOptions: document.getElementById('recent-target-configs') as HTMLDataListElement,
   modeSwitch: document.querySelector('.mode-switch') as HTMLElement,
   draftStatus: document.getElementById('draft-status') as HTMLDivElement,
   commitDraft: document.getElementById('commit-draft') as HTMLButtonElement,
@@ -122,18 +137,84 @@ const el = {
   pushOverride: document.getElementById('push-override') as HTMLButtonElement
 };
 
-const port = chrome.runtime.connect({ name: panelPortName(tabId) });
+let port: chrome.runtime.Port | null = null;
 
-function sendToContent(payload: PanelToContentMessage): void {
-  const envelope: PanelMessageEnvelope = { source: 'panel', tabId, payload };
-  port.postMessage(envelope);
-}
-
-port.onMessage.addListener((message) => {
+function handlePortMessage(message: unknown): void {
   const envelope = message as ContentMessageEnvelope;
   if (envelope?.source !== 'content') return;
   handleContentMessage(envelope.payload);
-});
+}
+
+function connectPanelPort(): chrome.runtime.Port | null {
+  let nextPort: chrome.runtime.Port;
+  try {
+    nextPort = chrome.runtime.connect({ name: panelPortName(tabId) });
+  } catch (error) {
+    console.warn('[semantic-colors] panel port connect failed:', error);
+    return null;
+  }
+
+  try {
+    nextPort.onMessage.addListener(handlePortMessage);
+    nextPort.onDisconnect.addListener(() => {
+      if (port !== nextPort) return;
+      port = null;
+    });
+  } catch (error) {
+    console.warn('[semantic-colors] panel port listener bind failed:', error);
+    try {
+      nextPort.disconnect();
+    } catch {
+      // Ignore disconnect failures.
+    }
+    return null;
+  }
+
+  port = nextPort;
+  return nextPort;
+}
+
+function activePanelPort(): chrome.runtime.Port | null {
+  return port ?? connectPanelPort();
+}
+
+function postToContent(envelope: PanelMessageEnvelope, allowRetry = true): boolean {
+  const currentPort = activePanelPort();
+  if (!currentPort) return false;
+  try {
+    currentPort.postMessage(envelope);
+    return true;
+  } catch (error) {
+    console.warn('[semantic-colors] panel port send failed:', error);
+    if (!allowRetry) return false;
+    if (port === currentPort) {
+      port = null;
+    }
+    return postToContent(envelope, false);
+  }
+}
+
+function sendToContent(payload: PanelToContentMessage): void {
+  const envelope: PanelMessageEnvelope = { source: 'panel', tabId, payload };
+  if (postToContent(envelope)) return;
+
+  handleContentMessage({
+    kind: 'error',
+    message: 'Extension relay disconnected. Retry the scan.'
+  });
+}
+
+function clearCoverageScanTimeout(): void {
+  if (state.coverageScanTimeout === null) return;
+  window.clearTimeout(state.coverageScanTimeout);
+  state.coverageScanTimeout = null;
+}
+
+function clearContrastAuditTimeout(): void {
+  if (state.contrastAuditTimeout === null) return;
+  window.clearTimeout(state.contrastAuditTimeout);
+  state.contrastAuditTimeout = null;
+}
 
 function handleContentMessage(message: ContentToPanelMessage): void {
   switch (message.kind) {
@@ -151,13 +232,19 @@ function handleContentMessage(message: ContentToPanelMessage): void {
       state.hoveredElement = message.payload;
       renderInspect();
       break;
-    case 'selected-element':
+    case 'selected-element': {
       state.selectedElement = message.payload;
+      const semanticClassTokenId = message.payload.semanticClassMatches[0]?.tokenId ?? null;
+      if (semanticClassTokenId) {
+        state.focusedTokenId = semanticClassTokenId;
+        setActiveTab('authoring');
+      }
       if (!state.focusedTokenId) {
         state.focusedTokenId = primaryTokenFromSelection(message.payload) ?? state.focusedTokenId;
       }
       renderAll();
       break;
+    }
     case 'hover-cleared':
       state.hoveredElement = null;
       renderInspect();
@@ -167,25 +254,41 @@ function handleContentMessage(message: ContentToPanelMessage): void {
       renderInspect();
       break;
     case 'coverage-report':
+      clearCoverageScanTimeout();
       state.coverage = message.report;
       renderCoverage();
       renderTokenList();
       break;
     case 'contrast-report':
+      clearContrastAuditTimeout();
       state.contrast = message.report;
       renderContrast();
       break;
     case 'error':
       console.warn('[semantic-colors] content error:', message.message);
+      if (el.coverageSummary.textContent === 'Scanning...') {
+        clearCoverageScanTimeout();
+        el.coverageSummary.textContent = `Scan failed: ${message.message}`;
+      }
+      if (el.contrastSummary.textContent === 'Auditing...') {
+        clearContrastAuditTimeout();
+        el.contrastSummary.textContent = `Audit failed: ${message.message}`;
+      }
       break;
   }
 }
 
 const bridge = new BridgeClient({
   getBaseUrl: () => state.bridgeUrl,
+  getConfigPath: () => state.targetConfigPath,
   onStatus: setConnectionStatus,
   onSnapshot: (snapshot) => {
     state.snapshot = snapshot;
+    if (snapshot.configPath !== state.targetConfigPath) {
+      void persistTargetConfigPath(snapshot.configPath).then(() => {
+        void refreshBridgeOutputConfig();
+      });
+    }
     if (!state.focusedTokenId) {
       state.focusedTokenId =
         primaryTokenFromSelection(state.selectedElement) ??
@@ -202,17 +305,177 @@ function setConnectionStatus(status: BridgeStatus, detail?: string): void {
   el.status.textContent = detail ? `${status} · ${detail}` : status;
 }
 
-async function loadBridgeUrl(): Promise<void> {
+function activeConfigPath(): string {
+  return state.snapshot?.configPath ?? state.targetConfigPath.trim();
+}
+
+function bridgeOutputStatusText(bridgeConfig?: BridgeConfigState): string {
+  if (!state.targetConfigPath) {
+    return 'Load target config';
+  }
+  if (state.bridgeOutputPending) {
+    return 'Updating...';
+  }
+  if (bridgeConfig) {
+    return bridgeConfig.bridgeEnabled
+      ? 'Enabled: save/commit writes CSS'
+      : 'Disabled: save/commit skips CSS';
+  }
+  if (state.bridgeOutputEnabled === true) {
+    return 'Enabled: save/commit writes CSS';
+  }
+  if (state.bridgeOutputEnabled === false) {
+    return 'Disabled: save/commit skips CSS';
+  }
+  return state.bridgeOutputStatus;
+}
+
+function renderBridgeOutputControl(): void {
+  const hasTargetConfig = state.targetConfigPath.length > 0;
+  el.bridgeOutputEnabled.disabled = !hasTargetConfig || state.bridgeOutputPending;
+  el.bridgeOutputEnabled.indeterminate = hasTargetConfig && state.bridgeOutputEnabled === null;
+  el.bridgeOutputEnabled.checked = state.bridgeOutputEnabled ?? false;
+  el.bridgeOutputStatus.textContent = bridgeOutputStatusText();
+}
+
+function clearBridgeSnapshotState(statusDetail?: string): void {
+  clearCoverageScanTimeout();
+  clearContrastAuditTimeout();
+  state.snapshot = null;
+  state.coverage = null;
+  state.contrast = null;
+  state.highlightedToken = null;
+  state.focusedTokenId = '';
+  state.overrideTokenId = '';
+  state.importProposal = null;
+  state.importSelection = {};
+  if (!state.targetConfigPath) {
+    state.bridgeOutputEnabled = null;
+    state.bridgeOutputStatus = 'Load target config';
+  }
+  sendToContent({ kind: 'clear-snapshot' });
+  if (statusDetail) {
+    setConnectionStatus('idle', statusDetail);
+  }
+  renderAll();
+}
+
+function renderRecentTargetConfigs(): void {
+  el.targetConfigOptions.innerHTML = state.recentTargetConfigPaths
+    .map((configPath) => `<option value="${escapeHtml(configPath)}"></option>`)
+    .join('');
+}
+
+async function persistTargetConfigPath(value: string): Promise<void> {
+  const configPath = value.trim();
+  state.targetConfigPath = configPath;
+  el.targetConfigInput.value = configPath;
+
+  if (configPath) {
+    state.recentTargetConfigPaths = [
+      configPath,
+      ...state.recentTargetConfigPaths.filter((candidate) => candidate !== configPath)
+    ].slice(0, 8);
+  }
+
+  renderRecentTargetConfigs();
+
   try {
-    const stored = await chrome.storage.local.get([STORAGE_KEYS.bridgeUrl]);
-    const value = stored[STORAGE_KEYS.bridgeUrl];
-    if (typeof value === 'string' && value.trim()) {
-      state.bridgeUrl = value.trim();
+    await chrome.storage.local.set({
+      [STORAGE_KEYS.targetConfigPath]: configPath,
+      [STORAGE_KEYS.recentTargetConfigPaths]: state.recentTargetConfigPaths
+    });
+  } catch {
+    // ignore
+  }
+}
+
+async function loadBridgePreferences(): Promise<void> {
+  try {
+    const stored = await chrome.storage.local.get([
+      STORAGE_KEYS.bridgeUrl,
+      STORAGE_KEYS.targetConfigPath,
+      STORAGE_KEYS.recentTargetConfigPaths
+    ]);
+    const bridgeUrl = stored[STORAGE_KEYS.bridgeUrl];
+    if (typeof bridgeUrl === 'string' && bridgeUrl.trim()) {
+      state.bridgeUrl = bridgeUrl.trim();
+    }
+    const targetConfigPath = stored[STORAGE_KEYS.targetConfigPath];
+    if (typeof targetConfigPath === 'string') {
+      state.targetConfigPath = targetConfigPath.trim();
+    }
+    const recentTargetConfigPaths = stored[STORAGE_KEYS.recentTargetConfigPaths];
+    if (Array.isArray(recentTargetConfigPaths)) {
+      state.recentTargetConfigPaths = recentTargetConfigPaths.filter(
+        (value): value is string => typeof value === 'string' && value.trim().length > 0
+      );
     }
   } catch {
     // fall through to default
   }
   el.bridgeInput.value = state.bridgeUrl;
+  el.targetConfigInput.value = state.targetConfigPath;
+  renderRecentTargetConfigs();
+}
+
+async function refreshBridgeOutputConfig(): Promise<void> {
+  const configPath = state.targetConfigPath.trim();
+  if (!configPath) {
+    state.bridgeOutputEnabled = null;
+    state.bridgeOutputPending = false;
+    state.bridgeOutputStatus = 'Load target config';
+    renderBridgeOutputControl();
+    return;
+  }
+
+  state.bridgeOutputPending = true;
+  state.bridgeOutputStatus = 'Loading config...';
+  renderBridgeOutputControl();
+
+  try {
+    const bridgeConfig = await bridge.fetchBridgeConfig(configPath);
+    if (bridgeConfig.configPath !== state.targetConfigPath) {
+      await persistTargetConfigPath(bridgeConfig.configPath);
+    }
+    state.bridgeOutputEnabled = bridgeConfig.bridgeEnabled;
+    state.bridgeOutputStatus = bridgeOutputStatusText(bridgeConfig);
+  } catch (error) {
+    state.bridgeOutputEnabled = null;
+    state.bridgeOutputStatus =
+      error instanceof Error ? error.message : 'Failed to load bridge config';
+  } finally {
+    state.bridgeOutputPending = false;
+    renderBridgeOutputControl();
+  }
+}
+
+async function setBridgeOutputEnabled(enabled: boolean): Promise<void> {
+  const configPath = activeConfigPath();
+  if (!configPath) return;
+
+  const previousValue = state.bridgeOutputEnabled;
+  const previousStatus = state.bridgeOutputStatus;
+  state.bridgeOutputPending = true;
+  state.bridgeOutputEnabled = enabled;
+  state.bridgeOutputStatus = 'Saving config...';
+  renderBridgeOutputControl();
+
+  try {
+    const bridgeConfig = await bridge.updateBridgeConfig(enabled, { configPath });
+    if (bridgeConfig.configPath !== state.targetConfigPath) {
+      await persistTargetConfigPath(bridgeConfig.configPath);
+    }
+    state.bridgeOutputEnabled = bridgeConfig.bridgeEnabled;
+    state.bridgeOutputStatus = bridgeOutputStatusText(bridgeConfig);
+  } catch (error) {
+    state.bridgeOutputEnabled = previousValue;
+    state.bridgeOutputStatus =
+      error instanceof Error ? error.message : previousStatus || 'Failed to update config';
+  } finally {
+    state.bridgeOutputPending = false;
+    renderBridgeOutputControl();
+  }
 }
 
 async function persistBridgeUrl(value: string): Promise<void> {
@@ -222,6 +485,22 @@ async function persistBridgeUrl(value: string): Promise<void> {
   } catch {
     // ignore
   }
+}
+
+async function applyTargetConfig(value: string): Promise<void> {
+  bridge.stop();
+  await persistTargetConfigPath(value);
+  clearBridgeSnapshotState(
+    state.targetConfigPath ? 'loading target config' : 'choose target config'
+  );
+
+  if (!state.targetConfigPath) {
+    await refreshBridgeOutputConfig();
+    return;
+  }
+
+  await refreshBridgeOutputConfig();
+  bridge.start();
 }
 
 function setActiveTab(id: string): void {
@@ -266,6 +545,20 @@ el.clearSelection.addEventListener('click', () => {
   state.selectedElement = null;
   sendToContent({ kind: 'clear-selection' });
   renderInspect();
+});
+
+el.targetConfigLoad.addEventListener('click', async () => {
+  await applyTargetConfig(el.targetConfigInput.value);
+});
+
+el.targetConfigInput.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  void applyTargetConfig(el.targetConfigInput.value);
+});
+
+el.bridgeOutputEnabled.addEventListener('change', () => {
+  void setBridgeOutputEnabled(el.bridgeOutputEnabled.checked);
 });
 
 el.commitDraft.addEventListener('click', async () => {
@@ -387,7 +680,14 @@ el.clearHighlight.addEventListener('click', () => {
 
 el.scanCoverage.addEventListener('click', () => {
   if (!state.snapshot) return;
+  clearCoverageScanTimeout();
   el.coverageSummary.textContent = 'Scanning...';
+  state.coverageScanTimeout = window.setTimeout(() => {
+    if (el.coverageSummary.textContent === 'Scanning...') {
+      el.coverageSummary.textContent =
+        'Scan timed out while waiting for the inspected page response.';
+    }
+  }, COVERAGE_SCAN_TIMEOUT_MS);
   sendToContent({
     kind: 'scan-coverage',
     tokenColors: snapshotTokenCss(),
@@ -397,7 +697,14 @@ el.scanCoverage.addEventListener('click', () => {
 
 el.scanContrast.addEventListener('click', () => {
   if (!state.snapshot) return;
+  clearContrastAuditTimeout();
   el.contrastSummary.textContent = 'Auditing...';
+  state.contrastAuditTimeout = window.setTimeout(() => {
+    if (el.contrastSummary.textContent === 'Auditing...') {
+      el.contrastSummary.textContent =
+        'Audit timed out while waiting for the inspected page response.';
+    }
+  }, CONTRAST_AUDIT_TIMEOUT_MS);
   sendToContent({
     kind: 'scan-contrast',
     tokenColors: snapshotTokenCss(),
@@ -428,7 +735,7 @@ el.pushOverride.addEventListener('click', async () => {
   try {
     await bridge.pushOverride(state.overrideTokenId, state.overrideMode, state.overrideColor, {
       persist: state.persistOverride,
-      configPath: state.snapshot?.configPath
+      configPath: activeConfigPath()
     });
   } catch (error) {
     setConnectionStatus('error', error instanceof Error ? error.message : 'push failed');
@@ -440,6 +747,13 @@ el.bridgeBtn.addEventListener('click', async () => {
   if (!input) return;
   await persistBridgeUrl(input);
   bridge.stop();
+  clearBridgeSnapshotState(
+    state.targetConfigPath ? 'reconnecting to target config' : 'choose target config'
+  );
+  if (!state.targetConfigPath) {
+    return;
+  }
+  void refreshBridgeOutputConfig();
   bridge.start();
 });
 
@@ -464,6 +778,7 @@ function pushSnapshotToContent(): void {
 }
 
 function renderAll(): void {
+  renderBridgeOutputControl();
   renderDraftStatus();
   renderPageInfo();
   renderInspect();
@@ -484,13 +799,15 @@ function renderAll(): void {
 
 function renderDraftStatus(): void {
   if (!state.snapshot) {
-    el.draftStatus.textContent = 'Waiting for bridge snapshot...';
+    el.draftStatus.textContent = state.targetConfigPath
+      ? `Waiting for bridge snapshot for ${state.targetConfigPath}...`
+      : 'Choose a target project config to start authoring.';
     return;
   }
 
   const status = state.snapshot.draft.dirty
-    ? `Draft dirty · base v${state.snapshot.draft.baseVersion} · last edit ${state.snapshot.draft.lastEditor}`
-    : `Draft clean · synced at v${state.snapshot.version}`;
+    ? `Target ${state.snapshot.configPath} · Draft dirty · base v${state.snapshot.draft.baseVersion} · last edit ${state.snapshot.draft.lastEditor}`
+    : `Target ${state.snapshot.configPath} · Draft clean · synced at v${state.snapshot.version}`;
   el.draftStatus.textContent = status;
 }
 
@@ -1433,8 +1750,13 @@ window.addEventListener('pointerup', () => {
 });
 
 (async () => {
-  await loadBridgeUrl();
-  bridge.start();
+  await loadBridgePreferences();
+  if (state.targetConfigPath) {
+    void refreshBridgeOutputConfig();
+    bridge.start();
+  } else {
+    clearBridgeSnapshotState('choose target config');
+  }
   sendToContent({ kind: 'ping' });
   renderAll();
 })();

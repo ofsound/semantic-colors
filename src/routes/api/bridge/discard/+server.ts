@@ -1,24 +1,16 @@
 import { error, json } from '@sveltejs/kit';
 import { ZodError } from 'zod';
+import { ensureBridgeSnapshot } from '$lib/server/bridge-workspace';
 import { bridgeState } from '$lib/server/bridge-state';
 import { bridgeCommitRequestSchema } from '$lib/server/contracts';
-import { ProjectFilesAccessError, loadWorkspaceState } from '$lib/server/project-files';
+import { ProjectFilesAccessError } from '$lib/server/project-files';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ request }) => {
   try {
     const payload = bridgeCommitRequestSchema.parse(await request.json());
-    const snapshot = bridgeState.snapshot();
-
-    if (payload.configPath && payload.configPath !== snapshot.configPath) {
-      const workspace = await loadWorkspaceState(process.cwd(), payload.configPath);
-      bridgeState.syncPersisted(workspace.manifest, workspace.configPath, 'server');
-    } else if (!snapshot.configPath) {
-      const workspace = await loadWorkspaceState(process.cwd(), payload.configPath);
-      bridgeState.syncPersisted(workspace.manifest, workspace.configPath, 'server');
-    }
-
-    const nextSnapshot = bridgeState.discard('extension');
+    const { configPath } = await ensureBridgeSnapshot(process.cwd(), payload.configPath);
+    const nextSnapshot = bridgeState.discard(configPath, 'extension');
     return json({
       ok: true,
       version: nextSnapshot.version,

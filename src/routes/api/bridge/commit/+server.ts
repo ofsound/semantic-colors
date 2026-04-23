@@ -1,5 +1,6 @@
 import { error, json } from '@sveltejs/kit';
 import { ZodError } from 'zod';
+import { ensureBridgeSnapshot } from '$lib/server/bridge-workspace';
 import { bridgeState } from '$lib/server/bridge-state';
 import { bridgeCommitRequestSchema } from '$lib/server/contracts';
 import {
@@ -12,13 +13,7 @@ import type { RequestHandler } from './$types';
 export const POST: RequestHandler = async ({ request }) => {
   try {
     const payload = bridgeCommitRequestSchema.parse(await request.json());
-    const snapshot = bridgeState.snapshot();
-    const configPath = payload.configPath ?? snapshot.configPath;
-
-    if (!configPath) {
-      throw error(400, 'Draft commit requires an active project config path.');
-    }
-
+    const { configPath, snapshot } = await ensureBridgeSnapshot(process.cwd(), payload.configPath);
     const workspace = await loadWorkspaceState(process.cwd(), configPath);
     await saveWorkspaceState(
       process.cwd(),

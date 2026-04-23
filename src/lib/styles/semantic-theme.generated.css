@@ -44,7 +44,7 @@
 :root[data-theme='light'] {
   --theme-app: oklch(0.8382100606542399 0.18033975474652295 107.6266707931051);
   --theme-shell: oklch(0.965 0.008 95);
-  --theme-surface: oklch(0.998 0.003 95);
+  --theme-surface: oklch(0.258 0.092 26.042);
   --theme-surface-raised: oklch(0.976 0.01 95);
   --theme-surface-muted: oklch(0.945 0.012 95);
   --theme-surface-subtle: oklch(0.925 0.011 95);

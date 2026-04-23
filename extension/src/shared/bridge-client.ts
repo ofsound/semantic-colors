@@ -1,9 +1,10 @@
-import type { BridgeDraftCommand, BridgeSnapshot, OklchColor } from './types';
+import type { BridgeConfigState, BridgeDraftCommand, BridgeSnapshot, OklchColor } from './types';
 
 export type BridgeStatus = 'idle' | 'connecting' | 'connected' | 'error';
 
 export interface BridgeClientOptions {
   getBaseUrl: () => string;
+  getConfigPath: () => string;
   onStatus: (status: BridgeStatus, detail?: string) => void;
   onSnapshot: (snapshot: BridgeSnapshot) => void;
 }
@@ -33,8 +34,8 @@ export class BridgeClient {
     }
   }
 
-  async fetchSnapshot(): Promise<BridgeSnapshot> {
-    const response = await fetch(`${this.options.getBaseUrl()}/api/bridge/snapshot`, {
+  async fetchSnapshot(configPath = this.requireConfigPath()): Promise<BridgeSnapshot> {
+    const response = await fetch(this.snapshotUrl(configPath), {
       method: 'GET',
       cache: 'no-store'
     });
@@ -44,12 +45,46 @@ export class BridgeClient {
     return (await response.json()) as BridgeSnapshot;
   }
 
+  async fetchBridgeConfig(configPath = this.requireConfigPath()): Promise<BridgeConfigState> {
+    const response = await fetch(
+      `${this.options.getBaseUrl()}/api/bridge/config?configPath=${encodeURIComponent(configPath)}`,
+      {
+        method: 'GET',
+        cache: 'no-store'
+      }
+    );
+    if (!response.ok) {
+      throw new Error(`Bridge config request failed with status ${response.status}`);
+    }
+    return (await response.json()) as BridgeConfigState;
+  }
+
+  async updateBridgeConfig(
+    bridgeEnabled: boolean,
+    options: { configPath?: string } = {}
+  ): Promise<BridgeConfigState> {
+    const configPath = options.configPath ?? this.requireConfigPath();
+    const response = await fetch(`${this.options.getBaseUrl()}/api/bridge/config`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        configPath,
+        bridgeEnabled
+      })
+    });
+    if (!response.ok) {
+      throw new Error(`Bridge config update failed with status ${response.status}`);
+    }
+    return (await response.json()) as BridgeConfigState;
+  }
+
   async pushOverride(
     tokenId: string,
     mode: 'light' | 'dark' | 'both',
     color: OklchColor,
     options: { persist?: boolean; configPath?: string } = {}
   ): Promise<void> {
+    const configPath = options.configPath ?? this.requireConfigPath();
     const response = await fetch(`${this.options.getBaseUrl()}/api/bridge/token`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -58,7 +93,7 @@ export class BridgeClient {
         mode,
         color,
         persist: options.persist ?? false,
-        configPath: options.configPath
+        configPath
       })
     });
     if (!response.ok) {
@@ -70,11 +105,12 @@ export class BridgeClient {
     commands: BridgeDraftCommand[],
     options: { configPath?: string } = {}
   ): Promise<void> {
+    const configPath = options.configPath ?? this.requireConfigPath();
     const response = await fetch(`${this.options.getBaseUrl()}/api/bridge/draft`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        configPath: options.configPath,
+        configPath,
         commands
       })
     });
@@ -84,11 +120,12 @@ export class BridgeClient {
   }
 
   async commitDraft(options: { configPath?: string } = {}): Promise<void> {
+    const configPath = options.configPath ?? this.requireConfigPath();
     const response = await fetch(`${this.options.getBaseUrl()}/api/bridge/commit`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        configPath: options.configPath
+        configPath
       })
     });
     if (!response.ok) {
@@ -97,11 +134,12 @@ export class BridgeClient {
   }
 
   async discardDraft(options: { configPath?: string } = {}): Promise<void> {
+    const configPath = options.configPath ?? this.requireConfigPath();
     const response = await fetch(`${this.options.getBaseUrl()}/api/bridge/discard`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        configPath: options.configPath
+        configPath
       })
     });
     if (!response.ok) {
@@ -111,8 +149,14 @@ export class BridgeClient {
 
   private connect(): void {
     if (this.stopped) return;
+    const configPath = this.options.getConfigPath().trim();
+    if (!configPath) {
+      this.options.onStatus('idle', 'choose target config');
+      return;
+    }
+
     this.options.onStatus('connecting');
-    const url = `${this.options.getBaseUrl()}/api/bridge/events`;
+    const url = this.eventsUrl(configPath);
     try {
       this.source = new EventSource(url);
     } catch (error) {
@@ -158,5 +202,21 @@ export class BridgeClient {
       this.retryDelay = Math.min(this.retryDelay * 2, 15_000);
       this.connect();
     }, this.retryDelay);
+  }
+
+  private requireConfigPath(): string {
+    const configPath = this.options.getConfigPath().trim();
+    if (!configPath) {
+      throw new Error('Choose a target project config first.');
+    }
+    return configPath;
+  }
+
+  private snapshotUrl(configPath: string): string {
+    return `${this.options.getBaseUrl()}/api/bridge/snapshot?configPath=${encodeURIComponent(configPath)}`;
+  }
+
+  private eventsUrl(configPath: string): string {
+    return `${this.options.getBaseUrl()}/api/bridge/events?configPath=${encodeURIComponent(configPath)}`;
   }
 }

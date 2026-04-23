@@ -1,6 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 import { z, ZodError } from 'zod';
 import { applyBridgeDraftCommands, createTokenColorCommand } from '$lib/server/bridge-draft';
+import { ensureBridgeSnapshot } from '$lib/server/bridge-workspace';
 import { bridgeState } from '$lib/server/bridge-state';
 import {
   ProjectFilesAccessError,
@@ -29,32 +30,22 @@ const tokenRequestSchema = z
     mode: z.enum(['light', 'dark', 'both']),
     color: oklchSchema,
     persist: z.boolean().optional(),
-    configPath: z.string().optional()
+    configPath: z.string().trim().min(1)
   })
   .strict();
 
 export const POST: RequestHandler = async ({ request }) => {
   try {
     const payload = tokenRequestSchema.parse(await request.json());
-    let current = bridgeState.snapshot();
-    const configPath = payload.configPath || current.configPath;
+    const { configPath, snapshot } = await ensureBridgeSnapshot(process.cwd(), payload.configPath);
 
-    if (!current.configPath || (configPath && current.configPath !== configPath)) {
-      const workspace = await loadWorkspaceState(process.cwd(), configPath);
-      current = bridgeState.syncPersisted(workspace.manifest, workspace.configPath, 'server');
-    }
-
-    const nextManifest = applyBridgeDraftCommands(current.manifest, [
+    const nextManifest = applyBridgeDraftCommands(snapshot.manifest, [
       createTokenColorCommand(payload.tokenId, payload.mode, payload.color)
     ]);
 
-    if (payload.persist && !configPath) {
-      throw error(400, 'Persisted overrides require an active project config path.');
-    }
-
     const stagedSnapshot = bridgeState.stage(nextManifest, configPath, 'extension');
 
-    if (payload.persist && configPath) {
+    if (payload.persist) {
       const workspace = await loadWorkspaceState(process.cwd(), configPath);
       await saveWorkspaceState(
         process.cwd(),

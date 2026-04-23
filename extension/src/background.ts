@@ -4,6 +4,56 @@ import type { PanelToContentMessage } from './shared/types';
 
 const panelPorts = new Map<number, chrome.runtime.Port>();
 
+function postRelayError(port: chrome.runtime.Port, message: string): void {
+  const envelope: ContentMessageEnvelope = {
+    source: 'content',
+    payload: { kind: 'error', message }
+  };
+  try {
+    port.postMessage(envelope);
+  } catch {
+    // Ignore disconnect races.
+  }
+}
+
+function relayToTab(
+  tabId: number,
+  payload: PanelToContentMessage,
+  port: chrome.runtime.Port,
+  attemptedInjection = false
+): void {
+  chrome.tabs.sendMessage(tabId, payload, () => {
+    const lastError = chrome.runtime.lastError?.message;
+    if (!lastError) return;
+
+    const missingReceiver =
+      lastError.includes('Could not establish connection') ||
+      lastError.includes('Receiving end does not exist');
+
+    if (!attemptedInjection && missingReceiver) {
+      chrome.scripting.executeScript(
+        {
+          target: { tabId },
+          files: ['content-bridge.js']
+        },
+        () => {
+          if (chrome.runtime.lastError) {
+            postRelayError(
+              port,
+              `Failed to attach content bridge: ${chrome.runtime.lastError.message}`
+            );
+            return;
+          }
+          relayToTab(tabId, payload, port, true);
+        }
+      );
+      return;
+    }
+
+    postRelayError(port, `Unable to reach inspected page: ${lastError}`);
+  });
+}
+
 chrome.runtime.onConnect.addListener((port) => {
   if (!port.name.startsWith('panel:')) return;
   const tabId = Number(port.name.slice('panel:'.length));
@@ -15,11 +65,7 @@ chrome.runtime.onConnect.addListener((port) => {
     const envelope = message as PanelMessageEnvelope;
     if (envelope?.source !== 'panel') return;
     const targetTabId = envelope.tabId ?? tabId;
-    try {
-      chrome.tabs.sendMessage(targetTabId, envelope.payload satisfies PanelToContentMessage);
-    } catch {
-      // Tab might have navigated away or be restricted.
-    }
+    relayToTab(targetTabId, envelope.payload satisfies PanelToContentMessage, port);
   });
 
   port.onDisconnect.addListener(() => {
