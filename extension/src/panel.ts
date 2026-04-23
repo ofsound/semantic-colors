@@ -14,7 +14,6 @@ import {
 } from './shared/color';
 import {
   addAlias,
-  applyImportReview,
   primaryTokenFromSelection,
   removeAlias,
   resolvedModeForSnapshot,
@@ -35,7 +34,6 @@ import type {
   CoverageReport,
   HoverElementPayload,
   InPageDrawerSource,
-  ImportProposal,
   OklchColor,
   PanelToContentMessage,
   ThemeMode,
@@ -68,14 +66,9 @@ const state = {
   overrideMode: 'both' as 'light' | 'dark' | 'both',
   persistOverride: false,
   activeMode: null as ThemeMode | null,
-  tokenFilter: '',
   hoverActive: false,
-  hoveredElement: null as HoverElementPayload | null,
   selectedElement: null as HoverElementPayload | null,
   pageInfo: { url: '', title: '', theme: null as string | null },
-  importSourcePath: '',
-  importProposal: null as ImportProposal | null,
-  importSelection: {} as Record<string, string>,
   bridgeOutputEnabled: null as boolean | null,
   bridgeOutputPending: false,
   bridgeOutputStatus: 'Load target config' as string,
@@ -109,9 +102,6 @@ const el = {
   tabPanels: document.querySelectorAll<HTMLElement>('[data-tab-panel]'),
   hoverToggle: document.getElementById('hover-toggle') as HTMLInputElement,
   clearSelection: document.getElementById('clear-selection') as HTMLButtonElement,
-  pageInfo: document.getElementById('page-info') as HTMLDivElement,
-  selectionDetails: document.getElementById('selection-details') as HTMLDivElement,
-  hoverDetails: document.getElementById('hover-details') as HTMLDivElement,
   editorToken: document.getElementById('editor-token') as HTMLSelectElement,
   tokenEditor: document.getElementById('token-editor') as HTMLDivElement,
   tokenValidation: document.getElementById('token-validation') as HTMLDivElement,
@@ -119,14 +109,6 @@ const el = {
   aliasList: document.getElementById('alias-list') as HTMLDivElement,
   addAlias: document.getElementById('add-alias') as HTMLButtonElement,
   addAliasCurrent: document.getElementById('add-alias-current') as HTMLButtonElement,
-  importSourcePath: document.getElementById('import-source-path') as HTMLInputElement,
-  scanImport: document.getElementById('scan-import') as HTMLButtonElement,
-  applyImportReview: document.getElementById('apply-import-review') as HTMLButtonElement,
-  importStatus: document.getElementById('import-status') as HTMLDivElement,
-  importReview: document.getElementById('import-review') as HTMLDivElement,
-  tokenFilter: document.getElementById('token-filter') as HTMLInputElement,
-  tokenList: document.getElementById('token-list') as HTMLDivElement,
-  clearHighlight: document.getElementById('clear-highlight') as HTMLButtonElement,
   scanCoverage: document.getElementById('scan-coverage') as HTMLButtonElement,
   coverageSummary: document.getElementById('coverage-summary') as HTMLSpanElement,
   coverageOutput: document.getElementById('coverage-output') as HTMLDivElement,
@@ -229,7 +211,6 @@ function handleContentMessage(message: ContentToPanelMessage): void {
         title: message.title,
         theme: 'theme' in message ? message.theme : null
       };
-      renderPageInfo();
       if (state.snapshot) {
         pushSnapshotToContent();
       }
@@ -238,29 +219,24 @@ function handleContentMessage(message: ContentToPanelMessage): void {
       }
       break;
     case 'hover-element':
-      state.hoveredElement = message.payload;
-      renderInspect();
       break;
     case 'selected-element': {
       state.selectedElement = message.payload;
       const semanticClassTokenId = message.payload.semanticClassMatches[0]?.tokenId ?? null;
+      const primaryTokenId = primaryTokenFromSelection(message.payload);
       if (semanticClassTokenId) {
         state.focusedTokenId = semanticClassTokenId;
-        setActiveTab('authoring');
+      } else if (primaryTokenId) {
+        state.focusedTokenId = primaryTokenId;
       }
-      if (!state.focusedTokenId) {
-        state.focusedTokenId = primaryTokenFromSelection(message.payload) ?? state.focusedTokenId;
-      }
+      setActiveTab('authoring');
       renderAll();
       break;
     }
     case 'hover-cleared':
-      state.hoveredElement = null;
-      renderInspect();
       break;
     case 'selection-cleared':
       state.selectedElement = null;
-      renderInspect();
       break;
     case 'inpage-drawer-state':
       state.inPageDrawerVisible = message.visible;
@@ -273,7 +249,6 @@ function handleContentMessage(message: ContentToPanelMessage): void {
       clearCoverageScanTimeout();
       state.coverage = message.report;
       renderCoverage();
-      renderTokenList();
       break;
     case 'contrast-report':
       clearContrastAuditTimeout();
@@ -377,8 +352,6 @@ function clearBridgeSnapshotState(statusDetail?: string): void {
   state.highlightedToken = null;
   state.focusedTokenId = '';
   state.overrideTokenId = '';
-  state.importProposal = null;
-  state.importSelection = {};
   if (!state.targetConfigPath) {
     state.bridgeOutputEnabled = null;
     state.bridgeOutputStatus = 'Load target config';
@@ -574,7 +547,6 @@ el.hoverToggle.addEventListener('change', () => {
 el.clearSelection.addEventListener('click', () => {
   state.selectedElement = null;
   sendToContent({ kind: 'clear-selection' });
-  renderInspect();
 });
 
 el.toggleInPageDrawer.addEventListener('click', () => {
@@ -630,7 +602,6 @@ el.resetManifest.addEventListener('click', async () => {
 el.editorToken.addEventListener('change', () => {
   state.focusedTokenId = el.editorToken.value;
   renderAuthoring();
-  renderTokenList();
 });
 
 el.addAlias.addEventListener('click', async () => {
@@ -656,65 +627,6 @@ el.addAliasCurrent.addEventListener('click', async () => {
   } catch (error) {
     setConnectionStatus('error', error instanceof Error ? error.message : 'alias add failed');
   }
-});
-
-el.importSourcePath.addEventListener('input', () => {
-  state.importSourcePath = el.importSourcePath.value;
-});
-
-el.scanImport.addEventListener('click', async () => {
-  if (!state.snapshot || !state.importSourcePath.trim()) return;
-  el.importStatus.textContent = 'Scanning CSS variables...';
-  try {
-    const response = await fetch(`${state.bridgeUrl}/api/project/import`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        configPath: state.snapshot.configPath,
-        sourcePath: state.importSourcePath.trim()
-      })
-    });
-    if (!response.ok) {
-      throw new Error(`Import scan failed with status ${response.status}`);
-    }
-    state.importProposal = (await response.json()) as ImportProposal;
-    state.importSelection = Object.fromEntries(
-      state.importProposal.candidates.map((candidate) => [
-        candidate.sourceName,
-        candidate.suggestedTokenId ?? ''
-      ])
-    );
-    el.importStatus.textContent = `Loaded ${state.importProposal.candidates.length} candidates.`;
-    renderImportReview();
-  } catch (error) {
-    el.importStatus.textContent = error instanceof Error ? error.message : 'Import scan failed.';
-  }
-});
-
-el.applyImportReview.addEventListener('click', async () => {
-  if (!state.snapshot || !state.importProposal) return;
-  try {
-    await bridge.applyDraft([applyImportReview(state.importProposal, state.importSelection)], {
-      configPath: state.snapshot.configPath
-    });
-    state.importProposal = null;
-    state.importSelection = {};
-    el.importStatus.textContent = 'Applied reviewed mappings into the draft manifest.';
-    renderImportReview();
-  } catch (error) {
-    el.importStatus.textContent = error instanceof Error ? error.message : 'Import apply failed.';
-  }
-});
-
-el.tokenFilter.addEventListener('input', () => {
-  state.tokenFilter = el.tokenFilter.value.toLowerCase();
-  renderTokenList();
-});
-
-el.clearHighlight.addEventListener('click', () => {
-  state.highlightedToken = null;
-  sendToContent({ kind: 'highlight-token', tokenId: null });
-  renderTokenList();
 });
 
 el.scanCoverage.addEventListener('click', () => {
@@ -820,13 +732,9 @@ function renderAll(): void {
   renderBridgeOutputControl();
   renderInPageDrawerControl();
   renderDraftStatus();
-  renderPageInfo();
-  renderInspect();
   renderEditorTokenOptions();
   renderAuthoring();
   renderAliasList();
-  renderImportReview();
-  renderTokenList();
   renderCoverage();
   renderContrast();
   renderOverrideTokenOptions();
@@ -849,90 +757,6 @@ function renderDraftStatus(): void {
     ? `Target ${state.snapshot.configPath} · Draft dirty · base v${state.snapshot.draft.baseVersion} · last edit ${state.snapshot.draft.lastEditor}`
     : `Target ${state.snapshot.configPath} · Draft clean · synced at v${state.snapshot.version}`;
   el.draftStatus.textContent = status;
-}
-
-function renderPageInfo(): void {
-  el.pageInfo.textContent = state.pageInfo.url
-    ? `Inspecting: ${state.pageInfo.title || '(untitled)'} — ${state.pageInfo.url} · data-theme=${state.pageInfo.theme ?? '(none)'}`
-    : 'Waiting for inspected page to load...';
-}
-
-function swatch(color: string | null): string {
-  return color ? `<span class="swatch" style="background:${escapeHtml(color)}"></span>` : '';
-}
-
-function renderTokenMatches(payload: HoverElementPayload): string {
-  return `
-    <div class="token-match-list">
-      ${payload.matches
-        .map((match) => {
-          const label = match.tokenId ? escapeHtml(match.tokenId) : 'No token match';
-          const aliases = match.aliases.length ? ` · ${escapeHtml(match.aliases.join(', '))}` : '';
-          const button = match.tokenId
-            ? `<button type="button" data-focus-token="${escapeHtml(match.tokenId)}">${label}</button>`
-            : label;
-          return `
-            <div class="report-item">
-              <span>
-                <strong>${escapeHtml(match.channel)}</strong>
-                <div class="meta">${escapeHtml(match.cssValue ?? '—')}</div>
-              </span>
-              <span class="token-chip">${swatch(match.cssValue)} ${button}</span>
-              <span class="meta">${aliases || '—'}</span>
-            </div>
-          `;
-        })
-        .join('')}
-    </div>
-  `;
-}
-
-function attachTokenChipHandlers(root: ParentNode): void {
-  root.querySelectorAll<HTMLButtonElement>('[data-focus-token]').forEach((button) => {
-    button.addEventListener('click', () => {
-      const tokenId = button.dataset.focusToken;
-      if (!tokenId) return;
-      focusToken(tokenId, true, true);
-    });
-  });
-}
-
-function renderElementPanel(
-  container: HTMLElement,
-  payload: HoverElementPayload | null,
-  emptyText: string
-): void {
-  if (!payload) {
-    container.innerHTML = `<p class="empty-state">${escapeHtml(emptyText)}</p>`;
-    return;
-  }
-
-  const contrast = payload.contrastLc === null ? '—' : `${payload.contrastLc.toFixed(1)} Lc`;
-  container.innerHTML = `
-    <dl class="hover-grid">
-      <dt>Element</dt><dd><code>${escapeHtml(payload.selector)}</code></dd>
-      <dt>Colors</dt><dd>${swatch(payload.computedColor)} <code>${escapeHtml(payload.computedColor ?? '—')}</code></dd>
-      <dt>Background</dt><dd>${swatch(payload.computedBackground)} <code>${escapeHtml(payload.computedBackground ?? '—')}</code></dd>
-      <dt>Border</dt><dd>${swatch(payload.computedBorder)} <code>${escapeHtml(payload.computedBorder ?? '—')}</code></dd>
-      <dt>APCA</dt><dd>${contrast}</dd>
-    </dl>
-    <p class="report-subhead">Matched channels</p>
-    ${renderTokenMatches(payload)}
-  `;
-  attachTokenChipHandlers(container);
-}
-
-function renderInspect(): void {
-  renderElementPanel(
-    el.selectionDetails,
-    state.selectedElement,
-    'Click a page element while inspect mode is enabled to lock its context.'
-  );
-  renderElementPanel(
-    el.hoverDetails,
-    state.hoveredElement,
-    'Move your mouse over the inspected page to preview live token info.'
-  );
 }
 
 function tokenRecords(): TokenRecord[] {
@@ -1451,53 +1275,6 @@ function renderAliasList(): void {
   });
 }
 
-function renderImportReview(): void {
-  if (!state.importProposal) {
-    el.importReview.innerHTML =
-      '<p class="empty-state">Add a source CSS path, scan it, then review mappings before applying them to the draft.</p>';
-    return;
-  }
-
-  el.importReview.innerHTML = `
-    <div class="import-list">
-      ${state.importProposal.candidates
-        .map(
-          (candidate) => `
-            <div class="import-card">
-              <div>
-                <strong>--${escapeHtml(candidate.sourceName)}</strong>
-                <div class="meta">${escapeHtml(candidate.rawValue)}</div>
-                <div class="meta">${escapeHtml(candidate.reason)}</div>
-              </div>
-              <select data-import-source="${escapeHtml(candidate.sourceName)}">
-                <option value="">Skip mapping</option>
-                ${tokenRecords()
-                  .map(
-                    (token) => `
-                      <option value="${token.id}" ${state.importSelection[candidate.sourceName] === token.id ? 'selected' : ''}>
-                        ${escapeHtml(token.label)}
-                      </option>
-                    `
-                  )
-                  .join('')}
-              </select>
-              <span class="token-chip">${swatch(candidate.light ? oklchToCss(candidate.light) : null)} ${swatch(candidate.dark ? oklchToCss(candidate.dark) : null)}</span>
-            </div>
-          `
-        )
-        .join('')}
-    </div>
-  `;
-
-  el.importReview.querySelectorAll<HTMLSelectElement>('[data-import-source]').forEach((select) => {
-    select.addEventListener('change', () => {
-      const source = select.dataset.importSource;
-      if (!source) return;
-      state.importSelection[source] = select.value;
-    });
-  });
-}
-
 function focusToken(tokenId: string, reveal = false, switchToAuthoring = false): void {
   state.focusedTokenId = tokenId;
   if (switchToAuthoring) setActiveTab('authoring');
@@ -1506,63 +1283,6 @@ function focusToken(tokenId: string, reveal = false, switchToAuthoring = false):
     sendToContent({ kind: 'reveal-token-usage', tokenId });
   }
   renderAuthoring();
-  renderTokenList();
-}
-
-function renderTokenList(): void {
-  if (!state.snapshot) {
-    el.tokenList.innerHTML = '<p class="empty-state">Connect to the engine to load tokens.</p>';
-    return;
-  }
-
-  const mode = resolvedModeForPreview();
-  const resolved = state.snapshot.resolved[mode];
-  const filter = state.tokenFilter;
-  const parts: string[] = [];
-
-  for (const group of state.snapshot.tokenGroups) {
-    const ids = (state.snapshot.tokensByGroup[group] ?? []).filter((id) => id.includes(filter));
-    if (!ids.length) continue;
-    parts.push(`<div class="token-group-heading">${escapeHtml(group)}</div>`);
-    for (const tokenId of ids) {
-      const token = state.snapshot.manifest.tokens[tokenId];
-      if (!token) continue;
-      const count = state.coverage?.byToken[tokenId];
-      const classes = [
-        'token-row',
-        state.highlightedToken === tokenId ? 'is-highlighted' : '',
-        state.focusedTokenId === tokenId ? 'is-focused' : ''
-      ]
-        .filter(Boolean)
-        .join(' ');
-
-      parts.push(`
-        <button class="${classes}" data-token-id="${tokenId}" type="button">
-          <span class="swatch" style="background:${escapeHtml(resolved.colors[tokenId]?.css ?? '')}"></span>
-          <div>
-            <div class="token-name">${escapeHtml(token.label)}</div>
-            <div class="token-value">${escapeHtml(tokenId)} · ${escapeHtml(resolved.colors[tokenId]?.css ?? '')}</div>
-          </div>
-          <span class="token-count">${count === undefined ? '·' : `${count} used`}</span>
-          <span aria-hidden="true">›</span>
-        </button>
-      `);
-    }
-  }
-
-  el.tokenList.innerHTML = parts.join('');
-  el.tokenList.querySelectorAll<HTMLButtonElement>('[data-token-id]').forEach((button) => {
-    button.addEventListener('click', () => {
-      const tokenId = button.dataset.tokenId;
-      if (!tokenId) return;
-      const nextHighlighted = state.highlightedToken === tokenId ? null : tokenId;
-      state.highlightedToken = nextHighlighted;
-      state.focusedTokenId = tokenId;
-      sendToContent({ kind: 'highlight-token', tokenId: nextHighlighted });
-      renderTokenList();
-      renderAuthoring();
-    });
-  });
 }
 
 function renderCoverage(): void {
