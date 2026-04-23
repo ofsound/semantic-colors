@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Semantic Colors In-Page Preview</title>
+    <link rel="stylesheet" href="drawer.css" />
+  </head>
+  <body>
+    <header class="drawer-header">
+      <div>
+        <p class="eyebrow">Semantic Colors</p>
+        <h1>In-Page Preview</h1>
+      </div>
+      <button id="close-drawer" type="button" class="ghost" aria-label="Close preview">
+        Close
+      </button>
+    </header>
+
+    <section class="toolbar">
+      <div class="tabs" role="tablist" aria-label="Preview panels">
+        <button type="button" data-tab="preview" class="is-active" role="tab" aria-selected="true">
+          Preview
+        </button>
+        <button type="button" data-tab="tokens" role="tab" aria-selected="false">Tokens</button>
+      </div>
+      <div class="mode-badge" id="mode-label">Mode: Light</div>
+    </section>
+
+    <main id="drawer-content" class="drawer-content"></main>
+
+    <script src="drawer.js"></script>
+  </body>
+</html>

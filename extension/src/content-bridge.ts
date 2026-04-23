@@ -1,12 +1,18 @@
 import { apcaContrast, apcaSeverity, parseCssColor } from './shared/color';
 import {
   HIGHLIGHT_ATTR,
+  INPAGE_DRAWER_HOST_ID,
+  INPAGE_DRAWER_IFRAME_ID,
   INSPECTOR_OVERLAY_ID,
   INSPECTOR_STYLE_ID,
   PREVIEW_STYLE_ID,
   OVERRIDE_STYLE_ID,
   SELECTED_ATTR
 } from './shared/constants';
+import {
+  parseInPageDrawerFromFrameMessage,
+  toInPageDrawerEnvelope
+} from './shared/inpage-drawer-messaging';
 import type { ContentMessageEnvelope } from './shared/messaging';
 import type {
   BridgeSnapshot,
@@ -16,6 +22,7 @@ import type {
   CoverageReport,
   ElementTokenMatch,
   HoverElementPayload,
+  InPageDrawerToFrameMessage,
   SemanticClassMatch,
   PanelToContentMessage
 } from './shared/types';
@@ -25,13 +32,17 @@ const state = {
   hoverTarget: null as HTMLElement | null,
   selectedTarget: null as HTMLElement | null,
   highlightedToken: null as string | null,
+  focusedTokenId: null as string | null,
   snapshot: null as BridgeSnapshot | null,
   overrides: new Map<string, string>(),
   tokenColorMap: new Map<string, string>(),
   tokenCssByTokenId: new Map<string, string>(),
   tokenClassSet: new Set<string>(),
   aliasMap: new Map<string, string>(),
-  liveThemeBaseline: null as { hadAttribute: boolean; value: string | null } | null
+  liveThemeBaseline: null as { hadAttribute: boolean; value: string | null } | null,
+  inPageDrawerVisible: false,
+  inPageDrawerFrame: null as HTMLIFrameElement | null,
+  inPageDrawerReady: false
 };
 
 function send(message: ContentToPanelMessage): void {
@@ -41,6 +52,157 @@ function send(message: ContentToPanelMessage): void {
   } catch {
     // Extension context invalidated (e.g., reload). Ignore.
   }
+}
+
+function inPageDrawerOrigin(): string {
+  return new URL(chrome.runtime.getURL('')).origin;
+}
+
+function inPageDrawerFrameUrl(): string {
+  return chrome.runtime.getURL('drawer.html');
+}
+
+function sendToInPageDrawer(payload: InPageDrawerToFrameMessage): void {
+  const frame = state.inPageDrawerFrame;
+  if (!state.inPageDrawerVisible || !state.inPageDrawerReady || !frame?.contentWindow) return;
+
+  frame.contentWindow.postMessage(toInPageDrawerEnvelope(payload), inPageDrawerOrigin());
+}
+
+function syncInPageDrawerSnapshot(): void {
+  sendToInPageDrawer({
+    kind: 'snapshot:update',
+    snapshot: state.snapshot,
+    mode: previewMode(),
+    highlightedTokenId: state.highlightedToken,
+    focusedTokenId: state.focusedTokenId
+  });
+}
+
+function syncInPageDrawerMode(): void {
+  sendToInPageDrawer({
+    kind: 'mode:update',
+    mode: previewMode()
+  });
+}
+
+function syncInPageDrawerHighlight(): void {
+  sendToInPageDrawer({
+    kind: 'token:highlight',
+    tokenId: state.highlightedToken
+  });
+}
+
+function syncInPageDrawerFocus(): void {
+  sendToInPageDrawer({
+    kind: 'token:focus',
+    tokenId: state.focusedTokenId
+  });
+}
+
+function handleInPageDrawerMessage(event: MessageEvent): void {
+  if (!state.inPageDrawerVisible) return;
+  if (event.origin !== inPageDrawerOrigin()) return;
+  if (
+    !state.inPageDrawerFrame?.contentWindow ||
+    event.source !== state.inPageDrawerFrame.contentWindow
+  )
+    return;
+
+  const message = parseInPageDrawerFromFrameMessage(event.data);
+  if (!message) return;
+
+  switch (message.kind) {
+    case 'token:focus':
+      state.focusedTokenId = message.tokenId;
+      state.highlightedToken = message.tokenId;
+      highlightToken(message.tokenId);
+      send({
+        kind: 'inpage-token-focus',
+        tokenId: message.tokenId,
+        source: message.source
+      });
+      syncInPageDrawerSnapshot();
+      break;
+    case 'drawer:close':
+      setInPageDrawerVisible(false);
+      break;
+    default:
+      break;
+  }
+}
+
+function ensureInPageDrawerHost(): HTMLIFrameElement {
+  let host = document.getElementById(INPAGE_DRAWER_HOST_ID) as HTMLDivElement | null;
+  if (!host) {
+    host = document.createElement('div');
+    host.id = INPAGE_DRAWER_HOST_ID;
+    host.style.position = 'fixed';
+    host.style.top = '0';
+    host.style.left = '0';
+    host.style.right = '0';
+    host.style.bottom = '0';
+    host.style.width = '100vw';
+    host.style.height = '100vh';
+    host.style.zIndex = '2147483647';
+    host.style.borderLeft = '0';
+    host.style.boxShadow = '0 22px 44px rgba(0, 0, 0, 0.45)';
+    host.style.background = 'var(--theme-app, #f5f5f3)';
+    host.style.backdropFilter = 'none';
+    host.style.overflow = 'hidden';
+    document.documentElement.appendChild(host);
+  }
+
+  let frame = host.querySelector<HTMLIFrameElement>(`#${INPAGE_DRAWER_IFRAME_ID}`);
+  if (!frame) {
+    frame = document.createElement('iframe');
+    frame.id = INPAGE_DRAWER_IFRAME_ID;
+    frame.src = inPageDrawerFrameUrl();
+    frame.title = 'Semantic colors in-page preview';
+    frame.style.width = '100%';
+    frame.style.height = '100%';
+    frame.style.border = '0';
+    frame.style.background = 'transparent';
+    frame.style.display = 'block';
+    frame.referrerPolicy = 'no-referrer';
+    frame.addEventListener('load', () => {
+      state.inPageDrawerReady = true;
+      syncInPageDrawerSnapshot();
+    });
+    host.appendChild(frame);
+  }
+
+  return frame;
+}
+
+function setInPageDrawerVisible(visible: boolean): void {
+  if (state.inPageDrawerVisible === visible) {
+    if (visible) {
+      syncInPageDrawerSnapshot();
+      syncInPageDrawerMode();
+      syncInPageDrawerHighlight();
+      syncInPageDrawerFocus();
+      send({ kind: 'inpage-drawer-state', visible: true });
+    } else {
+      send({ kind: 'inpage-drawer-state', visible: false });
+    }
+    return;
+  }
+
+  state.inPageDrawerVisible = visible;
+  if (visible) {
+    state.inPageDrawerReady = false;
+    state.inPageDrawerFrame = ensureInPageDrawerHost();
+    syncInPageDrawerMode();
+    syncInPageDrawerHighlight();
+    syncInPageDrawerFocus();
+  } else {
+    state.inPageDrawerReady = false;
+    state.inPageDrawerFrame = null;
+    document.getElementById(INPAGE_DRAWER_HOST_ID)?.remove();
+  }
+
+  send({ kind: 'inpage-drawer-state', visible });
 }
 
 function normalizeRgb(input: string | null): string | null {
@@ -381,7 +543,10 @@ function clearHighlights(): void {
 function highlightToken(tokenId: string | null): void {
   clearHighlights();
   state.highlightedToken = tokenId;
-  if (!tokenId) return;
+  if (!tokenId) {
+    syncInPageDrawerHighlight();
+    return;
+  }
   ensureInspectorStyle();
 
   const elements = document.querySelectorAll<HTMLElement>('body *');
@@ -395,6 +560,7 @@ function highlightToken(tokenId: string | null): void {
       el.setAttribute(HIGHLIGHT_ATTR, '1');
     }
   });
+  syncInPageDrawerHighlight();
 }
 
 function setThemeMode(mode: string | null): void {
@@ -424,6 +590,8 @@ function setThemeMode(mode: string | null): void {
   flushPreviewStyle();
   emitSelectionPayload();
   emitHoverPayload();
+  syncInPageDrawerMode();
+  syncInPageDrawerSnapshot();
 }
 
 function previewMode(): 'light' | 'dark' | 'alt' {
@@ -551,11 +719,13 @@ function applySnapshot(snapshot: BridgeSnapshot): void {
   flushPreviewStyle();
   emitSelectionPayload();
   emitHoverPayload();
+  syncInPageDrawerSnapshot();
 }
 
 function clearSnapshot(): void {
   state.snapshot = null;
   state.highlightedToken = null;
+  state.focusedTokenId = null;
   state.tokenColorMap.clear();
   state.tokenCssByTokenId.clear();
   state.tokenClassSet.clear();
@@ -563,6 +733,7 @@ function clearSnapshot(): void {
   flushPreviewStyle();
   emitSelectionPayload();
   emitHoverPayload();
+  syncInPageDrawerSnapshot();
 }
 
 function rootCustomProperties(): Record<string, string> {
@@ -686,9 +857,13 @@ function handlePanelMessage(message: PanelToContentMessage): void {
         title: document.title,
         theme: document.documentElement.dataset.theme ?? null
       });
+      send({ kind: 'inpage-drawer-state', visible: state.inPageDrawerVisible });
       break;
     case 'clear-snapshot':
       clearSnapshot();
+      break;
+    case 'set-inpage-drawer':
+      setInPageDrawerVisible(message.visible);
       break;
     case 'hover-inspector':
       setHoverActive(message.enabled);
@@ -700,9 +875,15 @@ function handlePanelMessage(message: PanelToContentMessage): void {
       setSelectedTarget(null);
       break;
     case 'highlight-token':
+      state.focusedTokenId = message.tokenId;
+      highlightToken(message.tokenId);
+      syncInPageDrawerFocus();
+      break;
     case 'focus-token':
     case 'reveal-token-usage':
+      state.focusedTokenId = message.tokenId;
       highlightToken(message.tokenId);
+      syncInPageDrawerFocus();
       break;
     case 'override-token':
       setOverride(message.tokenId, message.css);
@@ -732,6 +913,8 @@ function handlePanelMessage(message: PanelToContentMessage): void {
       break;
   }
 }
+
+window.addEventListener('message', handleInPageDrawerMessage);
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   try {

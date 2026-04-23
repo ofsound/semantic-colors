@@ -11,6 +11,12 @@
   "background": {
     "service_worker": "background.js"
   },
+  "web_accessible_resources": [
+    {
+      "resources": ["drawer.html", "drawer.css", "drawer.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "devtools_page": "devtools.html",
   "content_scripts": [
     {

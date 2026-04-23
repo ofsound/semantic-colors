@@ -14,6 +14,7 @@ const entryPoints = {
   background: path.join(srcDir, 'background.ts'),
   devtools: path.join(srcDir, 'devtools.ts'),
   panel: path.join(srcDir, 'panel.ts'),
+  drawer: path.join(srcDir, 'drawer.ts'),
   'content-bridge': path.join(srcDir, 'content-bridge.ts')
 };
 
@@ -23,6 +24,8 @@ async function copyStatic() {
   await cp(path.join(srcDir, 'devtools.html'), path.join(distDir, 'devtools.html'));
   await cp(path.join(srcDir, 'panel.html'), path.join(distDir, 'panel.html'));
   await cp(path.join(srcDir, 'panel.css'), path.join(distDir, 'panel.css'));
+  await cp(path.join(srcDir, 'drawer.html'), path.join(distDir, 'drawer.html'));
+  await cp(path.join(srcDir, 'drawer.css'), path.join(distDir, 'drawer.css'));
 }
 
 const buildOptions = {

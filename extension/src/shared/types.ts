@@ -188,11 +188,45 @@ export interface BridgeConfigState {
   bridgeEnabled: boolean;
 }
 
+export type InPageDrawerSource = 'preview' | 'tokens';
+
+export type InPageDrawerToFrameMessage =
+  | {
+      kind: 'snapshot:update';
+      snapshot: BridgeSnapshot | null;
+      mode: ThemeMode;
+      highlightedTokenId: string | null;
+      focusedTokenId: string | null;
+    }
+  | {
+      kind: 'mode:update';
+      mode: ThemeMode;
+    }
+  | {
+      kind: 'token:highlight';
+      tokenId: string | null;
+    }
+  | {
+      kind: 'token:focus';
+      tokenId: string | null;
+    };
+
+export type InPageDrawerFromFrameMessage =
+  | {
+      kind: 'token:focus';
+      tokenId: string;
+      source: InPageDrawerSource;
+    }
+  | {
+      kind: 'drawer:close';
+    };
+
 // Message envelopes between panel <-> content-bridge (relayed by background).
 
 export type PanelToContentMessage =
   | { kind: 'ping' }
   | { kind: 'clear-snapshot' }
+  | { kind: 'set-inpage-drawer'; visible: boolean }
   | { kind: 'set-theme'; mode: ThemeMode | null }
   | { kind: 'hover-inspector'; enabled: boolean }
   | { kind: 'select-element' }
@@ -221,6 +255,8 @@ export type ContentToPanelMessage =
   | { kind: 'selected-element'; payload: HoverElementPayload }
   | { kind: 'hover-cleared' }
   | { kind: 'selection-cleared' }
+  | { kind: 'inpage-drawer-state'; visible: boolean }
+  | { kind: 'inpage-token-focus'; tokenId: string; source: InPageDrawerSource }
   | { kind: 'coverage-report'; report: CoverageReport }
   | { kind: 'contrast-report'; report: ContrastReport }
   | { kind: 'page-info'; url: string; title: string; theme: string | null }

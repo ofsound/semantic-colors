@@ -12,3 +12,5 @@ export const INSPECTOR_OVERLAY_ID = 'semantic-colors-inspector-overlay';
 export const INSPECTOR_STYLE_ID = 'semantic-colors-inspector-style';
 export const PREVIEW_STYLE_ID = 'semantic-colors-preview-style';
 export const OVERRIDE_STYLE_ID = 'semantic-colors-override-style';
+export const INPAGE_DRAWER_HOST_ID = 'semantic-colors-inpage-drawer-host';
+export const INPAGE_DRAWER_IFRAME_ID = 'semantic-colors-inpage-drawer-iframe';

@@ -34,6 +34,7 @@ import type {
   ContrastReport,
   CoverageReport,
   HoverElementPayload,
+  InPageDrawerSource,
   ImportProposal,
   OklchColor,
   PanelToContentMessage,
@@ -78,6 +79,7 @@ const state = {
   bridgeOutputEnabled: null as boolean | null,
   bridgeOutputPending: false,
   bridgeOutputStatus: 'Load target config' as string,
+  inPageDrawerVisible: false,
   coverageScanTimeout: null as number | null,
   contrastAuditTimeout: null as number | null,
   pickerDrag: null as {
@@ -95,6 +97,8 @@ const el = {
   targetConfigLoad: document.getElementById('target-config-load') as HTMLButtonElement,
   bridgeOutputEnabled: document.getElementById('bridge-output-enabled') as HTMLInputElement,
   bridgeOutputStatus: document.getElementById('bridge-output-status') as HTMLSpanElement,
+  toggleInPageDrawer: document.getElementById('toggle-inpage-drawer') as HTMLButtonElement,
+  inPageDrawerStatus: document.getElementById('inpage-drawer-status') as HTMLSpanElement,
   targetConfigOptions: document.getElementById('recent-target-configs') as HTMLDataListElement,
   modeSwitch: document.querySelector('.mode-switch') as HTMLElement,
   draftStatus: document.getElementById('draft-status') as HTMLDivElement,
@@ -226,7 +230,12 @@ function handleContentMessage(message: ContentToPanelMessage): void {
         theme: 'theme' in message ? message.theme : null
       };
       renderPageInfo();
-      if (state.snapshot) pushSnapshotToContent();
+      if (state.snapshot) {
+        pushSnapshotToContent();
+      }
+      if (state.inPageDrawerVisible) {
+        sendToContent({ kind: 'set-inpage-drawer', visible: true });
+      }
       break;
     case 'hover-element':
       state.hoveredElement = message.payload;
@@ -253,6 +262,13 @@ function handleContentMessage(message: ContentToPanelMessage): void {
       state.selectedElement = null;
       renderInspect();
       break;
+    case 'inpage-drawer-state':
+      state.inPageDrawerVisible = message.visible;
+      renderInPageDrawerControl();
+      break;
+    case 'inpage-token-focus':
+      focusTokenFromInPageDrawer(message.tokenId, message.source);
+      break;
     case 'coverage-report':
       clearCoverageScanTimeout();
       state.coverage = message.report;
@@ -275,6 +291,13 @@ function handleContentMessage(message: ContentToPanelMessage): void {
         el.contrastSummary.textContent = `Audit failed: ${message.message}`;
       }
       break;
+  }
+}
+
+function focusTokenFromInPageDrawer(tokenId: string, source: InPageDrawerSource): void {
+  focusToken(tokenId, true, true);
+  if (source === 'preview') {
+    sendToContent({ kind: 'focus-token', tokenId });
   }
 }
 
@@ -336,6 +359,13 @@ function renderBridgeOutputControl(): void {
   el.bridgeOutputEnabled.indeterminate = hasTargetConfig && state.bridgeOutputEnabled === null;
   el.bridgeOutputEnabled.checked = state.bridgeOutputEnabled ?? false;
   el.bridgeOutputStatus.textContent = bridgeOutputStatusText();
+}
+
+function renderInPageDrawerControl(): void {
+  el.toggleInPageDrawer.textContent = state.inPageDrawerVisible
+    ? 'Hide in-page preview'
+    : 'Show in-page preview';
+  el.inPageDrawerStatus.textContent = state.inPageDrawerVisible ? 'Visible' : 'Hidden';
 }
 
 function clearBridgeSnapshotState(statusDetail?: string): void {
@@ -545,6 +575,15 @@ el.clearSelection.addEventListener('click', () => {
   state.selectedElement = null;
   sendToContent({ kind: 'clear-selection' });
   renderInspect();
+});
+
+el.toggleInPageDrawer.addEventListener('click', () => {
+  state.inPageDrawerVisible = !state.inPageDrawerVisible;
+  renderInPageDrawerControl();
+  sendToContent({ kind: 'set-inpage-drawer', visible: state.inPageDrawerVisible });
+  if (state.inPageDrawerVisible && state.snapshot) {
+    pushSnapshotToContent();
+  }
 });
 
 el.targetConfigLoad.addEventListener('click', async () => {
@@ -779,6 +818,7 @@ function pushSnapshotToContent(): void {
 
 function renderAll(): void {
   renderBridgeOutputControl();
+  renderInPageDrawerControl();
   renderDraftStatus();
   renderPageInfo();
   renderInspect();
