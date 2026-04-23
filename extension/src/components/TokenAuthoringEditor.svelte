@@ -21,7 +21,8 @@
   } = $props();
 
   // svelte-ignore state_referenced_locally
-  let manifest = $state(structuredClone(snapshot.manifest) as ThemeManifest);
+  // `snapshot.manifest` can be a Svelte deep-reactive Proxy; structuredClone throws DataCloneError on proxies.
+  let manifest = $state(JSON.parse(JSON.stringify(snapshot.manifest)) as ThemeManifest);
 
   const typedSelectedTokenId = $derived(selectedTokenId as TokenId);
   const currentTokenAlt = $derived<OklchColor>(snapshot.resolved.alt.colors[typedSelectedTokenId]);

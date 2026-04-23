@@ -103,14 +103,50 @@ code {
 }
 
 .app-header {
-  display: grid;
-  grid-template-columns: 1fr 2fr auto;
-  gap: 12px;
-  align-items: center;
-  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border);
   background: rgba(23, 27, 36, 0.94);
   backdrop-filter: blur(12px);
+}
+
+.header-status {
+  display: flex;
+  align-items: center;
+  min-height: 22px;
+}
+
+.header-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.header-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.02);
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.header-group .mode-switch {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+}
+
+.header-group-preview {
+  flex: 1 1 220px;
+  justify-content: flex-start;
+  gap: 10px;
 }
 
 .brand {
@@ -132,22 +168,11 @@ code {
   box-shadow: 0 0 12px rgba(120, 166, 255, 0.55);
 }
 
-.connection {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  justify-content: flex-start;
-  flex-wrap: wrap;
-}
-
 .inspect-controls {
   display: inline-flex;
   gap: 8px;
   align-items: center;
-  padding: 4px 8px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.02);
+  flex-wrap: wrap;
 }
 
 .bridge-url {
@@ -160,6 +185,48 @@ code {
 
 .bridge-url input {
   min-width: 180px;
+}
+
+.connect-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.connect-block {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.connect-label.bridge-url {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  align-items: stretch;
+  flex: 1 1 200px;
+  min-width: 0;
+  width: 100%;
+}
+
+.connect-label.bridge-url input {
+  min-width: 0;
+  width: 100%;
+}
+
+.connect-action {
+  flex: 0 0 auto;
+}
+
+.connect-output-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: center;
+  padding-top: 12px;
+  margin-top: 2px;
+  border-top: 1px solid var(--border);
 }
 
 .mode-switch {
@@ -211,9 +278,9 @@ code {
 .draft-bar {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px 12px;
   align-items: center;
-  padding: 10px 14px;
+  padding: 8px 14px;
   border-bottom: 1px solid var(--border);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
 }

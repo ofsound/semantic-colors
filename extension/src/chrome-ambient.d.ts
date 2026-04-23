@@ -91,9 +91,21 @@ declare namespace chrome {
         pagePath: string,
         callback?: (panel: ExtensionPanel) => void
       ): void;
+
+      namespace elements {
+        const onSelectionChanged: {
+          addListener(listener: () => void): void;
+          removeListener(listener: () => void): void;
+        };
+      }
     }
     namespace inspectedWindow {
       const tabId: number;
+      function eval(
+        expression: string,
+        options: { useContentScriptContext?: boolean },
+        callback?: (result: unknown, exceptionInfo?: unknown) => void
+      ): void;
       function eval(
         expression: string,
         callback?: (result: unknown, exceptionInfo?: unknown) => void

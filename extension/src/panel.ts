@@ -35,6 +35,10 @@ import './panel-ui.css';
 const tabId = chrome.devtools.inspectedWindow.tabId;
 const COVERAGE_SCAN_TIMEOUT_MS = 12000;
 const CONTRAST_AUDIT_TIMEOUT_MS = 12000;
+const ELEMENTS_SELECTION_DEBOUNCE_MS = 50;
+/** Runs in the content-script world so it can read snapshot token maps; `$0` is the Elements panel selection. */
+const DEVTOOLS_PAYLOAD_EVAL =
+  'typeof __semanticColorsDevtoolsPayload === "function" && $0 instanceof HTMLElement ? __semanticColorsDevtoolsPayload($0) : null';
 
 const state = {
   bridgeUrl: DEFAULT_BRIDGE_URL,
@@ -202,6 +206,79 @@ function clearContrastAuditTimeout(): void {
   state.contrastAuditTimeout = null;
 }
 
+function isHoverElementPayload(value: unknown): value is HoverElementPayload {
+  if (!value || typeof value !== 'object') return false;
+  const o = value as Record<string, unknown>;
+  return (
+    typeof o.tagName === 'string' &&
+    Array.isArray(o.matches) &&
+    Array.isArray(o.semanticClassMatches) &&
+    typeof o.rect === 'object' &&
+    o.rect !== null
+  );
+}
+
+function applySelectedElementPayload(payload: HoverElementPayload): void {
+  state.selectedElement = payload;
+  const semanticClassTokenId = payload.semanticClassMatches[0]?.tokenId ?? null;
+  const primaryTokenId = primaryTokenFromSelection(payload);
+  if (semanticClassTokenId) {
+    state.focusedTokenId = semanticClassTokenId;
+  } else if (primaryTokenId) {
+    state.focusedTokenId = primaryTokenId;
+  }
+  setActiveTab('token');
+  renderAll();
+}
+
+/** Elements-only selection path: clear context without changing focused token when no DOM node. */
+function clearDevtoolsElementsSelectionContext(): void {
+  state.selectedElement = null;
+  renderAll();
+}
+
+let elementsSelectionDebounce: number | null = null;
+
+function scheduleSyncTokenFromElementsSelection(): void {
+  if (elementsSelectionDebounce !== null) {
+    window.clearTimeout(elementsSelectionDebounce);
+  }
+  elementsSelectionDebounce = window.setTimeout(() => {
+    elementsSelectionDebounce = null;
+    syncTokenFromElementsSelection();
+  }, ELEMENTS_SELECTION_DEBOUNCE_MS);
+}
+
+function syncTokenFromElementsSelection(): void {
+  try {
+    chrome.devtools.inspectedWindow.eval(
+      DEVTOOLS_PAYLOAD_EVAL,
+      { useContentScriptContext: true },
+      (result, exceptionInfo) => {
+        const ex = exceptionInfo as { isException?: boolean } | undefined;
+        if (ex && typeof ex === 'object' && ex.isException) {
+          return;
+        }
+        if (isHoverElementPayload(result)) {
+          applySelectedElementPayload(result);
+          return;
+        }
+        if (result === null || result === undefined) {
+          clearDevtoolsElementsSelectionContext();
+        }
+      }
+    );
+  } catch {
+    // Ignore eval failures (e.g. extension context invalidated).
+  }
+}
+
+function registerElementsSelectionSync(): void {
+  const onSelectionChanged = chrome.devtools?.panels?.elements?.onSelectionChanged;
+  if (!onSelectionChanged?.addListener) return;
+  onSelectionChanged.addListener(scheduleSyncTokenFromElementsSelection);
+}
+
 function handleContentMessage(message: ContentToPanelMessage): void {
   switch (message.kind) {
     case 'hello':
@@ -220,19 +297,9 @@ function handleContentMessage(message: ContentToPanelMessage): void {
       break;
     case 'hover-element':
       break;
-    case 'selected-element': {
-      state.selectedElement = message.payload;
-      const semanticClassTokenId = message.payload.semanticClassMatches[0]?.tokenId ?? null;
-      const primaryTokenId = primaryTokenFromSelection(message.payload);
-      if (semanticClassTokenId) {
-        state.focusedTokenId = semanticClassTokenId;
-      } else if (primaryTokenId) {
-        state.focusedTokenId = primaryTokenId;
-      }
-      setActiveTab('token');
-      renderAll();
+    case 'selected-element':
+      applySelectedElementPayload(message.payload);
       break;
-    }
     case 'hover-cleared':
       break;
     case 'selection-cleared':
@@ -807,26 +874,26 @@ function renderAliasList(): void {
   el.aliasList.innerHTML = `
     <div class="alias-list">
       ${state.snapshot.manifest.aliases
-        .map(
-          (alias, index) => `
+      .map(
+        (alias, index) => `
             <div class="alias-row">
               <input type="text" value="${escapeHtml(alias.name)}" data-alias-index="${index}" data-alias-field="name" />
               <select data-alias-index="${index}" data-alias-field="tokenId">
                 ${tokenRecords()
-                  .map(
-                    (token) => `
+            .map(
+              (token) => `
                       <option value="${token.id}" ${token.id === alias.tokenId ? 'selected' : ''}>
                         ${escapeHtml(token.label)}
                       </option>
                     `
-                  )
-                  .join('')}
+            )
+            .join('')}
               </select>
               <button type="button" data-remove-alias="${index}" class="secondary">Remove</button>
             </div>
           `
-        )
-        .join('')}
+      )
+      .join('')}
     </div>
   `;
 
@@ -904,34 +971,34 @@ function renderCoverage(): void {
     <p class="report-subhead">Most used tokens</p>
     <div class="report-list">
       ${top
-        .map(
-          ([tokenId, count]) =>
-            `<div class="report-item"><span>${escapeHtml(tokenId)}</span><span class="meta">${count} elements</span><span></span></div>`
-        )
-        .join('')}
+      .map(
+        ([tokenId, count]) =>
+          `<div class="report-item"><span>${escapeHtml(tokenId)}</span><span class="meta">${count} elements</span><span></span></div>`
+      )
+      .join('')}
     </div>
     <p class="report-subhead">Unused tokens (${unused.length})</p>
     <div class="report-list">
       ${unused
-        .map(
-          (tokenId) =>
-            `<div class="report-item"><span>${escapeHtml(tokenId)}</span><span class="meta">0</span><span></span></div>`
-        )
-        .join('')}
+      .map(
+        (tokenId) =>
+          `<div class="report-item"><span>${escapeHtml(tokenId)}</span><span class="meta">0</span><span></span></div>`
+      )
+      .join('')}
     </div>
     <p class="report-subhead">Raw color violations (${violations.length})</p>
     <div class="report-list">
       ${violations
-        .map(
-          (violation) => `
+      .map(
+        (violation) => `
             <div class="report-item severity-warn">
               <span><code>${escapeHtml(violation.selector)}</code></span>
               <span class="meta">${escapeHtml(violation.property)}: ${escapeHtml(violation.value)}</span>
               <span></span>
             </div>
           `
-        )
-        .join('')}
+      )
+      .join('')}
     </div>
   `;
 }
@@ -953,8 +1020,8 @@ function renderContrast(): void {
   el.contrastOutput.innerHTML = `
     <div class="report-list">
       ${state.contrast.findings
-        .map(
-          (finding) => `
+      .map(
+        (finding) => `
             <div class="report-item severity-${finding.severity}">
               <span>
                 <code>${escapeHtml(finding.selector)}</code>
@@ -964,8 +1031,8 @@ function renderContrast(): void {
               <span class="meta">${finding.contrastLc.toFixed(1)} Lc</span>
             </div>
           `
-        )
-        .join('')}
+      )
+      .join('')}
     </div>
   `;
 }
@@ -1022,10 +1089,10 @@ function renderOverrideSliders(): void {
     max: number;
     step: number;
   }> = [
-    { key: 'l', label: 'Lightness', min: 0, max: 1, step: 0.001 },
-    { key: 'c', label: 'Chroma', min: 0, max: 0.4, step: 0.001 },
-    { key: 'h', label: 'Hue', min: 0, max: 360, step: 0.1 }
-  ];
+      { key: 'l', label: 'Lightness', min: 0, max: 1, step: 0.001 },
+      { key: 'c', label: 'Chroma', min: 0, max: 0.4, step: 0.001 },
+      { key: 'h', label: 'Hue', min: 0, max: 360, step: 0.1 }
+    ];
 
   el.overrideSliders.innerHTML = `
     <div class="preview-row">
@@ -1037,16 +1104,16 @@ function renderOverrideSliders(): void {
     </div>
     <div class="editor-block">
       ${channels
-        .map(
-          (channel) => `
+      .map(
+        (channel) => `
             <div class="slider-row">
               <span>${channel.label}</span>
               <input type="range" min="${channel.min}" max="${channel.max}" step="${channel.step}" value="${color[channel.key]}" data-override-channel="${channel.key}" />
               <span class="readout">${color[channel.key].toFixed(channel.key === 'h' ? 2 : 3)}</span>
             </div>
           `
-        )
-        .join('')}
+      )
+      .join('')}
     </div>
   `;
 
@@ -1098,4 +1165,5 @@ function escapeHtml(text: string): string {
   }
   sendToContent({ kind: 'ping' });
   renderAll();
+  registerElementsSelectionSync();
 })();

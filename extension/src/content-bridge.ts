@@ -54,19 +54,30 @@ function send(message: ContentToPanelMessage): void {
   }
 }
 
-function inPageDrawerOrigin(): string {
-  return new URL(chrome.runtime.getURL('')).origin;
+/** `chrome.runtime.getURL` throws after extension reload while old content scripts still run. */
+function extensionOrigin(): string | null {
+  try {
+    return new URL(chrome.runtime.getURL('')).origin;
+  } catch {
+    return null;
+  }
 }
 
-function inPageDrawerFrameUrl(): string {
-  return chrome.runtime.getURL('drawer.html');
+function inPageDrawerFrameUrl(): string | null {
+  try {
+    return chrome.runtime.getURL('drawer.html');
+  } catch {
+    return null;
+  }
 }
 
 function sendToInPageDrawer(payload: InPageDrawerToFrameMessage): void {
   const frame = state.inPageDrawerFrame;
   if (!state.inPageDrawerVisible || !state.inPageDrawerReady || !frame?.contentWindow) return;
+  const origin = extensionOrigin();
+  if (!origin) return;
 
-  frame.contentWindow.postMessage(toInPageDrawerEnvelope(payload), inPageDrawerOrigin());
+  frame.contentWindow.postMessage(toInPageDrawerEnvelope(payload), origin);
 }
 
 function syncInPageDrawerSnapshot(): void {
@@ -102,7 +113,8 @@ function syncInPageDrawerFocus(): void {
 
 function handleInPageDrawerMessage(event: MessageEvent): void {
   if (!state.inPageDrawerVisible) return;
-  if (event.origin !== inPageDrawerOrigin()) return;
+  const expectedOrigin = extensionOrigin();
+  if (!expectedOrigin || event.origin !== expectedOrigin) return;
   if (
     !state.inPageDrawerFrame?.contentWindow ||
     event.source !== state.inPageDrawerFrame.contentWindow
@@ -157,7 +169,7 @@ function ensureInPageDrawerHost(): HTMLIFrameElement {
   if (!frame) {
     frame = document.createElement('iframe');
     frame.id = INPAGE_DRAWER_IFRAME_ID;
-    frame.src = inPageDrawerFrameUrl();
+    frame.src = inPageDrawerFrameUrl() ?? '';
     frame.title = 'Semantic colors in-page preview';
     frame.style.width = '100%';
     frame.style.height = '100%';
@@ -461,6 +473,13 @@ function buildElementPayload(el: HTMLElement, selected: boolean): HoverElementPa
     rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
   };
 }
+
+/** Invoked only from the DevTools panel via `inspectedWindow.eval(..., { useContentScriptContext: true })` with `$0`. */
+const __semanticColorsDevtoolsPayload = (el: unknown): HoverElementPayload | null =>
+  el instanceof HTMLElement ? buildElementPayload(el, true) : null;
+(globalThis as Record<string, typeof __semanticColorsDevtoolsPayload>)[
+  '__semanticColorsDevtoolsPayload'
+] = __semanticColorsDevtoolsPayload;
 
 function emitSelectionPayload(): void {
   if (!state.selectedTarget) return;
@@ -917,15 +936,22 @@ function handlePanelMessage(message: PanelToContentMessage): void {
 window.addEventListener('message', handleInPageDrawerMessage);
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  const respond = (body: { ok: boolean }): void => {
+    try {
+      sendResponse(body);
+    } catch {
+      // Extension context invalidated (e.g. reload during message handling).
+    }
+  };
   try {
     handlePanelMessage(message as PanelToContentMessage);
-    sendResponse({ ok: true });
+    respond({ ok: true });
   } catch (error) {
     send({
       kind: 'error',
       message: error instanceof Error ? error.message : 'Content script error'
     });
-    sendResponse({ ok: false });
+    respond({ ok: false });
   }
   return true;
 });

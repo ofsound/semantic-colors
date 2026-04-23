@@ -8,48 +8,36 @@
   </head>
   <body>
     <header class="app-header">
-      <div class="connection">
-        <label class="bridge-url">
-          <span>Engine</span>
-          <input id="bridge-url" type="url" placeholder="http://localhost:5173" />
-        </label>
-        <button id="bridge-connect" type="button">Connect</button>
-        <label class="bridge-url">
-          <span>Target</span>
-          <input
-            id="target-config-path"
-            type="text"
-            list="recent-target-configs"
-            placeholder="apps/site/semantic-colors.project.json"
-          />
-        </label>
-        <button id="target-config-load" type="button">Load target</button>
-        <div class="inspect-controls">
-          <label class="switch">
-            <input type="checkbox" id="hover-toggle" />
-            <span>Inspect mode</span>
-          </label>
-          <button id="clear-selection" type="button" class="secondary">Clear selection</button>
-        </div>
-        <label class="switch bridge-output-toggle">
-          <input type="checkbox" id="bridge-output-enabled" />
-          <span>Write generated CSS</span>
-        </label>
-        <span id="bridge-output-status" class="hint bridge-output-status">Load target config</span>
-        <button id="toggle-inpage-drawer" type="button" class="secondary">
-          Show in-page preview
-        </button>
-        <span id="inpage-drawer-status" class="hint">Hidden</span>
+      <div class="header-status">
         <span id="bridge-status" class="status status-idle">idle</span>
       </div>
-      <datalist id="recent-target-configs"></datalist>
-      <div class="mode-switch" role="group" aria-label="Theme mode">
-        <button type="button" data-mode="null" class="is-active">Live</button>
-        <button type="button" data-mode="light">Light</button>
-        <button type="button" data-mode="dark">Dark</button>
-        <button type="button" data-mode="alt">Alt</button>
+      <div class="header-toolbar">
+        <div class="header-group" role="group" aria-label="Theme mode">
+          <div class="mode-switch">
+            <button type="button" data-mode="null" class="is-active">Live</button>
+            <button type="button" data-mode="light">Light</button>
+            <button type="button" data-mode="dark">Dark</button>
+            <button type="button" data-mode="alt">Alt</button>
+          </div>
+        </div>
+        <div class="header-group" role="group" aria-label="Inspect">
+          <div class="inspect-controls">
+            <label class="switch">
+              <input type="checkbox" id="hover-toggle" />
+              <span>Inspect mode</span>
+            </label>
+            <button id="clear-selection" type="button" class="secondary">Clear selection</button>
+          </div>
+        </div>
+        <div class="header-group header-group-preview" role="group" aria-label="In-page preview">
+          <button id="toggle-inpage-drawer" type="button" class="secondary">
+            Show in-page preview
+          </button>
+          <span id="inpage-drawer-status" class="hint">Hidden</span>
+        </div>
       </div>
     </header>
+    <datalist id="recent-target-configs"></datalist>
 
     <section class="draft-bar">
       <div>
@@ -70,6 +58,7 @@
       <button type="button" role="tab" data-tab="coverage">Coverage</button>
       <button type="button" role="tab" data-tab="contrast">Contrast</button>
       <button type="button" role="tab" data-tab="overrides">Overrides</button>
+      <button type="button" role="tab" data-tab="connect">Connect</button>
     </nav>
 
     <main class="panel-body">
@@ -154,6 +143,49 @@
             These overrides stay separate from the new draft authoring tabs so you can keep using
             the old page-level experimentation workflow.
           </p>
+        </section>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="connect">
+        <section class="card connect-card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Bridge</p>
+              <h2>Engine and target</h2>
+            </div>
+          </div>
+          <div class="connect-form">
+            <div class="connect-block">
+              <label class="bridge-url connect-label">
+                <span>Engine URL</span>
+                <input id="bridge-url" type="url" placeholder="http://localhost:5173" />
+              </label>
+              <button id="bridge-connect" type="button" class="connect-action">Connect</button>
+            </div>
+            <div class="connect-block">
+              <label class="bridge-url connect-label">
+                <span>Target config</span>
+                <input
+                  id="target-config-path"
+                  type="text"
+                  list="recent-target-configs"
+                  placeholder="apps/site/semantic-colors.project.json"
+                />
+              </label>
+              <button id="target-config-load" type="button" class="connect-action">
+                Load target
+              </button>
+            </div>
+            <div class="connect-output-row">
+              <label class="switch bridge-output-toggle">
+                <input type="checkbox" id="bridge-output-enabled" />
+                <span>Write generated CSS</span>
+              </label>
+              <span id="bridge-output-status" class="hint bridge-output-status"
+                >Load target config</span
+              >
+            </div>
+          </div>
         </section>
       </section>
     </main>

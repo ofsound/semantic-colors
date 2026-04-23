@@ -19,7 +19,8 @@
   } = $props();
 
   // svelte-ignore state_referenced_locally
-  let manifest = $state(structuredClone(snapshot.manifest) as ThemeManifest);
+  // `snapshot.manifest` can be a Svelte deep-reactive Proxy; structuredClone throws DataCloneError on proxies.
+  let manifest = $state(JSON.parse(JSON.stringify(snapshot.manifest)) as ThemeManifest);
 
   function sameDelta(a: AltSettings['delta'], b: AltSettings['delta']): boolean {
     return a.l === b.l && a.c === b.c && a.h === b.h;
