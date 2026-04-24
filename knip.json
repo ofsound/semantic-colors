@@ -6,7 +6,10 @@
   },
   "workspaces": {
     ".": {
-      "ignore": ["extension/**"]
+      "ignore": [
+        "extension/**",
+        "src/lib/semantic-colors/inpage-fixture-bridge.ts"
+      ]
     }
   }
 }

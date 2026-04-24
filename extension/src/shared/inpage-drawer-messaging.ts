@@ -56,7 +56,8 @@ export function parseInPageDrawerToFrameMessage(data: unknown): InPageDrawerToFr
         snapshot: payload.snapshot as BridgeSnapshot | null,
         mode: payload.mode,
         highlightedTokenId: payload.highlightedTokenId,
-        focusedTokenId: payload.focusedTokenId
+        focusedTokenId: payload.focusedTokenId,
+        hostPageFontFamily: typeof payload.hostPageFontFamily === 'string' ? payload.hostPageFontFamily : ''
       };
     case 'mode:update':
       if (!isThemeMode(payload.mode)) return null;

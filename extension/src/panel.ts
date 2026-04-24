@@ -84,7 +84,7 @@ const el = {
   resetManifest: document.getElementById('reset-manifest') as HTMLButtonElement,
   tabs: document.querySelectorAll<HTMLButtonElement>('.tabs button'),
   tabPanels: document.querySelectorAll<HTMLElement>('[data-tab-panel]'),
-  hoverToggle: document.getElementById('hover-toggle') as HTMLInputElement,
+  hoverToggle: document.getElementById('hover-toggle') as HTMLButtonElement,
   clearSelection: document.getElementById('clear-selection') as HTMLButtonElement,
   tokenAuthoringRoot: document.getElementById('token-authoring-root') as HTMLDivElement,
   altAuthoringRoot: document.getElementById('alt-authoring-root') as HTMLDivElement,
@@ -280,8 +280,9 @@ function registerElementsSelectionSync(): void {
   onSelectionChanged.addListener(scheduleSyncTokenFromElementsSelection);
 }
 
-function handleAuthoringShortcutDown(key: '1' | '2' | '3' | 'p', repeat: boolean): void {
+function handleAuthoringShortcutDown(key: '1' | '2' | '3' | 'p' | 'i', repeat: boolean): void {
   if (key === '3' && repeat) return;
+  if (key === 'i' && repeat) return;
   if (key === '1') {
     setPreviewMode('light');
     return;
@@ -298,6 +299,10 @@ function handleAuthoringShortcutDown(key: '1' | '2' | '3' | 'p', repeat: boolean
   }
   if (key === 'p') {
     toggleInPagePreview();
+    return;
+  }
+  if (key === 'i') {
+    toggleHoverInspectMode();
   }
 }
 
@@ -453,6 +458,16 @@ function renderBridgeOutputControl(): void {
 
 function renderInPageDrawerControl(): void {
   el.toggleInPageDrawer.setAttribute('aria-pressed', String(state.inPageDrawerVisible));
+}
+
+function renderHoverInspectControl(): void {
+  el.hoverToggle.setAttribute('aria-pressed', String(state.hoverActive));
+}
+
+function toggleHoverInspectMode(): void {
+  state.hoverActive = !state.hoverActive;
+  renderHoverInspectControl();
+  sendToContent({ kind: 'hover-inspector', enabled: state.hoverActive });
 }
 
 function clearBridgeSnapshotState(statusDetail?: string): void {
@@ -648,8 +663,8 @@ function setPreviewMode(mode: ThemeMode): void {
 
 /**
  * Theme shortcuts (same as web app `+page.svelte`): `1` / `2` / `3` = Light / Dark / Alt;
- * `p` toggles in-page preview (Toggle Preview). Works from the DevTools panel and from the
- * inspected page via the content script (see `content-bridge.ts`). Ignored while typing in
+ * `p` toggles in-page preview; `i` toggles inspect mode. Works from the DevTools panel and from
+ * the inspected page via the content script (see `content-bridge.ts`). Ignored while typing in
  * inputs. Alt: hold `3` >~180ms, release to restore the prior mode.
  */
 function toggleInPagePreview(): void {
@@ -671,10 +686,12 @@ function isTypingContext(target: EventTarget | null): boolean {
   );
 }
 
-function normalizePanelAuthoringKey(event: KeyboardEvent): '1' | '2' | '3' | 'p' | null {
+function normalizePanelAuthoringKey(event: KeyboardEvent): '1' | '2' | '3' | 'p' | 'i' | null {
   if (event.key === '1' || event.key === '2' || event.key === '3') return event.key;
   if (event.code === 'KeyP') return 'p';
   if (event.key.length === 1 && event.key.toLowerCase() === 'p') return 'p';
+  if (event.code === 'KeyI') return 'i';
+  if (event.key.length === 1 && event.key.toLowerCase() === 'i') return 'i';
   return null;
 }
 
@@ -710,9 +727,8 @@ el.modeSwitch.querySelectorAll<HTMLButtonElement>('button').forEach((btn) => {
   });
 });
 
-el.hoverToggle.addEventListener('change', () => {
-  state.hoverActive = el.hoverToggle.checked;
-  sendToContent({ kind: 'hover-inspector', enabled: state.hoverActive });
+el.hoverToggle.addEventListener('click', () => {
+  toggleHoverInspectMode();
 });
 
 el.clearSelection.addEventListener('click', () => {
@@ -891,6 +907,7 @@ function pushSnapshotToContent(): void {
 function renderAll(): void {
   renderBridgeOutputControl();
   renderInPageDrawerControl();
+  renderHoverInspectControl();
   renderDraftStatus();
   renderAuthoring();
   renderAliasList();

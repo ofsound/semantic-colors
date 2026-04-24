@@ -203,6 +203,8 @@ export type InPageDrawerToFrameMessage =
     mode: ThemeMode;
     highlightedTokenId: string | null;
     focusedTokenId: string | null;
+    /** `getComputedStyle(document.body).fontFamily` of the page the overlay is on. */
+    hostPageFontFamily: string;
   }
   | {
     kind: 'mode:update';
@@ -258,7 +260,7 @@ export type PanelToContentMessage =
 export type AuthoringShortcutPhaseDown = {
   kind: 'authoring-shortcut';
   phase: 'down';
-  key: '1' | '2' | '3' | 'p';
+  key: '1' | '2' | '3' | 'p' | 'i';
   repeat: boolean;
 };
 

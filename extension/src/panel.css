@@ -115,6 +115,8 @@ code {
 .header-status {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   min-height: 22px;
 }
 
@@ -247,6 +249,22 @@ code {
 
 .mode-switch button.is-active {
   background: var(--accent-strong);
+  color: #08101f;
+}
+
+.header-tool-toggle {
+  background: transparent;
+  color: var(--text);
+}
+
+.header-tool-toggle[aria-pressed='true'] {
+  background: var(--accent-strong);
+  color: #08101f;
+  border-color: transparent;
+}
+
+.header-tool-toggle[aria-pressed='true']:hover {
+  border-color: transparent;
   color: #08101f;
 }
 

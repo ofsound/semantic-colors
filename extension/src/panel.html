@@ -10,17 +10,26 @@
     <header class="app-header">
       <div class="header-status">
         <span id="bridge-status" class="status status-idle">idle</span>
+        <button
+          id="toggle-inpage-drawer"
+          type="button"
+          class="header-tool-toggle"
+          aria-pressed="false"
+        >
+          Toggle Preview
+        </button>
       </div>
       <div class="header-toolbar">
-        <div class="header-toolbar-actions" role="group" aria-label="Inspect and preview">
-          <label class="switch">
-            <input type="checkbox" id="hover-toggle" />
-            <span>Inspect mode</span>
-          </label>
-          <button id="clear-selection" type="button" class="secondary">Clear selection</button>
-          <button id="toggle-inpage-drawer" type="button" class="secondary" aria-pressed="false">
-            Toggle Preview
+        <div class="header-toolbar-actions" role="group" aria-label="Inspect and clear">
+          <button
+            id="hover-toggle"
+            type="button"
+            class="header-tool-toggle"
+            aria-pressed="false"
+          >
+            Inspect mode
           </button>
+          <button id="clear-selection" type="button" class="secondary">Clear selection</button>
         </div>
         <div class="header-group" role="group" aria-label="Theme mode">
           <div class="mode-switch">

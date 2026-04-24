@@ -46,6 +46,12 @@ const buildOptions = {
   }
 };
 
+const svelteExtensionResolve = {
+  alias: {
+    $lib: path.join(projectRoot, 'src/lib')
+  }
+};
+
 const panelBuildOptions = {
   configFile: false,
   root: projectRoot,
@@ -57,11 +63,7 @@ const panelBuildOptions = {
       preprocess: vitePreprocess()
     })
   ],
-  resolve: {
-    alias: {
-      $lib: path.join(projectRoot, 'src/lib')
-    }
-  },
+  resolve: svelteExtensionResolve,
   build: {
     emptyOutDir: false,
     outDir: distDir,
@@ -87,6 +89,46 @@ const panelBuildOptions = {
   }
 };
 
+const drawerPreviewBuildOptions = {
+  configFile: false,
+  root: projectRoot,
+  publicDir: false,
+  logLevel: 'info',
+  plugins: [
+    tailwindcss(),
+    svelte({
+      preprocess: vitePreprocess()
+    })
+  ],
+  resolve: svelteExtensionResolve,
+  build: {
+    emptyOutDir: false,
+    outDir: distDir,
+    sourcemap: watchMode ? 'inline' : false,
+    minify: !watchMode,
+    lib: {
+      entry: path.join(srcDir, 'drawer-preview.ts'),
+      formats: ['iife'],
+      name: 'SemanticColorsDrawerPreview',
+      fileName: () => 'drawer-preview.js',
+      cssFileName: 'drawer-preview'
+    },
+    rollupOptions: {
+      output: {
+        assetFileNames: (assetInfo) => {
+          if (
+            assetInfo.name === 'drawer-preview.css' ||
+            assetInfo.names?.includes('drawer-preview.css')
+          ) {
+            return 'drawer-preview.css';
+          }
+          return 'assets/[name][extname]';
+        }
+      }
+    }
+  }
+};
+
 async function runBuild() {
   await rm(distDir, { recursive: true, force: true });
   await copyStatic();
@@ -94,10 +136,15 @@ async function runBuild() {
     const ctx = await context(buildOptions);
     await ctx.watch();
     await viteBuild({ ...panelBuildOptions, build: { ...panelBuildOptions.build, watch: {} } });
+    await viteBuild({
+      ...drawerPreviewBuildOptions,
+      build: { ...drawerPreviewBuildOptions.build, watch: {} }
+    });
     console.log('[extension] watching for changes...');
   } else {
     await build(buildOptions);
     await viteBuild(panelBuildOptions);
+    await viteBuild(drawerPreviewBuildOptions);
     console.log('[extension] build complete:', path.relative(process.cwd(), distDir));
   }
 }

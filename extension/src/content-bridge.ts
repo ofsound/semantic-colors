@@ -71,6 +71,21 @@ function inPageDrawerFrameUrl(): string | null {
   }
 }
 
+/** Font used for body text on the live page (top document), for the extension overlay iframe. */
+function readHostPageFontFamily(): string {
+  try {
+    const body = document.body;
+    const root = document.documentElement;
+    const fromBody = body ? getComputedStyle(body).fontFamily : '';
+    if (fromBody && fromBody !== 'inherit' && fromBody !== 'initial') {
+      return fromBody;
+    }
+    return getComputedStyle(root).fontFamily || '';
+  } catch {
+    return '';
+  }
+}
+
 function sendToInPageDrawer(payload: InPageDrawerToFrameMessage): void {
   const frame = state.inPageDrawerFrame;
   if (!state.inPageDrawerVisible || !state.inPageDrawerReady || !frame?.contentWindow) return;
@@ -86,7 +101,8 @@ function syncInPageDrawerSnapshot(): void {
     snapshot: state.snapshot,
     mode: previewMode(),
     highlightedTokenId: state.highlightedToken,
-    focusedTokenId: state.focusedTokenId
+    focusedTokenId: state.focusedTokenId,
+    hostPageFontFamily: readHostPageFontFamily()
   });
 }
 
@@ -539,6 +555,9 @@ function handleDocumentClick(event: MouseEvent): void {
 function setHoverActive(enabled: boolean): void {
   state.hoverActive = enabled;
   if (enabled) {
+    if (state.selectedTarget && !document.contains(state.selectedTarget)) {
+      setSelectedTarget(null);
+    }
     ensureInspectorStyle();
     document.addEventListener('mousemove', handleHoverMove, true);
     document.addEventListener('mouseleave', handleHoverLeave, true);
@@ -547,7 +566,10 @@ function setHoverActive(enabled: boolean): void {
     document.removeEventListener('mousemove', handleHoverMove, true);
     document.removeEventListener('mouseleave', handleHoverLeave, true);
     document.removeEventListener('click', handleDocumentClick, true);
-    if (!state.selectedTarget) {
+    state.hoverTarget = null;
+    if (state.selectedTarget) {
+      setSelectedTarget(null);
+    } else {
       clearInspectorOverlay();
     }
   }
@@ -948,14 +970,16 @@ function isAuthoringShortcutTypingContext(target: EventTarget | null): boolean {
   );
 }
 
-function resolveAuthoringShortcutKey(event: KeyboardEvent): '1' | '2' | '3' | 'p' | null {
+function resolveAuthoringShortcutKey(event: KeyboardEvent): '1' | '2' | '3' | 'p' | 'i' | null {
   if (event.key === '1' || event.key === '2' || event.key === '3') return event.key;
   if (event.code === 'KeyP') return 'p';
   if (event.key.length === 1 && event.key.toLowerCase() === 'p') return 'p';
+  if (event.code === 'KeyI') return 'i';
+  if (event.key.length === 1 && event.key.toLowerCase() === 'i') return 'i';
   return null;
 }
 
-/** Forward 1 / 2 / 3 / p to the DevTools panel when the page has focus (`document_idle`). */
+/** Forward 1 / 2 / 3 / p / i to the DevTools panel when the page has focus (`document_idle`). */
 function handleAuthoringShortcutKeydown(event: KeyboardEvent): void {
   if (isAuthoringShortcutTypingContext(event.target)) return;
   if (event.ctrlKey || event.metaKey || event.altKey) return;
@@ -963,6 +987,7 @@ function handleAuthoringShortcutKeydown(event: KeyboardEvent): void {
   const key = resolveAuthoringShortcutKey(event);
   if (!key) return;
   if (key === '3' && event.repeat) return;
+  if (key === 'i' && event.repeat) return;
 
   event.preventDefault();
   event.stopPropagation();

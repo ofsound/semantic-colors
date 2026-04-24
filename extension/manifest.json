@@ -22,7 +22,9 @@
       "resources": [
         "drawer.html",
         "drawer.css",
-        "drawer.js"
+        "drawer.js",
+        "drawer-preview.js",
+        "drawer-preview.css"
       ],
       "matches": [
         "<all_urls>"

@@ -14,7 +14,8 @@ describe('in-page drawer messaging', () => {
         snapshot: null,
         mode: 'dark',
         highlightedTokenId: 'surface',
-        focusedTokenId: 'text'
+        focusedTokenId: 'text',
+        hostPageFontFamily: 'Georgia, serif'
       })
     );
 
@@ -23,8 +24,25 @@ describe('in-page drawer messaging', () => {
       snapshot: null,
       mode: 'dark',
       highlightedTokenId: 'surface',
-      focusedTokenId: 'text'
+      focusedTokenId: 'text',
+      hostPageFontFamily: 'Georgia, serif'
     });
+  });
+
+  it('defaults hostPageFontFamily to empty when omitted', () => {
+    const parsed = parseInPageDrawerToFrameMessage({
+      source: 'semantic-colors-inpage-drawer',
+      payload: {
+        kind: 'snapshot:update',
+        snapshot: null,
+        mode: 'light',
+        highlightedTokenId: null,
+        focusedTokenId: null
+      }
+    });
+    expect(parsed).toEqual(
+      expect.objectContaining({ kind: 'snapshot:update', hostPageFontFamily: '' })
+    );
   });
 
   it('rejects malformed iframe messages', () => {

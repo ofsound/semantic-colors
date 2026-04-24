@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <title>Semantic Colors In-Page Preview</title>
     <link rel="stylesheet" href="drawer.css" />
+    <link rel="stylesheet" href="drawer-preview.css" />
   </head>
   <body>
     <header class="drawer-header">
@@ -26,8 +27,12 @@
       <div class="mode-badge" id="mode-label">Mode: Light</div>
     </section>
 
-    <main id="drawer-content" class="drawer-content"></main>
+    <main id="drawer-content" class="drawer-content">
+      <div id="drawer-svelte-host" class="drawer-svelte-host"></div>
+      <div id="drawer-tokens-host" class="drawer-tokens-host" hidden></div>
+    </main>
 
+    <script src="drawer-preview.js"></script>
     <script src="drawer.js"></script>
   </body>
 </html>
