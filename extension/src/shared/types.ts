@@ -90,49 +90,49 @@ export interface BridgeSnapshot {
 
 export type BridgeDraftCommand =
   | {
-      kind: 'update-token-color';
-      tokenId: string;
-      mode: 'light' | 'dark' | 'both';
-      color: OklchColor;
-    }
+    kind: 'update-token-color';
+    tokenId: string;
+    mode: 'light' | 'dark' | 'both';
+    color: OklchColor;
+  }
   | {
-      kind: 'update-token-exception';
-      tokenId: string;
-      patch: {
-        altBehavior?: 'derive' | 'pin' | 'exclude';
-        maxChroma?: number | null;
-      };
-    }
-  | {
-      kind: 'update-alt-settings';
-      patch: {
-        source?: 'light' | 'dark';
-        harmonyLock?: boolean;
-        grayscalePreview?: boolean;
-        delta?: Partial<{ l: number; c: number; h: number }>;
-      };
-    }
-  | {
-      kind: 'add-alias';
-      alias: { name: string; tokenId: string };
-    }
-  | {
-      kind: 'update-alias';
-      index: number;
-      patch: { name?: string; tokenId?: string };
-    }
-  | {
-      kind: 'remove-alias';
-      index: number;
-    }
-  | {
-      kind: 'reset-manifest';
-    }
-  | {
-      kind: 'apply-import-review';
-      proposal: ImportProposal;
-      selection: Record<string, string>;
+    kind: 'update-token-exception';
+    tokenId: string;
+    patch: {
+      altBehavior?: 'derive' | 'pin' | 'exclude';
+      maxChroma?: number | null;
     };
+  }
+  | {
+    kind: 'update-alt-settings';
+    patch: {
+      source?: 'light' | 'dark';
+      harmonyLock?: boolean;
+      grayscalePreview?: boolean;
+      delta?: Partial<{ l: number; c: number; h: number }>;
+    };
+  }
+  | {
+    kind: 'add-alias';
+    alias: { name: string; tokenId: string };
+  }
+  | {
+    kind: 'update-alias';
+    index: number;
+    patch: { name?: string; tokenId?: string };
+  }
+  | {
+    kind: 'remove-alias';
+    index: number;
+  }
+  | {
+    kind: 'reset-manifest';
+  }
+  | {
+    kind: 'apply-import-review';
+    proposal: ImportProposal;
+    selection: Record<string, string>;
+  };
 
 export interface ElementTokenMatch {
   channel: 'foreground' | 'background' | 'border';
@@ -198,34 +198,34 @@ export type InPageDrawerSource = 'preview' | 'tokens';
 
 export type InPageDrawerToFrameMessage =
   | {
-      kind: 'snapshot:update';
-      snapshot: BridgeSnapshot | null;
-      mode: ThemeMode;
-      highlightedTokenId: string | null;
-      focusedTokenId: string | null;
-    }
+    kind: 'snapshot:update';
+    snapshot: BridgeSnapshot | null;
+    mode: ThemeMode;
+    highlightedTokenId: string | null;
+    focusedTokenId: string | null;
+  }
   | {
-      kind: 'mode:update';
-      mode: ThemeMode;
-    }
+    kind: 'mode:update';
+    mode: ThemeMode;
+  }
   | {
-      kind: 'token:highlight';
-      tokenId: string | null;
-    }
+    kind: 'token:highlight';
+    tokenId: string | null;
+  }
   | {
-      kind: 'token:focus';
-      tokenId: string | null;
-    };
+    kind: 'token:focus';
+    tokenId: string | null;
+  };
 
 export type InPageDrawerFromFrameMessage =
   | {
-      kind: 'token:focus';
-      tokenId: string;
-      source: InPageDrawerSource;
-    }
+    kind: 'token:focus';
+    tokenId: string;
+    source: InPageDrawerSource;
+  }
   | {
-      kind: 'drawer:close';
-    };
+    kind: 'drawer:close';
+  };
 
 // Message envelopes between panel <-> content-bridge (relayed by background).
 
@@ -233,7 +233,7 @@ export type PanelToContentMessage =
   | { kind: 'ping' }
   | { kind: 'clear-snapshot' }
   | { kind: 'set-inpage-drawer'; visible: boolean }
-  | { kind: 'set-theme'; mode: ThemeMode | null }
+  | { kind: 'set-theme'; mode: ThemeMode }
   | { kind: 'hover-inspector'; enabled: boolean }
   | { kind: 'select-element' }
   | { kind: 'clear-selection' }
@@ -243,19 +243,34 @@ export type PanelToContentMessage =
   | { kind: 'override-token'; tokenId: string; css: string | null }
   | { kind: 'clear-all-overrides' }
   | {
-      kind: 'scan-coverage';
-      tokenColors: Record<string, string>;
-      aliases: Array<{ name: string; tokenId: string }>;
-    }
+    kind: 'scan-coverage';
+    tokenColors: Record<string, string>;
+    aliases: Array<{ name: string; tokenId: string }>;
+  }
   | {
-      kind: 'scan-contrast';
-      tokenColors: Record<string, string>;
-      aliases: Array<{ name: string; tokenId: string }>;
-    }
+    kind: 'scan-contrast';
+    tokenColors: Record<string, string>;
+    aliases: Array<{ name: string; tokenId: string }>;
+  }
   | { kind: 'update-snapshot'; snapshot: BridgeSnapshot }
   | { kind: 'page-info' };
 
+export type AuthoringShortcutPhaseDown = {
+  kind: 'authoring-shortcut';
+  phase: 'down';
+  key: '1' | '2' | '3' | 'p';
+  repeat: boolean;
+};
+
+export type AuthoringShortcutPhaseUp = {
+  kind: 'authoring-shortcut';
+  phase: 'up';
+  key: '3';
+};
+
 export type ContentToPanelMessage =
+  | AuthoringShortcutPhaseDown
+  | AuthoringShortcutPhaseUp
   | { kind: 'hello'; url: string; title: string }
   | { kind: 'hover-element'; payload: HoverElementPayload }
   | { kind: 'selected-element'; payload: HoverElementPayload }

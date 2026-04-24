@@ -19,7 +19,7 @@ whichever real product page is loaded in the browser.
    token. Changes are written to the page via `!important --theme-*` /
    `--color-*` declarations. Try before you commit.
 5. **Theme-mode stress testing.** Cycle `data-theme` on the inspected page
-   (Live / Light / Dark / Alt) from the panel header.
+   (Light / Dark / Alt) from the panel header.
 6. **Coverage & violation reporting.** The Coverage tab shows per-token usage
    counts, unused ("dead") tokens, and elements using raw color values instead
    of tokens.

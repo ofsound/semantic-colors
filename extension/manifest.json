@@ -3,8 +3,14 @@
   "name": "Semantic Colors Inspector",
   "version": "0.1.0",
   "description": "Live inspection, overrides, and APCA contrast auditing backed by the semantic-colors engine.",
-  "permissions": ["scripting", "storage", "tabs"],
-  "host_permissions": ["<all_urls>"],
+  "permissions": [
+    "scripting",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "action": {
     "default_title": "Semantic Colors Inspector"
   },
@@ -13,15 +19,34 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["drawer.html", "drawer.css", "drawer.js"],
-      "matches": ["<all_urls>"]
+      "resources": [
+        "drawer.html",
+        "drawer.css",
+        "drawer.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ],
   "devtools_page": "devtools.html",
+  "commands": {
+    "authoring-toggle-preview": {
+      "suggested_key": {
+        "default": "Alt+Shift+P",
+        "mac": "Alt+Shift+P"
+      },
+      "description": "Toggle in-page preview"
+    }
+  },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content-bridge.js"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content-bridge.js"
+      ],
       "run_at": "document_idle",
       "all_frames": false
     }

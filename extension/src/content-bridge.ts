@@ -24,7 +24,8 @@ import type {
   HoverElementPayload,
   InPageDrawerToFrameMessage,
   SemanticClassMatch,
-  PanelToContentMessage
+  PanelToContentMessage,
+  ThemeMode
 } from './shared/types';
 
 const state = {
@@ -39,7 +40,6 @@ const state = {
   tokenCssByTokenId: new Map<string, string>(),
   tokenClassSet: new Set<string>(),
   aliasMap: new Map<string, string>(),
-  liveThemeBaseline: null as { hadAttribute: boolean; value: string | null } | null,
   inPageDrawerVisible: false,
   inPageDrawerFrame: null as HTMLIFrameElement | null,
   inPageDrawerReady: false
@@ -582,28 +582,8 @@ function highlightToken(tokenId: string | null): void {
   syncInPageDrawerHighlight();
 }
 
-function setThemeMode(mode: string | null): void {
-  const root = document.documentElement;
-
-  if (mode === null) {
-    if (state.liveThemeBaseline) {
-      if (state.liveThemeBaseline.hadAttribute) {
-        root.setAttribute('data-theme', state.liveThemeBaseline.value ?? '');
-      } else {
-        root.removeAttribute('data-theme');
-      }
-      state.liveThemeBaseline = null;
-    }
-  } else {
-    if (!state.liveThemeBaseline) {
-      state.liveThemeBaseline = {
-        hadAttribute: root.hasAttribute('data-theme'),
-        value: root.getAttribute('data-theme')
-      };
-    }
-
-    root.dataset.theme = mode;
-  }
+function setThemeMode(mode: ThemeMode): void {
+  document.documentElement.dataset.theme = mode;
 
   rebuildTokenLookup();
   flushPreviewStyle();
@@ -957,3 +937,52 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 
 send({ kind: 'hello', url: location.href, title: document.title });
+
+function isAuthoringShortcutTypingContext(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement
+  );
+}
+
+function resolveAuthoringShortcutKey(event: KeyboardEvent): '1' | '2' | '3' | 'p' | null {
+  if (event.key === '1' || event.key === '2' || event.key === '3') return event.key;
+  if (event.code === 'KeyP') return 'p';
+  if (event.key.length === 1 && event.key.toLowerCase() === 'p') return 'p';
+  return null;
+}
+
+/** Forward 1 / 2 / 3 / p to the DevTools panel when the page has focus (`document_idle`). */
+function handleAuthoringShortcutKeydown(event: KeyboardEvent): void {
+  if (isAuthoringShortcutTypingContext(event.target)) return;
+  if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+  const key = resolveAuthoringShortcutKey(event);
+  if (!key) return;
+  if (key === '3' && event.repeat) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  send({
+    kind: 'authoring-shortcut',
+    phase: 'down',
+    key,
+    repeat: event.repeat
+  });
+}
+
+function handleAuthoringShortcutKeyup(event: KeyboardEvent): void {
+  if (event.key !== '3') return;
+  if (isAuthoringShortcutTypingContext(event.target)) return;
+  if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  send({ kind: 'authoring-shortcut', phase: 'up', key: '3' });
+}
+
+window.addEventListener('keydown', handleAuthoringShortcutKeydown, true);
+window.addEventListener('keyup', handleAuthoringShortcutKeyup, true);

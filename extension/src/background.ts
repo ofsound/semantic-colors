@@ -1,6 +1,6 @@
 import { panelPortName } from './shared/messaging';
 import type { ContentMessageEnvelope, PanelMessageEnvelope } from './shared/messaging';
-import type { PanelToContentMessage } from './shared/types';
+import type { ContentToPanelMessage, PanelToContentMessage } from './shared/types';
 
 const panelPorts = new Map<number, chrome.runtime.Port>();
 
@@ -87,6 +87,31 @@ chrome.runtime.onMessage.addListener((message, sender) => {
   } catch {
     panelPorts.delete(tabId);
   }
+});
+
+function postAuthoringShortcutToPanel(tabId: number, payload: ContentToPanelMessage): void {
+  const port = panelPorts.get(tabId);
+  if (!port) return;
+  const envelope: ContentMessageEnvelope = { source: 'content', payload };
+  try {
+    port.postMessage(envelope);
+  } catch {
+    panelPorts.delete(tabId);
+  }
+}
+
+chrome.commands.onCommand.addListener((command) => {
+  if (command !== 'authoring-toggle-preview') return;
+  void chrome.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
+    const tabId = tabs[0]?.id;
+    if (tabId === undefined) return;
+    postAuthoringShortcutToPanel(tabId, {
+      kind: 'authoring-shortcut',
+      phase: 'down',
+      key: 'p',
+      repeat: false
+    });
+  });
 });
 
 // Export nothing; IIFE bundle expects top-level registrations only.

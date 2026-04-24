@@ -10,7 +10,6 @@ import {
   addAlias,
   primaryTokenFromSelection,
   removeAlias,
-  resolvedModeForSnapshot,
   resetManifest,
   updateAlias
 } from './shared/draft';
@@ -53,7 +52,7 @@ const state = {
   overrideColor: { l: 0.5, c: 0.1, h: 240, alpha: 1 } as OklchColor,
   overrideMode: 'both' as 'light' | 'dark' | 'both',
   persistOverride: false,
-  activeMode: null as ThemeMode | null,
+  activeMode: 'light' as ThemeMode,
   hoverActive: false,
   selectedElement: null as HoverElementPayload | null,
   pageInfo: { url: '', title: '', theme: null as string | null },
@@ -62,7 +61,10 @@ const state = {
   bridgeOutputStatus: 'Load target config' as string,
   inPageDrawerVisible: false,
   coverageScanTimeout: null as number | null,
-  contrastAuditTimeout: null as number | null
+  contrastAuditTimeout: null as number | null,
+  /** Hold-to-peek Alt theme (key `3`): restore prior mode on release after a long hold. */
+  holdAltReturnMode: null as ThemeMode | null,
+  holdAltStartedAt: 0
 };
 
 const el = {
@@ -74,7 +76,6 @@ const el = {
   bridgeOutputEnabled: document.getElementById('bridge-output-enabled') as HTMLInputElement,
   bridgeOutputStatus: document.getElementById('bridge-output-status') as HTMLSpanElement,
   toggleInPageDrawer: document.getElementById('toggle-inpage-drawer') as HTMLButtonElement,
-  inPageDrawerStatus: document.getElementById('inpage-drawer-status') as HTMLSpanElement,
   targetConfigOptions: document.getElementById('recent-target-configs') as HTMLDataListElement,
   modeSwitch: document.querySelector('.mode-switch') as HTMLElement,
   draftStatus: document.getElementById('draft-status') as HTMLDivElement,
@@ -279,6 +280,36 @@ function registerElementsSelectionSync(): void {
   onSelectionChanged.addListener(scheduleSyncTokenFromElementsSelection);
 }
 
+function handleAuthoringShortcutDown(key: '1' | '2' | '3' | 'p', repeat: boolean): void {
+  if (key === '3' && repeat) return;
+  if (key === '1') {
+    setPreviewMode('light');
+    return;
+  }
+  if (key === '2') {
+    setPreviewMode('dark');
+    return;
+  }
+  if (key === '3') {
+    state.holdAltReturnMode = state.activeMode === 'alt' ? null : state.activeMode;
+    state.holdAltStartedAt = performance.now();
+    setPreviewMode('alt');
+    return;
+  }
+  if (key === 'p') {
+    toggleInPagePreview();
+  }
+}
+
+function handleAuthoringShortcutUpForAltHold(): void {
+  if (!state.holdAltReturnMode) return;
+  const heldFor = performance.now() - state.holdAltStartedAt;
+  if (heldFor > 180) {
+    setPreviewMode(state.holdAltReturnMode);
+  }
+  state.holdAltReturnMode = null;
+}
+
 function handleContentMessage(message: ContentToPanelMessage): void {
   switch (message.kind) {
     case 'hello':
@@ -321,6 +352,13 @@ function handleContentMessage(message: ContentToPanelMessage): void {
       clearContrastAuditTimeout();
       state.contrast = message.report;
       renderContrast();
+      break;
+    case 'authoring-shortcut':
+      if (message.phase === 'down') {
+        handleAuthoringShortcutDown(message.key, message.repeat);
+      } else if (message.phase === 'up' && message.key === '3') {
+        handleAuthoringShortcutUpForAltHold();
+      }
       break;
     case 'error':
       console.warn('[semantic-colors] content error:', message.message);
@@ -414,10 +452,7 @@ function renderBridgeOutputControl(): void {
 }
 
 function renderInPageDrawerControl(): void {
-  el.toggleInPageDrawer.textContent = state.inPageDrawerVisible
-    ? 'Hide in-page preview'
-    : 'Show in-page preview';
-  el.inPageDrawerStatus.textContent = state.inPageDrawerVisible ? 'Visible' : 'Hidden';
+  el.toggleInPageDrawer.setAttribute('aria-pressed', String(state.inPageDrawerVisible));
 }
 
 function clearBridgeSnapshotState(statusDetail?: string): void {
@@ -595,13 +630,12 @@ function setActiveTab(id: string): void {
 
 function syncModeSwitch(): void {
   el.modeSwitch.querySelectorAll<HTMLButtonElement>('button').forEach((button) => {
-    const raw = button.dataset.mode ?? 'null';
-    const mode = raw === 'null' ? null : (raw as ThemeMode);
+    const mode = (button.dataset.mode ?? 'light') as ThemeMode;
     button.classList.toggle('is-active', mode === state.activeMode);
   });
 }
 
-function setPreviewMode(mode: ThemeMode | null): void {
+function setPreviewMode(mode: ThemeMode): void {
   state.activeMode = mode;
   syncModeSwitch();
   sendToContent({ kind: 'set-theme', mode: state.activeMode });
@@ -611,6 +645,56 @@ function setPreviewMode(mode: ThemeMode | null): void {
   renderAll();
   pushSnapshotToContent();
 }
+
+/**
+ * Theme shortcuts (same as web app `+page.svelte`): `1` / `2` / `3` = Light / Dark / Alt;
+ * `p` toggles in-page preview (Toggle Preview). Works from the DevTools panel and from the
+ * inspected page via the content script (see `content-bridge.ts`). Ignored while typing in
+ * inputs. Alt: hold `3` >~180ms, release to restore the prior mode.
+ */
+function toggleInPagePreview(): void {
+  state.inPageDrawerVisible = !state.inPageDrawerVisible;
+  renderInPageDrawerControl();
+  sendToContent({ kind: 'set-inpage-drawer', visible: state.inPageDrawerVisible });
+  if (state.inPageDrawerVisible && state.snapshot) {
+    pushSnapshotToContent();
+  }
+}
+
+function isTypingContext(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement
+  );
+}
+
+function normalizePanelAuthoringKey(event: KeyboardEvent): '1' | '2' | '3' | 'p' | null {
+  if (event.key === '1' || event.key === '2' || event.key === '3') return event.key;
+  if (event.code === 'KeyP') return 'p';
+  if (event.key.length === 1 && event.key.toLowerCase() === 'p') return 'p';
+  return null;
+}
+
+function handleThemeShortcutKeydown(event: KeyboardEvent): void {
+  if (isTypingContext(event.target)) return;
+  if (event.ctrlKey || event.metaKey || event.altKey) return;
+  const key = normalizePanelAuthoringKey(event);
+  if (!key) return;
+  if (key === '3' && event.repeat) return;
+  event.preventDefault();
+  handleAuthoringShortcutDown(key, event.repeat);
+}
+
+function handleThemeShortcutKeyup(event: KeyboardEvent): void {
+  if (event.key !== '3') return;
+  handleAuthoringShortcutUpForAltHold();
+}
+
+window.addEventListener('keydown', handleThemeShortcutKeydown);
+window.addEventListener('keyup', handleThemeShortcutKeyup);
 
 el.tabs.forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -622,8 +706,7 @@ el.tabs.forEach((btn) => {
 
 el.modeSwitch.querySelectorAll<HTMLButtonElement>('button').forEach((btn) => {
   btn.addEventListener('click', () => {
-    const raw = btn.dataset.mode ?? 'null';
-    setPreviewMode(raw === 'null' ? null : (raw as ThemeMode));
+    setPreviewMode((btn.dataset.mode ?? 'light') as ThemeMode);
   });
 });
 
@@ -638,12 +721,7 @@ el.clearSelection.addEventListener('click', () => {
 });
 
 el.toggleInPageDrawer.addEventListener('click', () => {
-  state.inPageDrawerVisible = !state.inPageDrawerVisible;
-  renderInPageDrawerControl();
-  sendToContent({ kind: 'set-inpage-drawer', visible: state.inPageDrawerVisible });
-  if (state.inPageDrawerVisible && state.snapshot) {
-    pushSnapshotToContent();
-  }
+  toggleInPagePreview();
 });
 
 el.targetConfigLoad.addEventListener('click', async () => {
@@ -792,8 +870,7 @@ el.bridgeBtn.addEventListener('click', async () => {
 });
 
 function resolvedModeForPreview(): ThemeMode {
-  if (!state.snapshot) return 'light';
-  return resolvedModeForSnapshot(state.snapshot, state.activeMode, state.pageInfo.theme);
+  return state.activeMode;
 }
 
 function snapshotTokenCss(): Record<string, string> {
@@ -1164,6 +1241,7 @@ function escapeHtml(text: string): string {
     clearBridgeSnapshotState('choose target config');
   }
   sendToContent({ kind: 'ping' });
+  sendToContent({ kind: 'set-theme', mode: state.activeMode });
   renderAll();
   registerElementsSelectionSync();
 })();

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import {
     hsvToRgb,
     parseColor,
@@ -24,51 +25,85 @@
     onPersistChange: () => void;
   } = $props();
 
+  const useCapture = true;
+
   let panelBounds: DOMRect | null = null;
-  let dragMode: 'xy' | null = null;
+  let dragOwnerDocument: Document | null = null;
+  /** True between mousedown on the panel and mouseup (document-level drag). */
+  let mouseDragSession = false;
+  let deferredPersistAfterDrag = false;
 
   const swatchBackground = $derived(toCssColor(color));
   const currentRgb = $derived(toRgbColor(color));
   const currentHsv = $derived(rgbToHsv(currentRgb));
   const pointerPosition = $derived(pickerPositionFromHsv(currentHsv));
 
-  function applyColor(nextColor: OklchColor): void {
+  function applyColor(nextColor: OklchColor, persist: boolean): void {
     color.l = nextColor.l;
     color.c = nextColor.c;
     color.h = nextColor.h;
     color.alpha = nextColor.alpha ?? 1;
-    onPersistChange();
+    if (persist) {
+      deferredPersistAfterDrag = false;
+      onPersistChange();
+    } else {
+      deferredPersistAfterDrag = true;
+    }
   }
 
-  function applyHsv(hue: number, saturation: number, value: number): void {
+  function applyHsv(hue: number, saturation: number, value: number, persist: boolean): void {
     const nextColor = parseColor(rgbToHex(hsvToRgb({ h: hue, s: saturation, v: value })));
     if (nextColor) {
-      applyColor(nextColor);
+      applyColor(nextColor, persist);
     }
   }
 
-  function handleWindowPointerMove(event: PointerEvent): void {
-    if (dragMode !== 'xy' || !panelBounds) {
+  function teardownDocumentDrag(): void {
+    if (!dragOwnerDocument) {
       return;
     }
+    dragOwnerDocument.removeEventListener('mousemove', handleDocumentMouseMove, useCapture);
+    dragOwnerDocument.removeEventListener('mouseup', handleDocumentMouseUp, useCapture);
+    dragOwnerDocument = null;
+  }
 
+  function handleDocumentMouseMove(event: MouseEvent): void {
+    if (!mouseDragSession || !panelBounds) {
+      return;
+    }
+    event.preventDefault();
     const nextHsv = pickerPointToHsv(
       panelBounds.width,
       panelBounds.height,
       event.clientX - panelBounds.left,
       event.clientY - panelBounds.top
     );
-    applyHsv(nextHsv.h, nextHsv.s, nextHsv.v);
+    applyHsv(nextHsv.h, nextHsv.s, nextHsv.v, false);
   }
 
-  function handleWindowPointerUp(): void {
-    dragMode = null;
+  function handleDocumentMouseUp(event: MouseEvent): void {
+    if (!mouseDragSession) {
+      return;
+    }
+    event.preventDefault();
+    teardownDocumentDrag();
+    mouseDragSession = false;
     panelBounds = null;
+    if (deferredPersistAfterDrag) {
+      deferredPersistAfterDrag = false;
+      onPersistChange();
+    }
   }
 
-  function handlePointerDown(
-    event: PointerEvent & { currentTarget: EventTarget & HTMLDivElement }
+  function handlePanelMouseDown(
+    event: MouseEvent & { currentTarget: EventTarget & HTMLDivElement }
   ): void {
+    if (event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    event.currentTarget.focus();
+
     panelBounds = event.currentTarget.getBoundingClientRect();
     const nextHsv = pickerPointToHsv(
       panelBounds.width,
@@ -76,9 +111,27 @@
       event.clientX - panelBounds.left,
       event.clientY - panelBounds.top
     );
-    applyHsv(nextHsv.h, nextHsv.s, nextHsv.v);
-    dragMode = 'xy';
+
+    mouseDragSession = true;
+    deferredPersistAfterDrag = false;
+    applyHsv(nextHsv.h, nextHsv.s, nextHsv.v, false);
+
+    const doc = event.currentTarget.ownerDocument;
+    teardownDocumentDrag();
+    dragOwnerDocument = doc;
+    doc.addEventListener('mousemove', handleDocumentMouseMove, useCapture);
+    doc.addEventListener('mouseup', handleDocumentMouseUp, useCapture);
   }
+
+  onDestroy(() => {
+    teardownDocumentDrag();
+    mouseDragSession = false;
+    panelBounds = null;
+    if (deferredPersistAfterDrag) {
+      deferredPersistAfterDrag = false;
+      onPersistChange();
+    }
+  });
 
   function handlePanelKeydown(event: KeyboardEvent): void {
     const horizontalStep = 2;
@@ -101,11 +154,9 @@
 
     event.preventDefault();
     const nextHsv = pickerPointToHsv(100, 100, nextX, nextY);
-    applyHsv(nextHsv.h, nextHsv.s, nextHsv.v);
+    applyHsv(nextHsv.h, nextHsv.s, nextHsv.v, true);
   }
 </script>
-
-<svelte:window onpointermove={handleWindowPointerMove} onpointerup={handleWindowPointerUp} />
 
 <div aria-label={`${label} color picker`} class="picker-shell">
   <div class="picker-main-row">
@@ -123,7 +174,7 @@
       aria-valuetext={`Hue: ${Math.round(currentHsv.h)}°, Saturation: ${Math.round(currentHsv.s)}%, Value: ${Math.round(currentHsv.v)}%`}
       class="picker-panel"
       onkeydown={handlePanelKeydown}
-      onpointerdown={handlePointerDown}
+      onmousedown={handlePanelMouseDown}
       role="slider"
       style={`background: ${SV_PANEL_BACKGROUND};`}
       tabindex="0"
@@ -182,5 +233,4 @@
       0 2px 8px rgba(15, 23, 42, 0.18);
     pointer-events: none;
   }
-
 </style>

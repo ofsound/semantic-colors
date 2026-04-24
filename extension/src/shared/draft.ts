@@ -85,17 +85,6 @@ export function applyImportReview(
   };
 }
 
-export function resolvedModeForSnapshot(
-  snapshot: BridgeSnapshot,
-  activeMode: ThemeMode | null,
-  pageTheme: string | null
-): ThemeMode {
-  if (activeMode) return activeMode;
-  if (pageTheme === 'dark' || pageTheme === 'alt') return pageTheme;
-  if (snapshot.manifest.alt.source === 'dark' && pageTheme === 'light') return 'light';
-  return 'light';
-}
-
 export function validationNotes(
   snapshot: BridgeSnapshot,
   tokenId: string,

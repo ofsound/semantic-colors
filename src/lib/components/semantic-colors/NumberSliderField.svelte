@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import { Input } from '$lib/components/ui/input';
   import {
     getBoundedSteppedValue,
@@ -9,11 +10,13 @@
   import { cn } from '$lib/utils';
 
   type SliderDragState = {
-    pointerId: number;
     lastClientX: number;
     trackLeft: number;
     trackWidth: number;
   };
+
+  /** Boolean capture flag (must match for removeEventListener). */
+  const useCapture = true;
 
   let {
     label,
@@ -36,6 +39,15 @@
   } = $props();
 
   let sliderDragState = $state<SliderDragState | null>(null);
+  /** Document that owns the listeners while dragging (panel iframe vs app). */
+  let dragOwnerDocument: Document | null = null;
+  /**
+   * True while mouse-drag listeners are active. During this window, value updates must not
+   * call `onChange` — the extension panel remounts TokenAuthoringEditor on every bridge
+   * snapshot version bump, which tears down this component and kills mid-drag listeners.
+   */
+  let mouseDragSession = false;
+  let deferredOnChangeAfterDrag = false;
 
   const clampedValue = $derived(Math.min(max, Math.max(min, value)));
   const sliderPercent = $derived(getSliderPercent(clampedValue, min, max));
@@ -46,51 +58,99 @@
     }
 
     value = nextValue;
-    onChange();
+    if (mouseDragSession) {
+      deferredOnChangeAfterDrag = true;
+    } else {
+      onChange();
+    }
   }
 
   function handleNumberInput(): void {
     onChange();
   }
 
-  function stopSliderDrag(
-    event: PointerEvent & { currentTarget: EventTarget & HTMLDivElement }
-  ): void {
-    if (!sliderDragState || sliderDragState.pointerId !== event.pointerId) {
+  function teardownDocumentDrag(): void {
+    if (!dragOwnerDocument) {
       return;
     }
-
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-
-    sliderDragState = null;
+    dragOwnerDocument.removeEventListener('mousemove', handleDocumentMouseMove, useCapture);
+    dragOwnerDocument.removeEventListener('mouseup', handleDocumentMouseUp, useCapture);
+    dragOwnerDocument = null;
   }
 
-  function handleSliderPointerDown(
-    event: PointerEvent & { currentTarget: EventTarget & HTMLDivElement }
-  ): void {
-    if (event.button !== 0) {
+  function applySliderDragMove(clientX: number, shiftKey: boolean): void {
+    const drag = sliderDragState;
+    if (!drag) {
       return;
     }
 
-    const { left, width } = event.currentTarget.getBoundingClientRect();
+    const nextValue = shiftKey
+      ? getDraggedSliderValue({
+          value: clampedValue,
+          deltaPixels: clientX - drag.lastClientX,
+          trackWidth: drag.trackWidth,
+          min,
+          max,
+          step,
+          fineAdjustment: true
+        })
+      : getPointerSliderValue({
+          clientX,
+          trackLeft: drag.trackLeft,
+          trackWidth: drag.trackWidth,
+          min,
+          max,
+          step
+        });
+
+    drag.lastClientX = clientX;
+    commitValue(nextValue);
+  }
+
+  function handleDocumentMouseMove(event: MouseEvent): void {
+    if (!sliderDragState) {
+      return;
+    }
+    event.preventDefault();
+    applySliderDragMove(event.clientX, event.shiftKey);
+  }
+
+  function handleDocumentMouseUp(event: MouseEvent): void {
+    if (!sliderDragState) {
+      return;
+    }
+    event.preventDefault();
+    teardownDocumentDrag();
+    sliderDragState = null;
+    mouseDragSession = false;
+    if (deferredOnChangeAfterDrag) {
+      deferredOnChangeAfterDrag = false;
+      onChange();
+    }
+  }
+
+  function beginSliderDrag(clientX: number, shiftKey: boolean, trackHost: HTMLDivElement): void {
+    const { left, width } = trackHost.getBoundingClientRect();
     if (width <= 0) {
       return;
     }
 
-    event.preventDefault();
-    event.currentTarget.focus();
-    event.currentTarget.setPointerCapture(event.pointerId);
+    const doc = trackHost.ownerDocument;
+    teardownDocumentDrag();
 
+    dragOwnerDocument = doc;
+    mouseDragSession = true;
+    deferredOnChangeAfterDrag = false;
     sliderDragState = {
-      pointerId: event.pointerId,
-      lastClientX: event.clientX,
+      lastClientX: clientX,
       trackLeft: left,
       trackWidth: width
     };
 
-    const nextValue = event.shiftKey
+    doc.addEventListener('mousemove', handleDocumentMouseMove, useCapture);
+    doc.addEventListener('mouseup', handleDocumentMouseUp, useCapture);
+
+    const nextValue = shiftKey
       ? getDraggedSliderValue({
           value: clampedValue,
           deltaPixels: 0,
@@ -101,7 +161,7 @@
           fineAdjustment: true
         })
       : getPointerSliderValue({
-          clientX: event.clientX,
+          clientX,
           trackLeft: left,
           trackWidth: width,
           min,
@@ -112,37 +172,33 @@
     commitValue(nextValue);
   }
 
-  function handleSliderPointerMove(
-    event: PointerEvent & { currentTarget: EventTarget & HTMLDivElement }
+  /**
+   * Mouse-only drag (document-level capture). Avoids `setPointerCapture`, which can throw
+   * in Chrome DevTools extension panels and abort before listeners are attached.
+   */
+  function handleSliderMouseDown(
+    event: MouseEvent & { currentTarget: EventTarget & HTMLDivElement }
   ): void {
-    if (!sliderDragState || sliderDragState.pointerId !== event.pointerId) {
+    if (event.button !== 0) {
       return;
     }
 
     event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.focus();
 
-    const nextValue = event.shiftKey
-      ? getDraggedSliderValue({
-          value: clampedValue,
-          deltaPixels: event.clientX - sliderDragState.lastClientX,
-          trackWidth: sliderDragState.trackWidth,
-          min,
-          max,
-          step,
-          fineAdjustment: true
-        })
-      : getPointerSliderValue({
-          clientX: event.clientX,
-          trackLeft: sliderDragState.trackLeft,
-          trackWidth: sliderDragState.trackWidth,
-          min,
-          max,
-          step
-        });
-
-    sliderDragState.lastClientX = event.clientX;
-    commitValue(nextValue);
+    beginSliderDrag(event.clientX, event.shiftKey, event.currentTarget);
   }
+
+  onDestroy(() => {
+    teardownDocumentDrag();
+    sliderDragState = null;
+    mouseDragSession = false;
+    if (deferredOnChangeAfterDrag) {
+      deferredOnChangeAfterDrag = false;
+      onChange();
+    }
+  });
 
   function handleSliderKeydown(event: KeyboardEvent): void {
     let nextValue = clampedValue;
@@ -178,10 +234,7 @@
     aria-valuenow={clampedValue}
     class="relative flex h-10 w-full touch-none items-center px-1 select-none"
     onkeydown={handleSliderKeydown}
-    onpointercancel={stopSliderDrag}
-    onpointerdown={handleSliderPointerDown}
-    onpointermove={handleSliderPointerMove}
-    onpointerup={stopSliderDrag}
+    onmousedown={handleSliderMouseDown}
     role="slider"
     tabindex="0"
   >

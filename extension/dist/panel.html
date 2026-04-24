@@ -12,28 +12,22 @@
         <span id="bridge-status" class="status status-idle">idle</span>
       </div>
       <div class="header-toolbar">
+        <div class="header-toolbar-actions" role="group" aria-label="Inspect and preview">
+          <label class="switch">
+            <input type="checkbox" id="hover-toggle" />
+            <span>Inspect mode</span>
+          </label>
+          <button id="clear-selection" type="button" class="secondary">Clear selection</button>
+          <button id="toggle-inpage-drawer" type="button" class="secondary" aria-pressed="false">
+            Toggle Preview
+          </button>
+        </div>
         <div class="header-group" role="group" aria-label="Theme mode">
           <div class="mode-switch">
-            <button type="button" data-mode="null" class="is-active">Live</button>
-            <button type="button" data-mode="light">Light</button>
+            <button type="button" data-mode="light" class="is-active">Light</button>
             <button type="button" data-mode="dark">Dark</button>
             <button type="button" data-mode="alt">Alt</button>
           </div>
-        </div>
-        <div class="header-group" role="group" aria-label="Inspect">
-          <div class="inspect-controls">
-            <label class="switch">
-              <input type="checkbox" id="hover-toggle" />
-              <span>Inspect mode</span>
-            </label>
-            <button id="clear-selection" type="button" class="secondary">Clear selection</button>
-          </div>
-        </div>
-        <div class="header-group header-group-preview" role="group" aria-label="In-page preview">
-          <button id="toggle-inpage-drawer" type="button" class="secondary">
-            Show in-page preview
-          </button>
-          <span id="inpage-drawer-status" class="hint">Hidden</span>
         </div>
       </div>
     </header>

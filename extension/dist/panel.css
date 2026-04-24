@@ -122,7 +122,11 @@ code {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  align-items: stretch;
+  align-items: center;
+}
+
+.header-toolbar > .header-group {
+  margin-left: auto;
 }
 
 .header-group {
@@ -138,15 +142,17 @@ code {
 }
 
 .header-group .mode-switch {
-  flex: 1 1 auto;
-  min-width: 0;
+  flex: 0 0 auto;
   border: none;
 }
 
-.header-group-preview {
-  flex: 1 1 220px;
-  justify-content: flex-start;
-  gap: 10px;
+.header-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .brand {
@@ -166,13 +172,6 @@ code {
   border-radius: 50%;
   background: linear-gradient(135deg, #7c9eff, #ff8faf);
   box-shadow: 0 0 12px rgba(120, 166, 255, 0.55);
-}
-
-.inspect-controls {
-  display: inline-flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
 }
 
 .bridge-url {
