@@ -8,7 +8,8 @@
     ".": {
       "ignore": [
         "extension/**",
-        "src/lib/semantic-colors/inpage-fixture-bridge.ts"
+        "src/lib/semantic-colors/inpage-fixture-bridge.ts",
+        "src/lib/styles/semantic-theme.generated.css"
       ]
     }
   }

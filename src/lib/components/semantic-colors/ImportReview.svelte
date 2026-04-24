@@ -36,7 +36,7 @@
 </script>
 
 <Card.Root
-  class="gap-4 border-0 ring-0 shadow-none bg-[color:var(--shell-panel-bg)] py-4 backdrop-blur-md"
+  class="gap-4 border-0 bg-[color:var(--shell-panel-bg)] py-4 shadow-none ring-0 backdrop-blur-md"
 >
   <Card.Header class="gap-3 px-4">
     <div class="flex items-start justify-between gap-3">

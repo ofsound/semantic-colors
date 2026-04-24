@@ -90,49 +90,49 @@ export interface BridgeSnapshot {
 
 export type BridgeDraftCommand =
   | {
-    kind: 'update-token-color';
-    tokenId: string;
-    mode: 'light' | 'dark' | 'both';
-    color: OklchColor;
-  }
+      kind: 'update-token-color';
+      tokenId: string;
+      mode: 'light' | 'dark' | 'both';
+      color: OklchColor;
+    }
   | {
-    kind: 'update-token-exception';
-    tokenId: string;
-    patch: {
-      altBehavior?: 'derive' | 'pin' | 'exclude';
-      maxChroma?: number | null;
+      kind: 'update-token-exception';
+      tokenId: string;
+      patch: {
+        altBehavior?: 'derive' | 'pin' | 'exclude';
+        maxChroma?: number | null;
+      };
+    }
+  | {
+      kind: 'update-alt-settings';
+      patch: {
+        source?: 'light' | 'dark';
+        harmonyLock?: boolean;
+        grayscalePreview?: boolean;
+        delta?: Partial<{ l: number; c: number; h: number }>;
+      };
+    }
+  | {
+      kind: 'add-alias';
+      alias: { name: string; tokenId: string };
+    }
+  | {
+      kind: 'update-alias';
+      index: number;
+      patch: { name?: string; tokenId?: string };
+    }
+  | {
+      kind: 'remove-alias';
+      index: number;
+    }
+  | {
+      kind: 'reset-manifest';
+    }
+  | {
+      kind: 'apply-import-review';
+      proposal: ImportProposal;
+      selection: Record<string, string>;
     };
-  }
-  | {
-    kind: 'update-alt-settings';
-    patch: {
-      source?: 'light' | 'dark';
-      harmonyLock?: boolean;
-      grayscalePreview?: boolean;
-      delta?: Partial<{ l: number; c: number; h: number }>;
-    };
-  }
-  | {
-    kind: 'add-alias';
-    alias: { name: string; tokenId: string };
-  }
-  | {
-    kind: 'update-alias';
-    index: number;
-    patch: { name?: string; tokenId?: string };
-  }
-  | {
-    kind: 'remove-alias';
-    index: number;
-  }
-  | {
-    kind: 'reset-manifest';
-  }
-  | {
-    kind: 'apply-import-review';
-    proposal: ImportProposal;
-    selection: Record<string, string>;
-  };
 
 export interface ElementTokenMatch {
   channel: 'foreground' | 'background' | 'border';
@@ -198,36 +198,36 @@ export type InPageDrawerSource = 'preview' | 'tokens';
 
 export type InPageDrawerToFrameMessage =
   | {
-    kind: 'snapshot:update';
-    snapshot: BridgeSnapshot | null;
-    mode: ThemeMode;
-    highlightedTokenId: string | null;
-    focusedTokenId: string | null;
-    /** `getComputedStyle(document.body).fontFamily` of the page the overlay is on. */
-    hostPageFontFamily: string;
-  }
+      kind: 'snapshot:update';
+      snapshot: BridgeSnapshot | null;
+      mode: ThemeMode;
+      highlightedTokenId: string | null;
+      focusedTokenId: string | null;
+      /** `getComputedStyle(document.body).fontFamily` of the page the overlay is on. */
+      hostPageFontFamily: string;
+    }
   | {
-    kind: 'mode:update';
-    mode: ThemeMode;
-  }
+      kind: 'mode:update';
+      mode: ThemeMode;
+    }
   | {
-    kind: 'token:highlight';
-    tokenId: string | null;
-  }
+      kind: 'token:highlight';
+      tokenId: string | null;
+    }
   | {
-    kind: 'token:focus';
-    tokenId: string | null;
-  };
+      kind: 'token:focus';
+      tokenId: string | null;
+    };
 
 export type InPageDrawerFromFrameMessage =
   | {
-    kind: 'token:focus';
-    tokenId: string;
-    source: InPageDrawerSource;
-  }
+      kind: 'token:focus';
+      tokenId: string;
+      source: InPageDrawerSource;
+    }
   | {
-    kind: 'drawer:close';
-  };
+      kind: 'drawer:close';
+    };
 
 // Message envelopes between panel <-> content-bridge (relayed by background).
 
@@ -245,15 +245,15 @@ export type PanelToContentMessage =
   | { kind: 'override-token'; tokenId: string; css: string | null }
   | { kind: 'clear-all-overrides' }
   | {
-    kind: 'scan-coverage';
-    tokenColors: Record<string, string>;
-    aliases: Array<{ name: string; tokenId: string }>;
-  }
+      kind: 'scan-coverage';
+      tokenColors: Record<string, string>;
+      aliases: Array<{ name: string; tokenId: string }>;
+    }
   | {
-    kind: 'scan-contrast';
-    tokenColors: Record<string, string>;
-    aliases: Array<{ name: string; tokenId: string }>;
-  }
+      kind: 'scan-contrast';
+      tokenColors: Record<string, string>;
+      aliases: Array<{ name: string; tokenId: string }>;
+    }
   | { kind: 'update-snapshot'; snapshot: BridgeSnapshot }
   | { kind: 'page-info' };
 
