@@ -2,10 +2,12 @@ import { mount } from 'svelte';
 import { BridgeClient } from './shared/bridge-client';
 import type { BridgeStatus } from './shared/bridge-client';
 import AltAuthoringPanel from './components/AltAuthoringPanel.svelte';
+import OverrideColorEditor from './components/OverrideColorEditor.svelte';
 import TokenAuthoringPanel from './components/TokenAuthoringPanel.svelte';
 import { ExtensionAuthoringState } from './components/authoring-state.svelte';
+import { ExtensionOverrideColorState } from './components/override-color-state.svelte';
 import { DEFAULT_BRIDGE_URL, STORAGE_KEYS } from './shared/constants';
-import { formatOklch, oklchToCss } from './shared/color';
+import { oklchToCss } from './shared/color';
 import {
   addAlias,
   primaryTokenFromSelection,
@@ -99,15 +101,11 @@ const el = {
   scanContrast: document.getElementById('scan-contrast') as HTMLButtonElement,
   contrastSummary: document.getElementById('contrast-summary') as HTMLSpanElement,
   contrastOutput: document.getElementById('contrast-output') as HTMLDivElement,
-  overrideToken: document.getElementById('override-token') as HTMLSelectElement,
-  overrideSliders: document.getElementById('override-sliders') as HTMLDivElement,
-  overrideMode: document.getElementById('override-mode') as HTMLSelectElement,
-  overridePersist: document.getElementById('override-persist') as HTMLInputElement,
-  clearOverrides: document.getElementById('clear-overrides') as HTMLButtonElement,
-  pushOverride: document.getElementById('push-override') as HTMLButtonElement
+  overrideAuthoringRoot: document.getElementById('override-authoring-root') as HTMLDivElement
 };
 
 const authoringState = new ExtensionAuthoringState();
+const overrideColorState = new ExtensionOverrideColorState();
 let pendingPreviewManifest: BridgeSnapshot['manifest'] | null = null;
 let previewAnimationFrame: number | null = null;
 
@@ -130,6 +128,20 @@ mount(AltAuthoringPanel, {
     onApplyDraft: applyAuthoringDraft,
     onSetTheme: setPreviewMode,
     onError: (message: string) => setConnectionStatus('error', message)
+  }
+});
+
+mount(OverrideColorEditor, {
+  target: el.overrideAuthoringRoot,
+  props: {
+    override: overrideColorState,
+    onClearOverrides: clearAllOverrides,
+    onColorChange: applyOverrideColorPreview,
+    onOverrideModeChange: setOverrideMode,
+    onPersistChange: setOverridePersist,
+    onPushOverride: pushOverride,
+    onSetTheme: setPreviewMode,
+    onTokenChange: focusTokenFromOverride
   }
 });
 
@@ -264,9 +276,9 @@ function applySelectedElementPayload(payload: HoverElementPayload): void {
   const semanticClassTokenId = payload.semanticClassMatches[0]?.tokenId ?? null;
   const primaryTokenId = primaryTokenFromSelection(payload);
   if (semanticClassTokenId) {
-    state.focusedTokenId = semanticClassTokenId;
+    setFocusedTokenId(semanticClassTokenId);
   } else if (primaryTokenId) {
-    state.focusedTokenId = primaryTokenId;
+    setFocusedTokenId(primaryTokenId);
   }
   setActiveTab('token');
   renderAll();
@@ -437,8 +449,67 @@ async function applyAuthoringDraft(commands: BridgeDraftCommand[]): Promise<void
 }
 
 function focusTokenFromAuthoring(tokenId: string): void {
+  setFocusedTokenId(tokenId);
+  renderAll();
+}
+
+function setFocusedTokenId(tokenId: string): void {
   state.focusedTokenId = tokenId;
-  renderAuthoring();
+  syncOverrideTokenToFocused();
+}
+
+function syncOverrideTokenToFocused(): void {
+  if (!state.focusedTokenId) return;
+  if (state.snapshot && !state.snapshot.manifest.tokens[state.focusedTokenId]) return;
+  if (state.overrideTokenId === state.focusedTokenId) return;
+  state.overrideTokenId = state.focusedTokenId;
+  syncOverrideFromSnapshot();
+}
+
+function applyOverrideColorPreview(): void {
+  state.overrideColor = { ...overrideColorState.color };
+  if (!state.overrideTokenId) return;
+  sendToContent({
+    kind: 'override-token',
+    tokenId: state.overrideTokenId,
+    css: oklchToCss(state.overrideColor)
+  });
+}
+
+function clearAllOverrides(): void {
+  sendToContent({ kind: 'clear-all-overrides' });
+}
+
+function setOverridePersist(persist: boolean): void {
+  state.persistOverride = persist;
+  renderAll();
+}
+
+function setOverrideMode(mode: 'light' | 'dark' | 'both'): void {
+  state.overrideMode = mode;
+  renderAll();
+}
+
+function focusTokenFromOverride(tokenId: string): void {
+  state.overrideTokenId = tokenId;
+  if (tokenId) {
+    state.focusedTokenId = tokenId;
+  }
+  syncOverrideFromSnapshot();
+  renderAll();
+}
+
+async function pushOverride(): Promise<void> {
+  state.overrideMode = overrideColorState.overrideMode;
+  if (!state.overrideTokenId) return;
+  try {
+    await bridge.pushOverride(state.overrideTokenId, state.overrideMode, state.overrideColor, {
+      persist: state.persistOverride,
+      configPath: activeConfigPath()
+    });
+  } catch (error) {
+    setConnectionStatus('error', error instanceof Error ? error.message : 'push failed');
+  }
 }
 
 const bridge = new BridgeClient({
@@ -453,11 +524,15 @@ const bridge = new BridgeClient({
         void refreshBridgeOutputConfig();
       });
     }
-    if (!state.focusedTokenId) {
-      state.focusedTokenId =
-        primaryTokenFromSelection(state.selectedElement) ??
-        Object.keys(snapshot.manifest.tokens)[0] ??
-        '';
+    if (!state.focusedTokenId || !snapshot.manifest.tokens[state.focusedTokenId]) {
+      const selectedTokenId = primaryTokenFromSelection(state.selectedElement);
+      setFocusedTokenId(
+        selectedTokenId && snapshot.manifest.tokens[selectedTokenId]
+          ? selectedTokenId
+          : (Object.keys(snapshot.manifest.tokens)[0] ?? '')
+      );
+    } else {
+      syncOverrideTokenToFocused();
     }
     renderAll();
     pushSnapshotToContent();
@@ -897,36 +972,6 @@ el.scanContrast.addEventListener('click', () => {
   });
 });
 
-el.overrideToken.addEventListener('change', () => {
-  state.overrideTokenId = el.overrideToken.value;
-  syncOverrideFromSnapshot();
-  renderOverrideSliders();
-});
-
-el.overrideMode.addEventListener('change', () => {
-  state.overrideMode = el.overrideMode.value as typeof state.overrideMode;
-});
-
-el.overridePersist.addEventListener('change', () => {
-  state.persistOverride = el.overridePersist.checked;
-});
-
-el.clearOverrides.addEventListener('click', () => {
-  sendToContent({ kind: 'clear-all-overrides' });
-});
-
-el.pushOverride.addEventListener('click', async () => {
-  if (!state.overrideTokenId) return;
-  try {
-    await bridge.pushOverride(state.overrideTokenId, state.overrideMode, state.overrideColor, {
-      persist: state.persistOverride,
-      configPath: activeConfigPath()
-    });
-  } catch (error) {
-    setConnectionStatus('error', error instanceof Error ? error.message : 'push failed');
-  }
-});
-
 el.bridgeBtn.addEventListener('click', async () => {
   const input = el.bridgeInput.value.trim();
   if (!input) return;
@@ -971,9 +1016,14 @@ function renderAll(): void {
   renderAliasList();
   renderCoverage();
   renderContrast();
-  renderOverrideTokenOptions();
-  if (!state.overrideTokenId && state.snapshot) {
-    state.overrideTokenId = Object.keys(state.snapshot.manifest.tokens)[0] ?? '';
+  if (
+    state.snapshot &&
+    (!state.overrideTokenId || !state.snapshot.manifest.tokens[state.overrideTokenId])
+  ) {
+    state.overrideTokenId =
+      state.focusedTokenId && state.snapshot.manifest.tokens[state.focusedTokenId]
+        ? state.focusedTokenId
+        : Object.keys(state.snapshot.manifest.tokens)[0] || '';
     syncOverrideFromSnapshot();
   }
   renderOverrideSliders();
@@ -1092,13 +1142,13 @@ function renderAliasList(): void {
 }
 
 function focusToken(tokenId: string, reveal = false, switchToAuthoring = false): void {
-  state.focusedTokenId = tokenId;
+  setFocusedTokenId(tokenId);
   if (switchToAuthoring) setActiveTab('token');
   if (reveal) {
     state.highlightedToken = tokenId;
     sendToContent({ kind: 'reveal-token-usage', tokenId });
   }
-  renderAuthoring();
+  renderAll();
 }
 
 function renderCoverage(): void {
@@ -1189,21 +1239,6 @@ function renderContrast(): void {
   `;
 }
 
-function renderOverrideTokenOptions(): void {
-  if (!state.snapshot) {
-    el.overrideToken.innerHTML = '<option value="">Connect to the engine first</option>';
-    return;
-  }
-
-  const tokens = tokenRecords();
-  el.overrideToken.innerHTML = tokens
-    .map((token) => `<option value="${token.id}">${escapeHtml(token.label)} (${token.id})</option>`)
-    .join('');
-  if (state.overrideTokenId) {
-    el.overrideToken.value = state.overrideTokenId;
-  }
-}
-
 function syncOverrideFromSnapshot(): void {
   if (!state.snapshot || !state.overrideTokenId) return;
   const token = tokenRecord(state.overrideTokenId);
@@ -1226,68 +1261,14 @@ function syncOverrideFromSnapshot(): void {
 }
 
 function renderOverrideSliders(): void {
-  if (!state.snapshot) {
-    el.overrideSliders.innerHTML =
-      '<p class="empty-state">Connect to the engine to use overrides.</p>';
-    return;
-  }
-
-  const color = state.overrideColor;
-  const preview = oklchToCss(color);
-  const channels: Array<{
-    key: 'l' | 'c' | 'h';
-    label: string;
-    min: number;
-    max: number;
-    step: number;
-  }> = [
-    { key: 'l', label: 'Lightness', min: 0, max: 1, step: 0.001 },
-    { key: 'c', label: 'Chroma', min: 0, max: 0.4, step: 0.001 },
-    { key: 'h', label: 'Hue', min: 0, max: 360, step: 0.1 }
-  ];
-
-  el.overrideSliders.innerHTML = `
-    <div class="preview-row">
-      <span class="swatch" style="background:${escapeHtml(preview)}"></span>
-      <div>
-        <strong>${escapeHtml(state.overrideTokenId || 'Choose a token')}</strong>
-        <code>${escapeHtml(formatOklch(color))}</code>
-      </div>
-    </div>
-    <div class="editor-block">
-      ${channels
-        .map(
-          (channel) => `
-            <div class="slider-row">
-              <span>${channel.label}</span>
-              <input type="range" min="${channel.min}" max="${channel.max}" step="${channel.step}" value="${color[channel.key]}" data-override-channel="${channel.key}" />
-              <span class="readout">${color[channel.key].toFixed(channel.key === 'h' ? 2 : 3)}</span>
-            </div>
-          `
-        )
-        .join('')}
-    </div>
-  `;
-
-  el.overrideSliders
-    .querySelectorAll<HTMLInputElement>('[data-override-channel]')
-    .forEach((input) => {
-      input.addEventListener('input', () => {
-        const channel = input.dataset.overrideChannel as 'l' | 'c' | 'h' | undefined;
-        if (!channel) return;
-        state.overrideColor = {
-          ...state.overrideColor,
-          [channel]: Number(input.value)
-        };
-        renderOverrideSliders();
-        if (!state.overrideTokenId) return;
-        sendToContent({
-          kind: 'override-token',
-          tokenId: state.overrideTokenId,
-          css: oklchToCss(state.overrideColor)
-        });
-      });
-    });
+  overrideColorState.update({
+    snapshot: state.snapshot,
+    tokenId: state.overrideTokenId,
+    color: state.overrideColor,
+    activeMode: state.activeMode,
+    overrideMode: state.overrideMode,
+    persistOverride: state.persistOverride
+  });
 }
 
 function escapeHtml(text: string): string {

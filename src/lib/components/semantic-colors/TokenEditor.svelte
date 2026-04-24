@@ -2,12 +2,10 @@
   import * as Card from '$lib/components/ui/card';
   import { Input } from '$lib/components/ui/input';
   import { Separator } from '$lib/components/ui/separator';
-  import AnchorColorPicker from '$lib/components/semantic-colors/AnchorColorPicker.svelte';
-  import NumberSliderField from '$lib/components/semantic-colors/NumberSliderField.svelte';
   import ShellSelect from '$lib/components/semantic-colors/ShellSelect.svelte';
-  import TailwindSwatchPicker from '$lib/components/semantic-colors/TailwindSwatchPicker.svelte';
+  import TokenColorAnchorSection from '$lib/components/semantic-colors/TokenColorAnchorSection.svelte';
+  import TokenModeSwatches from '$lib/components/semantic-colors/TokenModeSwatches.svelte';
   import { toCssColor } from '$lib/theme/color';
-  import { cn } from '$lib/utils.js';
   import type { OklchColor, ThemeManifest, ThemeMode, TokenId } from '$lib/theme/schema';
 
   const ALT_BEHAVIOR_OPTIONS = [
@@ -39,16 +37,6 @@
   } = $props();
 
   const selectedToken = $derived(manifest.tokens[selectedTokenId]);
-
-  function modeButtonClass(mode: ThemeMode) {
-    const on = activeMode === mode;
-    return cn(
-      'flex w-full min-w-0 flex-col items-stretch gap-2 rounded-[var(--shell-radius-outer)] px-2.5 py-2.5 text-left text-xs font-semibold tracking-[0.12em] text-slate-800 uppercase transition-[box-shadow,background-color,border-color] outline-none',
-      on
-        ? 'border border-sky-500/40 bg-sky-500/12 text-slate-900 shadow-[0_0_0_2px_rgba(59,130,246,0.1)]'
-        : 'border border-[color:var(--shell-border)] bg-[color:var(--shell-subtle-panel-bg)] hover:border-slate-300/70 hover:bg-white/95'
-    );
-  }
 </script>
 
 <Card.Root
@@ -71,161 +59,33 @@
   </Card.Header>
 
   <Card.Content class="space-y-4 px-4">
-    <div
-      class="pt-2 sm:pt-2.5"
-      role="group"
-      aria-label="Theme for this token editor: Light, Dark, or Alt"
-    >
-      <div class="grid min-w-0 grid-cols-3 gap-2.5 sm:gap-3">
-        <button
-          type="button"
-          class={cn(modeButtonClass('light'), 'focus-visible:ring-2 focus-visible:ring-sky-500/35')}
-          aria-pressed={activeMode === 'light'}
-          aria-label={`Preview ${selectedToken.label} in light mode: ${toCssColor(selectedToken.light)}`}
-          onclick={() => setTheme('light')}
-        >
-          <span>Light</span>
-          <span
-            class="h-10 w-full rounded-[var(--shell-radius-inner)] border border-slate-900/8 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
-            style={`background:${toCssColor(selectedToken.light)}`}
-            aria-hidden="true"
-          ></span>
-        </button>
-        <button
-          type="button"
-          class={cn(modeButtonClass('dark'), 'focus-visible:ring-2 focus-visible:ring-sky-500/35')}
-          aria-pressed={activeMode === 'dark'}
-          aria-label={`Preview ${selectedToken.label} in dark mode: ${toCssColor(selectedToken.dark)}`}
-          onclick={() => setTheme('dark')}
-        >
-          <span>Dark</span>
-          <span
-            class="h-10 w-full rounded-[var(--shell-radius-inner)] border border-slate-900/8 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
-            style={`background:${toCssColor(selectedToken.dark)}`}
-            aria-hidden="true"
-          ></span>
-        </button>
-        <button
-          type="button"
-          class={cn(modeButtonClass('alt'), 'focus-visible:ring-2 focus-visible:ring-sky-500/35')}
-          aria-pressed={activeMode === 'alt'}
-          aria-label={`Preview ${selectedToken.label} in alt mode: ${toCssColor(currentTokenAlt)}`}
-          onclick={() => setTheme('alt')}
-        >
-          <span>Alt</span>
-          <span
-            class="h-10 w-full rounded-[var(--shell-radius-inner)] border border-slate-900/8 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
-            style={`background:${toCssColor(currentTokenAlt)}`}
-            aria-hidden="true"
-          ></span>
-        </button>
-      </div>
-    </div>
+    <TokenModeSwatches
+      {activeMode}
+      altColor={currentTokenAlt}
+      darkColor={selectedToken.dark}
+      lightColor={selectedToken.light}
+      {setTheme}
+      tokenLabel={selectedToken.label}
+    />
 
     {#if activeMode === 'light'}
-      <section class="space-y-4 rounded-xl border border-sky-500/35 bg-sky-500/7 p-4">
-        <div class="flex items-center justify-between gap-3">
-          <strong class="text-sm font-semibold text-slate-900">Light anchor</strong>
-        </div>
-        <div class="flex flex-col gap-4">
-          <AnchorColorPicker
-            bind:color={selectedToken.light}
-            label="Light anchor"
-            {onPersistChange}
-            {onPreviewChange}
-          />
-          <div class="flex min-w-0 flex-col gap-3">
-            <NumberSliderField
-              bind:value={selectedToken.light.l}
-              class="w-full"
-              label="Lightness"
-              max={1}
-              min={0}
-              onChange={onPersistChange}
-              {onPreviewChange}
-              step={0.005}
-            />
-            <NumberSliderField
-              bind:value={selectedToken.light.c}
-              class="w-full"
-              label="Chroma"
-              max={0.37}
-              min={0}
-              onChange={onPersistChange}
-              {onPreviewChange}
-              step={0.005}
-            />
-            <NumberSliderField
-              bind:value={selectedToken.light.h}
-              class="w-full"
-              label="Hue"
-              max={360}
-              min={0}
-              onChange={onPersistChange}
-              {onPreviewChange}
-              step={1}
-            />
-          </div>
-          <TailwindSwatchPicker
-            bind:color={selectedToken.light}
-            label="Light anchor"
-            {onPersistChange}
-          />
-        </div>
-      </section>
+      <TokenColorAnchorSection
+        bind:color={selectedToken.light}
+        label="Light anchor"
+        {onPersistChange}
+        {onPreviewChange}
+        title="Light anchor"
+      />
     {/if}
 
     {#if activeMode === 'dark'}
-      <section class="space-y-4 rounded-xl border border-sky-500/35 bg-sky-500/7 p-4">
-        <div class="flex items-center justify-between gap-3">
-          <strong class="text-sm font-semibold text-slate-900">Dark anchor</strong>
-        </div>
-        <div class="flex flex-col gap-4">
-          <AnchorColorPicker
-            bind:color={selectedToken.dark}
-            label="Dark anchor"
-            {onPersistChange}
-            {onPreviewChange}
-          />
-          <div class="flex min-w-0 flex-col gap-3">
-            <NumberSliderField
-              bind:value={selectedToken.dark.l}
-              class="w-full"
-              label="Lightness"
-              max={1}
-              min={0}
-              onChange={onPersistChange}
-              {onPreviewChange}
-              step={0.005}
-            />
-            <NumberSliderField
-              bind:value={selectedToken.dark.c}
-              class="w-full"
-              label="Chroma"
-              max={0.37}
-              min={0}
-              onChange={onPersistChange}
-              {onPreviewChange}
-              step={0.005}
-            />
-            <NumberSliderField
-              bind:value={selectedToken.dark.h}
-              class="w-full"
-              label="Hue"
-              max={360}
-              min={0}
-              onChange={onPersistChange}
-              {onPreviewChange}
-              step={1}
-            />
-          </div>
-          <TailwindSwatchPicker
-            bind:color={selectedToken.dark}
-            label="Dark anchor"
-            {onPersistChange}
-          />
-        </div>
-      </section>
+      <TokenColorAnchorSection
+        bind:color={selectedToken.dark}
+        label="Dark anchor"
+        {onPersistChange}
+        {onPreviewChange}
+        title="Dark anchor"
+      />
     {/if}
 
     {#if activeMode === 'alt'}
