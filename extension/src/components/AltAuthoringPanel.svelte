@@ -2,16 +2,18 @@
   import * as Card from '$lib/components/ui/card';
   import AltAuthoringEditor from './AltAuthoringEditor.svelte';
   import type { ExtensionAuthoringState } from './authoring-state.svelte';
-  import type { BridgeDraftCommand, ThemeMode } from '../shared/types';
+  import type { BridgeDraftCommand, BridgeSnapshot, ThemeMode } from '../shared/types';
 
   let {
     authoring,
     onApplyDraft,
+    onPreviewManifestChange,
     onSetTheme,
     onError
   }: {
     authoring: ExtensionAuthoringState;
     onApplyDraft: (commands: BridgeDraftCommand[]) => Promise<void>;
+    onPreviewManifestChange: (manifest: BridgeSnapshot['manifest']) => void;
     onSetTheme: (mode: ThemeMode) => void;
     onError: (message: string) => void;
   } = $props();
@@ -31,7 +33,14 @@
     </Card.Root>
   {:else}
     {#key snapshot.version}
-      <AltAuthoringEditor {activeMode} {onApplyDraft} {onError} {onSetTheme} {snapshot} />
+      <AltAuthoringEditor
+        {activeMode}
+        {onApplyDraft}
+        {onError}
+        {onPreviewManifestChange}
+        {onSetTheme}
+        {snapshot}
+      />
     {/key}
   {/if}
 </div>

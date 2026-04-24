@@ -51,6 +51,7 @@ const state = {
   coverage: null as CoverageReport | null,
   contrast: null as ContrastReport | null,
   highlightedToken: null as string | null,
+  highlightedCoverageTokens: new Set<string>(),
   focusedTokenId: '' as string,
   overrideTokenId: '' as string,
   overrideColor: { l: 0.5, c: 0.1, h: 240, alpha: 1 } as OklchColor,
@@ -126,6 +127,7 @@ mount(AltAuthoringPanel, {
   props: {
     authoring: authoringState,
     onApplyDraft: applyAuthoringDraft,
+    onPreviewManifestChange: scheduleAuthoringPreview,
     onSetTheme: setPreviewMode,
     onError: (message: string) => setConnectionStatus('error', message)
   }
@@ -403,6 +405,7 @@ function handleContentMessage(message: ContentToPanelMessage): void {
     case 'coverage-report':
       clearCoverageScanTimeout();
       state.coverage = message.report;
+      state.highlightedCoverageTokens.clear();
       renderCoverage();
       break;
     case 'contrast-report':
@@ -599,6 +602,7 @@ function clearBridgeSnapshotState(statusDetail?: string): void {
   state.coverage = null;
   state.contrast = null;
   state.highlightedToken = null;
+  state.highlightedCoverageTokens.clear();
   state.focusedTokenId = '';
   state.overrideTokenId = '';
   if (!state.targetConfigPath) {
@@ -1145,10 +1149,27 @@ function focusToken(tokenId: string, reveal = false, switchToAuthoring = false):
   setFocusedTokenId(tokenId);
   if (switchToAuthoring) setActiveTab('token');
   if (reveal) {
+    state.highlightedCoverageTokens.clear();
     state.highlightedToken = tokenId;
     sendToContent({ kind: 'reveal-token-usage', tokenId });
   }
   renderAll();
+}
+
+function syncCoverageHighlights(): void {
+  const tokenIds = [...state.highlightedCoverageTokens];
+  state.highlightedToken = tokenIds[0] ?? null;
+  sendToContent({ kind: 'reveal-token-usages', tokenIds });
+}
+
+function toggleCoverageHighlight(tokenId: string): void {
+  if (state.highlightedCoverageTokens.has(tokenId)) {
+    state.highlightedCoverageTokens.delete(tokenId);
+  } else {
+    state.highlightedCoverageTokens.add(tokenId);
+  }
+  syncCoverageHighlights();
+  renderCoverage();
 }
 
 function renderCoverage(): void {
@@ -1174,8 +1195,18 @@ function renderCoverage(): void {
     <div class="report-list">
       ${top
         .map(
-          ([tokenId, count]) =>
-            `<div class="report-item"><span>${escapeHtml(tokenId)}</span><span class="meta">${count} elements</span><span></span></div>`
+          ([tokenId, count]) => `
+            <button
+              type="button"
+              class="report-item report-token-toggle"
+              data-coverage-token="${escapeHtml(tokenId)}"
+              aria-pressed="${state.highlightedCoverageTokens.has(tokenId)}"
+            >
+              <span>${escapeHtml(tokenId)}</span>
+              <span class="meta">${count} elements</span>
+              <span class="meta">${state.highlightedCoverageTokens.has(tokenId) ? 'shown' : 'show'}</span>
+            </button>
+          `
         )
         .join('')}
     </div>
@@ -1203,6 +1234,15 @@ function renderCoverage(): void {
         .join('')}
     </div>
   `;
+
+  el.coverageOutput
+    .querySelectorAll<HTMLButtonElement>('[data-coverage-token]')
+    .forEach((button) => {
+      button.addEventListener('click', () => {
+        const tokenId = button.dataset.coverageToken;
+        if (tokenId) toggleCoverageHighlight(tokenId);
+      });
+    });
 }
 
 function renderContrast(): void {

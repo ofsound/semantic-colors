@@ -242,6 +242,7 @@ export type PanelToContentMessage =
   | { kind: 'highlight-token'; tokenId: string | null }
   | { kind: 'focus-token'; tokenId: string | null }
   | { kind: 'reveal-token-usage'; tokenId: string | null }
+  | { kind: 'reveal-token-usages'; tokenIds: string[] }
   | { kind: 'override-token'; tokenId: string; css: string | null }
   | { kind: 'clear-all-overrides' }
   | {

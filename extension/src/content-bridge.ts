@@ -1,6 +1,7 @@
 import { apcaContrast, apcaSeverity, parseCssColor } from './shared/color';
 import {
   HIGHLIGHT_ATTR,
+  HOVER_HIGHLIGHT_ATTR,
   INPAGE_DRAWER_HOST_ID,
   INPAGE_DRAWER_IFRAME_ID,
   INSPECTOR_OVERLAY_ID,
@@ -33,6 +34,7 @@ const state = {
   hoverTarget: null as HTMLElement | null,
   selectedTarget: null as HTMLElement | null,
   highlightedToken: null as string | null,
+  highlightedTokens: new Set<string>(),
   focusedTokenId: null as string | null,
   snapshot: null as BridgeSnapshot | null,
   overrides: new Map<string, string>(),
@@ -381,9 +383,11 @@ function ensureInspectorStyle(): void {
     #${INSPECTOR_OVERLAY_ID}[data-semantic-token-position="below"]::before {
       top: calc(100% + 6px);
     }
-    [${HIGHLIGHT_ATTR}] {
-      outline: 2px dashed #ff7ab6 !important;
+    [${HIGHLIGHT_ATTR}],
+    [${HOVER_HIGHLIGHT_ATTR}] {
+      outline: 1px dashed #ff7ab6 !important;
       outline-offset: 1px !important;
+      border-radius: 2px !important;
     }
     [${SELECTED_ATTR}] {
       outline: 2px solid #7c9eff !important;
@@ -459,6 +463,20 @@ function elementMatches(el: HTMLElement): ElementTokenMatch[] {
   ];
 }
 
+function tokenIdsForElement(el: HTMLElement): string[] {
+  const tokenIds = new Set<string>();
+
+  for (const match of semanticTokenClassesForElement(el)) {
+    tokenIds.add(match.tokenId);
+  }
+
+  for (const match of elementMatches(el)) {
+    if (match.tokenId) tokenIds.add(match.tokenId);
+  }
+
+  return [...tokenIds];
+}
+
 function buildElementPayload(el: HTMLElement, selected: boolean): HoverElementPayload {
   const computed = window.getComputedStyle(el);
   const bg = findOpaqueBackground(el);
@@ -530,12 +548,14 @@ function handleHoverMove(event: MouseEvent): void {
   if (target.id === INSPECTOR_OVERLAY_ID) return;
   state.hoverTarget = target;
   positionOverlay(target);
+  highlightHoverTokenMatches(target);
   emitHoverPayload();
 }
 
 function handleHoverLeave(): void {
   if (!state.hoverActive) return;
   state.hoverTarget = null;
+  clearHoverHighlights();
   if (!state.selectedTarget) {
     clearInspectorOverlay();
   }
@@ -567,6 +587,7 @@ function setHoverActive(enabled: boolean): void {
     document.removeEventListener('mouseleave', handleHoverLeave, true);
     document.removeEventListener('click', handleDocumentClick, true);
     state.hoverTarget = null;
+    clearHoverHighlights();
     if (state.selectedTarget) {
       setSelectedTarget(null);
     } else {
@@ -581,27 +602,69 @@ function clearHighlights(): void {
   });
 }
 
-function highlightToken(tokenId: string | null): void {
+function clearHoverHighlights(): void {
+  document.querySelectorAll(`[${HOVER_HIGHLIGHT_ATTR}]`).forEach((node) => {
+    node.removeAttribute(HOVER_HIGHLIGHT_ATTR);
+  });
+}
+
+function highlightHoverTokenMatches(target: HTMLElement): void {
+  clearHoverHighlights();
+
+  if (semanticTokenClassesForElement(target).length === 0) return;
+
+  const tokenIds = tokenIdsForElement(target);
+  if (tokenIds.length === 0) return;
+
+  const elements = document.querySelectorAll<HTMLElement>('body *');
+  for (const el of elements) {
+    if (el === target) continue;
+    if (tokenIds.some((tokenId) => elementUsesToken(el, tokenId))) {
+      el.setAttribute(HOVER_HIGHLIGHT_ATTR, '1');
+    }
+  }
+}
+
+function elementUsesToken(el: HTMLElement, tokenId: string): boolean {
+  if (semanticTokenClassesForElement(el).some((match) => match.tokenId === tokenId)) return true;
+
+  const computed = window.getComputedStyle(el);
+  return (
+    tokenFor(computed.color) === tokenId ||
+    tokenFor(computed.backgroundColor) === tokenId ||
+    tokenFor(computed.borderTopColor) === tokenId ||
+    tokenFor(computed.borderRightColor) === tokenId ||
+    tokenFor(computed.borderBottomColor) === tokenId ||
+    tokenFor(computed.borderLeftColor) === tokenId ||
+    tokenFor(computed.outlineColor) === tokenId ||
+    tokenFor(computed.textDecorationColor) === tokenId
+  );
+}
+
+function highlightTokens(tokenIds: string[]): void {
   clearHighlights();
-  state.highlightedToken = tokenId;
-  if (!tokenId) {
+  state.highlightedTokens = new Set(tokenIds.filter((tokenId) => tokenId.length > 0));
+  state.highlightedToken = tokenIds[0] ?? null;
+
+  if (state.highlightedTokens.size === 0) {
     syncInPageDrawerHighlight();
     return;
   }
-  ensureInspectorStyle();
 
+  ensureInspectorStyle();
   const elements = document.querySelectorAll<HTMLElement>('body *');
   elements.forEach((el) => {
-    const computed = window.getComputedStyle(el);
-    if (
-      tokenFor(computed.color) === tokenId ||
-      tokenFor(computed.backgroundColor) === tokenId ||
-      tokenFor(computed.borderTopColor) === tokenId
-    ) {
+    for (const tokenId of state.highlightedTokens) {
+      if (!elementUsesToken(el, tokenId)) continue;
       el.setAttribute(HIGHLIGHT_ATTR, '1');
+      return;
     }
   });
   syncInPageDrawerHighlight();
+}
+
+function highlightToken(tokenId: string | null): void {
+  highlightTokens(tokenId ? [tokenId] : []);
 }
 
 function setThemeMode(mode: ThemeMode): void {
@@ -746,6 +809,7 @@ function applySnapshot(snapshot: BridgeSnapshot): void {
 function clearSnapshot(): void {
   state.snapshot = null;
   state.highlightedToken = null;
+  state.highlightedTokens.clear();
   state.focusedTokenId = null;
   state.tokenColorMap.clear();
   state.tokenCssByTokenId.clear();
@@ -905,6 +969,9 @@ function handlePanelMessage(message: PanelToContentMessage): void {
       state.focusedTokenId = message.tokenId;
       highlightToken(message.tokenId);
       syncInPageDrawerFocus();
+      break;
+    case 'reveal-token-usages':
+      highlightTokens(message.tokenIds);
       break;
     case 'override-token':
       setOverride(message.tokenId, message.css);

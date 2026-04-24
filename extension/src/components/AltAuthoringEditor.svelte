@@ -8,12 +8,14 @@
     activeMode,
     onApplyDraft,
     onError,
+    onPreviewManifestChange,
     onSetTheme,
     snapshot
   }: {
     activeMode: ThemeMode;
     onApplyDraft: (commands: BridgeDraftCommand[]) => Promise<void>;
     onError: (message: string) => void;
+    onPreviewManifestChange: (manifest: BridgeSnapshot['manifest']) => void;
     onSetTheme: (mode: ThemeMode) => void;
     snapshot: BridgeSnapshot;
   } = $props();
@@ -69,6 +71,10 @@
     onSetTheme('alt');
   }
 
+  function handlePreviewChange(): void {
+    onPreviewManifestChange($state.snapshot(manifest) as BridgeSnapshot['manifest']);
+  }
+
   function updateAltDelta(channel: 'l' | 'c' | 'h', value: number): void {
     manifest.alt.delta[channel] = value;
   }
@@ -78,6 +84,7 @@
   bind:manifest
   onActivateAltPreview={activateAltPreview}
   onPersistChange={handlePersistChange}
+  onPreviewChange={handlePreviewChange}
   {activeMode}
   {updateAltDelta}
 />

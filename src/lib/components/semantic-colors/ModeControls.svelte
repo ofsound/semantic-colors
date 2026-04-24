@@ -14,12 +14,14 @@
   let {
     manifest = $bindable(),
     onPersistChange,
+    onPreviewChange,
     onActivateAltPreview,
     activeMode,
     updateAltDelta
   }: {
     manifest: ThemeManifest;
     onPersistChange: () => void;
+    onPreviewChange?: () => void;
     onActivateAltPreview: () => void;
     activeMode: ThemeMode;
     updateAltDelta: (channel: 'l' | 'c' | 'h', value: number) => void;
@@ -28,6 +30,13 @@
   function persistAltChange(): void {
     onActivateAltPreview();
     onPersistChange();
+  }
+
+  function previewAltChange(): void {
+    if (activeMode !== 'alt') {
+      onActivateAltPreview();
+    }
+    onPreviewChange?.();
   }
 
   function handleAltDeltaChange(channel: 'l' | 'c' | 'h', value: number): void {
@@ -62,6 +71,7 @@
         max={180}
         min={-180}
         onChange={() => handleAltDeltaChange('h', manifest.alt.delta.h)}
+        onPreviewChange={previewAltChange}
         step={1}
         bind:value={manifest.alt.delta.h}
       />
@@ -70,6 +80,7 @@
         max={0.16}
         min={-0.16}
         onChange={() => handleAltDeltaChange('c', manifest.alt.delta.c)}
+        onPreviewChange={previewAltChange}
         step={0.005}
         bind:value={manifest.alt.delta.c}
       />
@@ -78,6 +89,7 @@
         max={0.2}
         min={-0.2}
         onChange={() => handleAltDeltaChange('l', manifest.alt.delta.l)}
+        onPreviewChange={previewAltChange}
         step={0.01}
         bind:value={manifest.alt.delta.l}
       />

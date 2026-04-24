@@ -470,6 +470,16 @@ code {
   grid-template-columns: 1fr auto auto;
 }
 
+.report-token-toggle {
+  width: 100%;
+  color: var(--text);
+  text-align: left;
+}
+
+.report-token-toggle[aria-pressed='true'] {
+  border-color: #ff7ab6;
+}
+
 .alias-row {
   grid-template-columns: 1.2fr 1fr auto;
 }
@@ -602,14 +612,6 @@ code {
 .preview-row .swatch {
   width: 42px;
   height: 42px;
-}
-
-.severity-warn {
-  border-left: 3px solid var(--warn);
-}
-
-.severity-fail {
-  border-left: 3px solid var(--fail);
 }
 
 .report-subhead {
