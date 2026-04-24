@@ -25,6 +25,7 @@
     max,
     step,
     onChange,
+    onPreviewChange,
     class: className,
     inputClass
   }: {
@@ -34,6 +35,7 @@
     max: number;
     step: number;
     onChange: () => void;
+    onPreviewChange?: () => void;
     class?: string;
     inputClass?: string;
   } = $props();
@@ -58,6 +60,7 @@
     }
 
     value = nextValue;
+    onPreviewChange?.();
     if (mouseDragSession) {
       deferredOnChangeAfterDrag = true;
     } else {
@@ -201,7 +204,7 @@
   });
 
   function handleSliderKeydown(event: KeyboardEvent): void {
-    let nextValue = clampedValue;
+    let nextValue: number;
 
     if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
       nextValue = clampedValue - step;

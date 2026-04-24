@@ -220,14 +220,28 @@ code {
   flex: 0 0 auto;
 }
 
-.connect-output-row {
+.draft-bar-main {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 14px;
   align-items: center;
-  padding-top: 12px;
-  margin-top: 2px;
-  border-top: 1px solid var(--border);
+  gap: 10px 14px;
+  width: 100%;
+}
+
+.draft-bridge-output {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  flex: 1 1 200px;
+  min-width: 0;
+  margin-left: auto;
+  justify-content: flex-end;
+}
+
+.draft-bridge-output .bridge-output-status {
+  text-align: right;
+  max-width: 100%;
 }
 
 .mode-switch {
@@ -294,22 +308,31 @@ code {
 
 .draft-bar {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 10px 12px;
-  align-items: center;
-  padding: 8px 14px;
+  align-items: stretch;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
 }
 
 .draft-status {
-  color: var(--text);
+  color: var(--text-muted);
+  line-height: 1.4;
 }
 
 .draft-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.draft-actions button {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .tabs {

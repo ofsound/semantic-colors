@@ -8,15 +8,19 @@
     activeMode,
     onApplyDraft,
     onError,
+    onPreviewManifestChange,
     onSetTheme,
     selectedTokenId,
+    baseSnapshot,
     snapshot
   }: {
     activeMode: ThemeMode;
     onApplyDraft: (commands: BridgeDraftCommand[]) => Promise<void>;
     onError: (message: string) => void;
+    onPreviewManifestChange: (manifest: BridgeSnapshot['manifest']) => void;
     onSetTheme: (mode: ThemeMode) => void;
     selectedTokenId: string;
+    baseSnapshot: BridgeSnapshot;
     snapshot: BridgeSnapshot;
   } = $props();
 
@@ -51,7 +55,7 @@
   }
 
   async function persistTokenChanges(): Promise<void> {
-    const before = snapshot.manifest.tokens[typedSelectedTokenId];
+    const before = baseSnapshot.manifest.tokens[typedSelectedTokenId];
     const after = manifest.tokens[typedSelectedTokenId];
     if (!before || !after) {
       return;
@@ -88,6 +92,10 @@
     void persistTokenChanges();
   }
 
+  function handlePreviewChange(): void {
+    onPreviewManifestChange($state.snapshot(manifest) as BridgeSnapshot['manifest']);
+  }
+
   function handleSetTheme(mode: ThemeMode): void {
     onSetTheme(mode);
   }
@@ -98,6 +106,7 @@
   {activeMode}
   {currentTokenAlt}
   onPersistChange={handlePersistChange}
+  onPreviewChange={handlePreviewChange}
   selectedTokenId={typedSelectedTokenId}
   {selectedTokenNotes}
   setTheme={handleSetTheme}

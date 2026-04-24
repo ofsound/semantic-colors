@@ -18,11 +18,13 @@
   let {
     color = $bindable(),
     label,
-    onPersistChange
+    onPersistChange,
+    onPreviewChange
   }: {
     color: OklchColor;
     label: string;
     onPersistChange: () => void;
+    onPreviewChange?: () => void;
   } = $props();
 
   const useCapture = true;
@@ -43,6 +45,7 @@
     color.c = nextColor.c;
     color.h = nextColor.h;
     color.alpha = nextColor.alpha ?? 1;
+    onPreviewChange?.();
     if (persist) {
       deferredPersistAfterDrag = false;
       onPersistChange();

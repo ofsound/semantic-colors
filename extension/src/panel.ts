@@ -14,6 +14,7 @@ import {
   updateAlias
 } from './shared/draft';
 import { panelPortName } from './shared/messaging';
+import { buildPreviewSnapshot } from './shared/preview-snapshot';
 import type { ContentMessageEnvelope, PanelMessageEnvelope } from './shared/messaging';
 import type {
   BridgeDraftCommand,
@@ -44,6 +45,7 @@ const state = {
   targetConfigPath: '',
   recentTargetConfigPaths: [] as string[],
   snapshot: null as BridgeSnapshot | null,
+  previewSnapshot: null as BridgeSnapshot | null,
   coverage: null as CoverageReport | null,
   contrast: null as ContrastReport | null,
   highlightedToken: null as string | null,
@@ -106,6 +108,8 @@ const el = {
 };
 
 const authoringState = new ExtensionAuthoringState();
+let pendingPreviewManifest: BridgeSnapshot['manifest'] | null = null;
+let previewAnimationFrame: number | null = null;
 
 mount(TokenAuthoringPanel, {
   target: el.tokenAuthoringRoot,
@@ -113,6 +117,7 @@ mount(TokenAuthoringPanel, {
     authoring: authoringState,
     onApplyDraft: applyAuthoringDraft,
     onFocusToken: focusTokenFromAuthoring,
+    onPreviewManifestChange: scheduleAuthoringPreview,
     onSetTheme: setPreviewMode,
     onError: (message: string) => setConnectionStatus('error', message)
   }
@@ -193,6 +198,41 @@ function sendToContent(payload: PanelToContentMessage): void {
     kind: 'error',
     message: 'Extension relay disconnected. Retry the scan.'
   });
+}
+
+function scheduleAuthoringPreview(manifest: BridgeSnapshot['manifest']): void {
+  if (!state.snapshot) return;
+  pendingPreviewManifest = manifest;
+  if (previewAnimationFrame !== null) return;
+
+  previewAnimationFrame = window.requestAnimationFrame(flushAuthoringPreview);
+}
+
+function flushAuthoringPreview(): void {
+  previewAnimationFrame = null;
+  const manifest = pendingPreviewManifest;
+  pendingPreviewManifest = null;
+  if (!state.snapshot || !manifest) return;
+
+  const previewSnapshot = buildPreviewSnapshot(state.snapshot, manifest);
+  state.previewSnapshot = previewSnapshot;
+  authoringState.setPreviewSnapshot(previewSnapshot);
+  sendToContent({ kind: 'update-snapshot', snapshot: previewSnapshot });
+}
+
+function clearAuthoringPreview(pushBaseSnapshot = true): void {
+  pendingPreviewManifest = null;
+  if (previewAnimationFrame !== null) {
+    window.cancelAnimationFrame(previewAnimationFrame);
+    previewAnimationFrame = null;
+  }
+
+  if (!state.previewSnapshot) return;
+  state.previewSnapshot = null;
+  authoringState.clearPreviewSnapshot();
+  if (pushBaseSnapshot && state.snapshot) {
+    pushSnapshotToContent();
+  }
 }
 
 function clearCoverageScanTimeout(): void {
@@ -388,7 +428,12 @@ function focusTokenFromInPageDrawer(tokenId: string, source: InPageDrawerSource)
 
 async function applyAuthoringDraft(commands: BridgeDraftCommand[]): Promise<void> {
   if (!state.snapshot) return;
-  await bridge.applyDraft(commands, { configPath: state.snapshot.configPath });
+  try {
+    await bridge.applyDraft(commands, { configPath: state.snapshot.configPath });
+  } catch (error) {
+    clearAuthoringPreview();
+    throw error;
+  }
 }
 
 function focusTokenFromAuthoring(tokenId: string): void {
@@ -401,6 +446,7 @@ const bridge = new BridgeClient({
   getConfigPath: () => state.targetConfigPath,
   onStatus: setConnectionStatus,
   onSnapshot: (snapshot) => {
+    clearAuthoringPreview(false);
     state.snapshot = snapshot;
     if (snapshot.configPath !== state.targetConfigPath) {
       void persistTargetConfigPath(snapshot.configPath).then(() => {
@@ -473,6 +519,7 @@ function toggleHoverInspectMode(): void {
 function clearBridgeSnapshotState(statusDetail?: string): void {
   clearCoverageScanTimeout();
   clearContrastAuditTimeout();
+  clearAuthoringPreview(false);
   state.snapshot = null;
   state.coverage = null;
   state.contrast = null;
@@ -757,6 +804,7 @@ el.bridgeOutputEnabled.addEventListener('change', () => {
 el.commitDraft.addEventListener('click', async () => {
   if (!state.snapshot) return;
   try {
+    clearAuthoringPreview();
     await bridge.commitDraft({ configPath: state.snapshot.configPath });
   } catch (error) {
     setConnectionStatus('error', error instanceof Error ? error.message : 'commit failed');
@@ -766,6 +814,7 @@ el.commitDraft.addEventListener('click', async () => {
 el.discardDraft.addEventListener('click', async () => {
   if (!state.snapshot) return;
   try {
+    clearAuthoringPreview();
     await bridge.discardDraft({ configPath: state.snapshot.configPath });
   } catch (error) {
     setConnectionStatus('error', error instanceof Error ? error.message : 'discard failed');
@@ -774,7 +823,15 @@ el.discardDraft.addEventListener('click', async () => {
 
 el.resetManifest.addEventListener('click', async () => {
   if (!state.snapshot) return;
+  if (
+    !window.confirm(
+      'Restore the semantic color manifest to the project defaults? This replaces tokens and aliases in your current draft.'
+    )
+  ) {
+    return;
+  }
   try {
+    clearAuthoringPreview();
     await bridge.applyDraft([resetManifest()], { configPath: state.snapshot.configPath });
   } catch (error) {
     setConnectionStatus('error', error instanceof Error ? error.message : 'reset failed');
@@ -900,8 +957,9 @@ function snapshotTokenCss(): Record<string, string> {
 }
 
 function pushSnapshotToContent(): void {
-  if (!state.snapshot) return;
-  sendToContent({ kind: 'update-snapshot', snapshot: state.snapshot });
+  const snapshot = state.previewSnapshot ?? state.snapshot;
+  if (!snapshot) return;
+  sendToContent({ kind: 'update-snapshot', snapshot });
 }
 
 function renderAll(): void {
@@ -924,14 +982,14 @@ function renderAll(): void {
 function renderDraftStatus(): void {
   if (!state.snapshot) {
     el.draftStatus.textContent = state.targetConfigPath
-      ? `Waiting for bridge snapshot for ${state.targetConfigPath}...`
+      ? `Waiting for bridge snapshot for ${state.targetConfigPath}.`
       : 'Choose a target project config to start authoring.';
     return;
   }
 
   const status = state.snapshot.draft.dirty
-    ? `Target ${state.snapshot.configPath} · Draft dirty · base v${state.snapshot.draft.baseVersion} · last edit ${state.snapshot.draft.lastEditor}`
-    : `Target ${state.snapshot.configPath} · Draft clean · synced at v${state.snapshot.version}`;
+    ? `Unsaved draft · live preview updated · base v${state.snapshot.draft.baseVersion} · last edit ${state.snapshot.draft.lastEditor}`
+    : `No draft changes · synced v${state.snapshot.version}`;
   el.draftStatus.textContent = status;
 }
 
@@ -968,26 +1026,26 @@ function renderAliasList(): void {
   el.aliasList.innerHTML = `
     <div class="alias-list">
       ${state.snapshot.manifest.aliases
-      .map(
-        (alias, index) => `
+        .map(
+          (alias, index) => `
             <div class="alias-row">
               <input type="text" value="${escapeHtml(alias.name)}" data-alias-index="${index}" data-alias-field="name" />
               <select data-alias-index="${index}" data-alias-field="tokenId">
                 ${tokenRecords()
-            .map(
-              (token) => `
+                  .map(
+                    (token) => `
                       <option value="${token.id}" ${token.id === alias.tokenId ? 'selected' : ''}>
                         ${escapeHtml(token.label)}
                       </option>
                     `
-            )
-            .join('')}
+                  )
+                  .join('')}
               </select>
               <button type="button" data-remove-alias="${index}" class="secondary">Remove</button>
             </div>
           `
-      )
-      .join('')}
+        )
+        .join('')}
     </div>
   `;
 
@@ -1065,34 +1123,34 @@ function renderCoverage(): void {
     <p class="report-subhead">Most used tokens</p>
     <div class="report-list">
       ${top
-      .map(
-        ([tokenId, count]) =>
-          `<div class="report-item"><span>${escapeHtml(tokenId)}</span><span class="meta">${count} elements</span><span></span></div>`
-      )
-      .join('')}
+        .map(
+          ([tokenId, count]) =>
+            `<div class="report-item"><span>${escapeHtml(tokenId)}</span><span class="meta">${count} elements</span><span></span></div>`
+        )
+        .join('')}
     </div>
     <p class="report-subhead">Unused tokens (${unused.length})</p>
     <div class="report-list">
       ${unused
-      .map(
-        (tokenId) =>
-          `<div class="report-item"><span>${escapeHtml(tokenId)}</span><span class="meta">0</span><span></span></div>`
-      )
-      .join('')}
+        .map(
+          (tokenId) =>
+            `<div class="report-item"><span>${escapeHtml(tokenId)}</span><span class="meta">0</span><span></span></div>`
+        )
+        .join('')}
     </div>
     <p class="report-subhead">Raw color violations (${violations.length})</p>
     <div class="report-list">
       ${violations
-      .map(
-        (violation) => `
+        .map(
+          (violation) => `
             <div class="report-item severity-warn">
               <span><code>${escapeHtml(violation.selector)}</code></span>
               <span class="meta">${escapeHtml(violation.property)}: ${escapeHtml(violation.value)}</span>
               <span></span>
             </div>
           `
-      )
-      .join('')}
+        )
+        .join('')}
     </div>
   `;
 }
@@ -1114,8 +1172,8 @@ function renderContrast(): void {
   el.contrastOutput.innerHTML = `
     <div class="report-list">
       ${state.contrast.findings
-      .map(
-        (finding) => `
+        .map(
+          (finding) => `
             <div class="report-item severity-${finding.severity}">
               <span>
                 <code>${escapeHtml(finding.selector)}</code>
@@ -1125,8 +1183,8 @@ function renderContrast(): void {
               <span class="meta">${finding.contrastLc.toFixed(1)} Lc</span>
             </div>
           `
-      )
-      .join('')}
+        )
+        .join('')}
     </div>
   `;
 }
@@ -1183,10 +1241,10 @@ function renderOverrideSliders(): void {
     max: number;
     step: number;
   }> = [
-      { key: 'l', label: 'Lightness', min: 0, max: 1, step: 0.001 },
-      { key: 'c', label: 'Chroma', min: 0, max: 0.4, step: 0.001 },
-      { key: 'h', label: 'Hue', min: 0, max: 360, step: 0.1 }
-    ];
+    { key: 'l', label: 'Lightness', min: 0, max: 1, step: 0.001 },
+    { key: 'c', label: 'Chroma', min: 0, max: 0.4, step: 0.001 },
+    { key: 'h', label: 'Hue', min: 0, max: 360, step: 0.1 }
+  ];
 
   el.overrideSliders.innerHTML = `
     <div class="preview-row">
@@ -1198,16 +1256,16 @@ function renderOverrideSliders(): void {
     </div>
     <div class="editor-block">
       ${channels
-      .map(
-        (channel) => `
+        .map(
+          (channel) => `
             <div class="slider-row">
               <span>${channel.label}</span>
               <input type="range" min="${channel.min}" max="${channel.max}" step="${channel.step}" value="${color[channel.key]}" data-override-channel="${channel.key}" />
               <span class="readout">${color[channel.key].toFixed(channel.key === 'h' ? 2 : 3)}</span>
             </div>
           `
-      )
-      .join('')}
+        )
+        .join('')}
     </div>
   `;
 

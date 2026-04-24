@@ -43,15 +43,21 @@
     <datalist id="recent-target-configs"></datalist>
 
     <section class="draft-bar">
-      <div>
-        <p class="eyebrow">Draft state</p>
-        <div id="draft-status" class="draft-status">Waiting for bridge snapshot...</div>
+      <div class="draft-bar-main">
+        <div class="draft-actions">
+          <button id="discard-draft" type="button" class="secondary">Discard draft</button>
+          <button id="commit-draft" type="button" class="primary">Save to file</button>
+          <button id="reset-manifest" type="button">Restore defaults</button>
+        </div>
+        <div class="draft-bridge-output" role="group" aria-label="Generated CSS on save">
+          <label class="switch bridge-output-toggle">
+            <input type="checkbox" id="bridge-output-enabled" />
+            <span>Write generated CSS</span>
+          </label>
+          <span id="bridge-output-status" class="hint bridge-output-status">Load target config</span>
+        </div>
       </div>
-      <div class="draft-actions">
-        <button id="discard-draft" type="button" class="secondary">Discard draft</button>
-        <button id="commit-draft" type="button" class="primary">Commit draft</button>
-        <button id="reset-manifest" type="button">Reset manifest</button>
-      </div>
+      <div id="draft-status" class="draft-status">Waiting for bridge snapshot...</div>
     </section>
 
     <nav class="tabs" role="tablist">
@@ -178,15 +184,6 @@
               <button id="target-config-load" type="button" class="connect-action">
                 Load target
               </button>
-            </div>
-            <div class="connect-output-row">
-              <label class="switch bridge-output-toggle">
-                <input type="checkbox" id="bridge-output-enabled" />
-                <span>Write generated CSS</span>
-              </label>
-              <span id="bridge-output-status" class="hint bridge-output-status"
-                >Load target config</span
-              >
             </div>
           </div>
         </section>

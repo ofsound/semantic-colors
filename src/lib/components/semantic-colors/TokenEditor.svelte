@@ -22,6 +22,7 @@
     activeMode,
     currentTokenAlt,
     onPersistChange,
+    onPreviewChange,
     selectedTokenNotes,
     setTheme,
     tokenLabel
@@ -31,6 +32,7 @@
     activeMode: ThemeMode;
     currentTokenAlt: OklchColor;
     onPersistChange: () => void;
+    onPreviewChange?: () => void;
     selectedTokenNotes: string[];
     setTheme: (mode: ThemeMode) => void;
     tokenLabel: (tokenId: TokenId) => string;
@@ -130,6 +132,7 @@
             bind:color={selectedToken.light}
             label="Light anchor"
             {onPersistChange}
+            {onPreviewChange}
           />
           <div class="flex min-w-0 flex-col gap-3">
             <NumberSliderField
@@ -139,6 +142,7 @@
               max={1}
               min={0}
               onChange={onPersistChange}
+              {onPreviewChange}
               step={0.005}
             />
             <NumberSliderField
@@ -148,6 +152,7 @@
               max={0.37}
               min={0}
               onChange={onPersistChange}
+              {onPreviewChange}
               step={0.005}
             />
             <NumberSliderField
@@ -157,6 +162,7 @@
               max={360}
               min={0}
               onChange={onPersistChange}
+              {onPreviewChange}
               step={1}
             />
           </div>
@@ -179,6 +185,7 @@
             bind:color={selectedToken.dark}
             label="Dark anchor"
             {onPersistChange}
+            {onPreviewChange}
           />
           <div class="flex min-w-0 flex-col gap-3">
             <NumberSliderField
@@ -188,6 +195,7 @@
               max={1}
               min={0}
               onChange={onPersistChange}
+              {onPreviewChange}
               step={0.005}
             />
             <NumberSliderField
@@ -197,6 +205,7 @@
               max={0.37}
               min={0}
               onChange={onPersistChange}
+              {onPreviewChange}
               step={0.005}
             />
             <NumberSliderField
@@ -206,6 +215,7 @@
               max={360}
               min={0}
               onChange={onPersistChange}
+              {onPreviewChange}
               step={1}
             />
           </div>

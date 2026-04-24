@@ -14,27 +14,33 @@
     authoring,
     onApplyDraft,
     onFocusToken,
+    onPreviewManifestChange,
     onSetTheme,
     onError
   }: {
     authoring: ExtensionAuthoringState;
     onApplyDraft: (commands: BridgeDraftCommand[]) => Promise<void>;
     onFocusToken: (tokenId: string) => void;
+    onPreviewManifestChange: (manifest: BridgeSnapshot['manifest']) => void;
     onSetTheme: (mode: ThemeMode) => void;
     onError: (message: string) => void;
   } = $props();
 
   const snapshot = $derived(authoring.snapshot);
+  const previewSnapshot = $derived(authoring.previewSnapshot);
+  const displaySnapshot = $derived(previewSnapshot ?? snapshot);
   const activeMode = $derived(authoring.activeMode);
   const tokenOptions = $derived<TokenOption[]>(
-    snapshot
-      ? Object.values(snapshot.manifest.tokens).map((token) => ({
+    displaySnapshot
+      ? Object.values(displaySnapshot.manifest.tokens).map((token) => ({
           value: token.id,
           label: `${token.label} (${token.id})`
         }))
       : []
   );
-  const selectedTokenValue = $derived(getSelectedTokenValue(snapshot, authoring.focusedTokenId));
+  const selectedTokenValue = $derived(
+    getSelectedTokenValue(displaySnapshot, authoring.focusedTokenId)
+  );
 
   function handleTokenChange(tokenId: string): void {
     onFocusToken(tokenId);
@@ -52,7 +58,7 @@
 </script>
 
 <div class="semantic-colors-app extension-authoring">
-  {#if !snapshot || !selectedTokenValue}
+  {#if !snapshot || !displaySnapshot || !selectedTokenValue}
     <Card.Root
       class="gap-4 border-0 bg-[color:var(--shell-panel-bg)] py-4 shadow-none ring-0 backdrop-blur-md"
     >
@@ -80,14 +86,16 @@
       </Card.Content>
     </Card.Root>
 
-    {#key `${snapshot.version}:${selectedTokenValue}`}
+    {#key `${snapshot.version}:${selectedTokenValue}:${authoring.previewResetRevision}`}
       <TokenAuthoringEditor
         {activeMode}
         {onApplyDraft}
         {onError}
         {onSetTheme}
         selectedTokenId={selectedTokenValue}
-        {snapshot}
+        baseSnapshot={snapshot}
+        snapshot={displaySnapshot}
+        {onPreviewManifestChange}
       />
     {/key}
   {/if}
