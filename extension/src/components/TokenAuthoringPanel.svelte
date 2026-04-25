@@ -74,7 +74,9 @@
         <Card.Title>Focused token</Card.Title>
       </Card.Header>
       <Card.Content class="px-4">
-        <label class="grid gap-2 text-sm font-medium text-slate-700">
+        <label
+          class="grid gap-2 text-sm font-medium text-[color:var(--shell-color-text-secondary)]"
+        >
           <span>Token</span>
           <ShellSelect
             value={selectedTokenValue}

@@ -83,7 +83,9 @@
         <Card.Title>Focused override</Card.Title>
       </Card.Header>
       <Card.Content class="space-y-3 px-4">
-        <label class="grid gap-2 text-sm font-medium text-slate-700">
+        <label
+          class="grid gap-2 text-sm font-medium text-[color:var(--shell-color-text-secondary)]"
+        >
           <span>Token</span>
           <ShellSelect
             value={override.tokenId}
@@ -96,7 +98,9 @@
           <Button variant="outline" class="justify-center" onclick={onClearOverrides}>
             Clear all
           </Button>
-          <label class="flex items-center gap-2 text-sm font-medium text-slate-700">
+          <label
+            class="flex items-center gap-2 text-sm font-medium text-[color:var(--shell-color-text-secondary)]"
+          >
             <Checkbox
               checked={override.persistOverride}
               onCheckedChange={(checked) => onPersistChange(checked === true)}
@@ -117,12 +121,14 @@
           <div class="flex items-start justify-between gap-3">
             <Card.Title class="leading-snug">{token.label}</Card.Title>
             <span
-              class="shrink-0 rounded-full bg-slate-900/8 px-2.5 py-1 text-xs font-semibold text-slate-700 capitalize"
+              class="shrink-0 rounded-full bg-[color:var(--shell-color-surface-subtle)] px-2.5 py-1 text-xs font-semibold text-[color:var(--shell-color-text-secondary)] capitalize"
             >
               {token.group}
             </span>
           </div>
-          <p class="mt-1 text-sm leading-snug text-slate-600">{token.description}</p>
+          <p class="mt-1 text-sm leading-snug text-[color:var(--shell-color-text-secondary)]">
+            {token.description}
+          </p>
         </div>
       </Card.Header>
 
@@ -145,7 +151,9 @@
         />
 
         <div class="grid gap-2 sm:grid-cols-[1fr_auto]">
-          <label class="grid gap-2 text-sm font-medium text-slate-700">
+          <label
+            class="grid gap-2 text-sm font-medium text-[color:var(--shell-color-text-secondary)]"
+          >
             <span>Push target</span>
             <ShellSelect
               value={override.overrideMode}

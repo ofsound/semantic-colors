@@ -38,9 +38,48 @@ const tabId = chrome.devtools.inspectedWindow.tabId;
 const COVERAGE_SCAN_TIMEOUT_MS = 12000;
 const CONTRAST_AUDIT_TIMEOUT_MS = 12000;
 const ELEMENTS_SELECTION_DEBOUNCE_MS = 50;
+type PanelTheme = 'light' | 'dark';
 /** Runs in the content-script world so it can read snapshot token maps; `$0` is the Elements panel selection. */
 const DEVTOOLS_PAYLOAD_EVAL =
   'typeof __semanticColorsDevtoolsPayload === "function" && $0 instanceof HTMLElement ? __semanticColorsDevtoolsPayload($0) : null';
+const PANEL_THEME_TOKEN_MAP = [
+  ['--bg', 'app'],
+  ['--bg-elev', 'surface'],
+  ['--bg-soft', 'surface-subtle'],
+  ['--bg-strong', 'shell'],
+  ['--border', 'border'],
+  ['--border-subtle', 'border-subtle'],
+  ['--border-strong', 'border-strong'],
+  ['--field-bg', 'input'],
+  ['--field-bg-hover', 'surface-muted'],
+  ['--field-border', 'input-border'],
+  ['--field-border-strong', 'border-strong'],
+  ['--text', 'text'],
+  ['--text-secondary', 'text-secondary'],
+  ['--text-muted', 'text-muted'],
+  ['--text-faint', 'text-faint'],
+  ['--text-inverse', 'text-inverse'],
+  ['--accent', 'accent'],
+  ['--accent-strong', 'accent-strong'],
+  ['--accent-surface', 'accent-surface'],
+  ['--link', 'link'],
+  ['--link-hover', 'link-hover'],
+  ['--success', 'success'],
+  ['--success-surface', 'success-surface'],
+  ['--warn', 'warning'],
+  ['--warn-surface', 'warning-surface'],
+  ['--fail', 'danger'],
+  ['--fail-surface', 'danger-surface'],
+  ['--info', 'info'],
+  ['--info-surface', 'info-surface'],
+  ['--control-primary', 'control-primary'],
+  ['--control-primary-text', 'control-primary-text'],
+  ['--control-secondary', 'control-secondary'],
+  ['--control-secondary-text', 'control-secondary-text'],
+  ['--control-secondary-border', 'control-secondary-border'],
+  ['--control-ghost-hover', 'control-ghost-hover'],
+  ['--focus-ring', 'focus-ring']
+] as const;
 
 const state = {
   bridgeUrl: DEFAULT_BRIDGE_URL,
@@ -58,6 +97,7 @@ const state = {
   overrideMode: 'both' as 'light' | 'dark' | 'both',
   persistOverride: false,
   activeMode: 'light' as ThemeMode,
+  panelTheme: 'dark' as PanelTheme,
   hoverActive: false,
   selectedElement: null as HoverElementPayload | null,
   pageInfo: { url: '', title: '', theme: null as string | null },
@@ -81,6 +121,7 @@ const el = {
   bridgeOutputEnabled: document.getElementById('bridge-output-enabled') as HTMLInputElement,
   bridgeOutputStatus: document.getElementById('bridge-output-status') as HTMLSpanElement,
   toggleInPageDrawer: document.getElementById('toggle-inpage-drawer') as HTMLButtonElement,
+  panelThemeSwitch: document.getElementById('panel-theme-switch') as HTMLElement,
   targetConfigOptions: document.getElementById('recent-target-configs') as HTMLDataListElement,
   modeSwitch: document.querySelector('.mode-switch') as HTMLElement,
   draftStatus: document.getElementById('draft-status') as HTMLDivElement,
@@ -231,6 +272,7 @@ function flushAuthoringPreview(): void {
   const previewSnapshot = buildPreviewSnapshot(state.snapshot, manifest);
   state.previewSnapshot = previewSnapshot;
   authoringState.setPreviewSnapshot(previewSnapshot);
+  applyPanelThemeVariables();
   sendToContent({ kind: 'update-snapshot', snapshot: previewSnapshot });
 }
 
@@ -244,6 +286,7 @@ function clearAuthoringPreview(pushBaseSnapshot = true): void {
   if (!state.previewSnapshot) return;
   state.previewSnapshot = null;
   authoringState.clearPreviewSnapshot();
+  applyPanelThemeVariables();
   if (pushBaseSnapshot && state.snapshot) {
     pushSnapshotToContent();
   }
@@ -584,6 +627,32 @@ function renderInPageDrawerControl(): void {
   el.toggleInPageDrawer.setAttribute('aria-pressed', String(state.inPageDrawerVisible));
 }
 
+function panelThemeSnapshot(): BridgeSnapshot | null {
+  return state.previewSnapshot ?? state.snapshot;
+}
+
+function applyPanelThemeVariables(): void {
+  document.documentElement.dataset.panelTheme = state.panelTheme;
+  const resolved = panelThemeSnapshot()?.resolved[state.panelTheme];
+  for (const [variableName, tokenId] of PANEL_THEME_TOKEN_MAP) {
+    const value = resolved?.colors[tokenId]?.css;
+    if (value) {
+      document.documentElement.style.setProperty(variableName, value);
+    } else {
+      document.documentElement.style.removeProperty(variableName);
+    }
+  }
+}
+
+function renderPanelThemeControl(): void {
+  el.panelThemeSwitch.querySelectorAll<HTMLButtonElement>('button').forEach((button) => {
+    const selected = button.dataset.panelTheme === state.panelTheme;
+    button.classList.toggle('is-active', selected);
+    button.setAttribute('aria-pressed', String(selected));
+  });
+  applyPanelThemeVariables();
+}
+
 function renderHoverInspectControl(): void {
   el.hoverToggle.setAttribute('aria-pressed', String(state.hoverActive));
 }
@@ -651,7 +720,8 @@ async function loadBridgePreferences(): Promise<void> {
     const stored = await chrome.storage.local.get([
       STORAGE_KEYS.bridgeUrl,
       STORAGE_KEYS.targetConfigPath,
-      STORAGE_KEYS.recentTargetConfigPaths
+      STORAGE_KEYS.recentTargetConfigPaths,
+      STORAGE_KEYS.panelTheme
     ]);
     const bridgeUrl = stored[STORAGE_KEYS.bridgeUrl];
     if (typeof bridgeUrl === 'string' && bridgeUrl.trim()) {
@@ -667,12 +737,17 @@ async function loadBridgePreferences(): Promise<void> {
         (value): value is string => typeof value === 'string' && value.trim().length > 0
       );
     }
+    const panelTheme = stored[STORAGE_KEYS.panelTheme];
+    if (panelTheme === 'light' || panelTheme === 'dark') {
+      state.panelTheme = panelTheme;
+    }
   } catch {
     // fall through to default
   }
   el.bridgeInput.value = state.bridgeUrl;
   el.targetConfigInput.value = state.targetConfigPath;
   renderRecentTargetConfigs();
+  renderPanelThemeControl();
 }
 
 async function refreshBridgeOutputConfig(): Promise<void> {
@@ -776,6 +851,17 @@ function syncModeSwitch(): void {
   });
 }
 
+async function setPanelTheme(theme: PanelTheme): Promise<void> {
+  if (state.panelTheme === theme) return;
+  state.panelTheme = theme;
+  renderPanelThemeControl();
+  try {
+    await chrome.storage.local.set({ [STORAGE_KEYS.panelTheme]: theme });
+  } catch {
+    // ignore
+  }
+}
+
 function setPreviewMode(mode: ThemeMode): void {
   state.activeMode = mode;
   syncModeSwitch();
@@ -850,6 +936,15 @@ el.tabs.forEach((btn) => {
 el.modeSwitch.querySelectorAll<HTMLButtonElement>('button').forEach((btn) => {
   btn.addEventListener('click', () => {
     setPreviewMode((btn.dataset.mode ?? 'light') as ThemeMode);
+  });
+});
+
+el.panelThemeSwitch.querySelectorAll<HTMLButtonElement>('button').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const theme = btn.dataset.panelTheme;
+    if (theme === 'light' || theme === 'dark') {
+      void setPanelTheme(theme);
+    }
   });
 });
 
@@ -1012,6 +1107,7 @@ function pushSnapshotToContent(): void {
 }
 
 function renderAll(): void {
+  renderPanelThemeControl();
   renderBridgeOutputControl();
   renderInPageDrawerControl();
   renderHoverInspectControl();

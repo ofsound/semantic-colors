@@ -1,19 +1,91 @@
-:root {
+:root,
+:root[data-panel-theme='dark'] {
   --bg: #10131a;
   --bg-elev: #171b24;
   --bg-soft: #212734;
   --bg-strong: #0d1016;
   --border: #2b3342;
+  --border-subtle: #242b38;
   --border-strong: #3f4a61;
+  --field-bg: #212734;
+  --field-bg-hover: #273043;
+  --field-border: #2b3342;
+  --field-border-strong: #3f4a61;
   --text: #ebeef8;
+  --text-secondary: #c8d0e1;
   --text-muted: #9aa4bb;
+  --text-faint: #747f96;
+  --text-inverse: #08101f;
   --accent: #78a6ff;
   --accent-strong: #4d83ff;
+  --accent-surface: #202f52;
+  --link: #78a6ff;
+  --link-hover: #9fbcff;
   --success: #74d39c;
+  --success-surface: #183425;
   --warn: #f3c96c;
+  --warn-surface: #3b3018;
   --fail: #ff8795;
+  --fail-surface: #3f1d26;
+  --info: #78a6ff;
+  --info-surface: #202f52;
+  --control-primary: var(--accent-strong);
+  --control-primary-text: var(--text-inverse);
+  --control-secondary: var(--bg-soft);
+  --control-secondary-text: var(--text);
+  --control-secondary-border: var(--border);
+  --control-ghost-hover: color-mix(in srgb, var(--accent) 12%, var(--bg-soft));
+  --focus-ring: color-mix(in srgb, var(--accent) 62%, transparent);
+  --code-bg: color-mix(in srgb, var(--text) 6%, transparent);
+  --header-bg: color-mix(in srgb, var(--bg-elev) 94%, transparent);
+  --header-group-bg: color-mix(in srgb, var(--bg-soft) 48%, transparent);
+  --active-text: var(--control-primary-text);
   --radius: 8px;
   color-scheme: dark;
+}
+
+:root[data-panel-theme='light'] {
+  --bg: #f4f6fb;
+  --bg-elev: #ffffff;
+  --bg-soft: #e8edf6;
+  --bg-strong: #edf1f8;
+  --border: #cfd7e6;
+  --border-subtle: #e2e7f0;
+  --border-strong: #9eabc0;
+  --field-bg: #ffffff;
+  --field-bg-hover: #f7f9fc;
+  --field-border: #cfd7e6;
+  --field-border-strong: #9eabc0;
+  --text: #151b28;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --text-faint: #8794a8;
+  --text-inverse: #ffffff;
+  --accent: #365fbd;
+  --accent-strong: #274da5;
+  --accent-surface: #e6edff;
+  --link: #365fbd;
+  --link-hover: #24438d;
+  --success: #16794a;
+  --success-surface: #dbf6e7;
+  --warn: #986c09;
+  --warn-surface: #fff2c6;
+  --fail: #b42335;
+  --fail-surface: #ffe0e4;
+  --info: #365fbd;
+  --info-surface: #e6edff;
+  --control-primary: var(--accent-strong);
+  --control-primary-text: var(--text-inverse);
+  --control-secondary: var(--bg-elev);
+  --control-secondary-text: var(--text);
+  --control-secondary-border: var(--border);
+  --control-ghost-hover: color-mix(in srgb, var(--accent) 9%, var(--bg-soft));
+  --focus-ring: color-mix(in srgb, var(--accent) 40%, transparent);
+  --code-bg: color-mix(in srgb, var(--text) 7%, transparent);
+  --header-bg: color-mix(in srgb, var(--bg-elev) 94%, transparent);
+  --header-group-bg: color-mix(in srgb, var(--bg-soft) 64%, transparent);
+  --active-text: var(--control-primary-text);
+  color-scheme: light;
 }
 
 * {
@@ -25,7 +97,13 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: radial-gradient(circle at top, rgba(120, 166, 255, 0.08), transparent 28%), var(--bg);
+  background:
+    radial-gradient(
+      circle at top,
+      color-mix(in srgb, var(--accent) 10%, transparent),
+      transparent 28%
+    ),
+    var(--bg);
   color: var(--text);
   font-family:
     ui-sans-serif,
@@ -56,9 +134,9 @@ textarea {
 }
 
 button {
-  background: var(--bg-soft);
+  background: var(--control-secondary);
   color: var(--text);
-  border: 1px solid var(--border);
+  border: 1px solid var(--control-secondary-border);
   border-radius: var(--radius);
   padding: 6px 10px;
   cursor: pointer;
@@ -69,9 +147,9 @@ button:hover {
 }
 
 button.primary {
-  background: linear-gradient(135deg, var(--accent-strong), var(--accent));
+  background: var(--control-primary);
   border-color: transparent;
-  color: #08101f;
+  color: var(--control-primary-text);
 }
 
 button.secondary {
@@ -80,16 +158,16 @@ button.secondary {
 
 input,
 select {
-  background: var(--bg-soft);
+  background: var(--field-bg);
   color: var(--text);
-  border: 1px solid var(--border);
+  border: 1px solid var(--field-border);
   border-radius: var(--radius);
   padding: 6px 10px;
 }
 
 code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--code-bg);
   padding: 1px 5px;
   border-radius: 4px;
 }
@@ -108,7 +186,7 @@ code {
   gap: 10px;
   padding: 10px 14px;
   border-bottom: 1px solid var(--border);
-  background: rgba(23, 27, 36, 0.94);
+  background: var(--header-bg);
   backdrop-filter: blur(12px);
 }
 
@@ -118,6 +196,14 @@ code {
   justify-content: space-between;
   gap: 8px;
   min-height: 22px;
+}
+
+.status-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .header-toolbar {
@@ -138,7 +224,7 @@ code {
   padding: 4px 8px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--header-group-bg);
   flex: 0 1 auto;
   min-width: 0;
 }
@@ -251,6 +337,34 @@ code {
   overflow: hidden;
 }
 
+.panel-theme-switch {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--header-group-bg);
+}
+
+.panel-theme-switch button {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 2px 7px;
+  font-size: 10px;
+  letter-spacing: 0.55px;
+  text-transform: uppercase;
+}
+
+.panel-theme-switch button + button {
+  border-left: 1px solid var(--border);
+}
+
+.panel-theme-switch button.is-active {
+  background: var(--control-primary);
+  color: var(--control-primary-text);
+}
+
 .mode-switch button {
   border: none;
   border-radius: 0;
@@ -262,8 +376,8 @@ code {
 }
 
 .mode-switch button.is-active {
-  background: var(--accent-strong);
-  color: #08101f;
+  background: var(--control-primary);
+  color: var(--control-primary-text);
 }
 
 .header-tool-toggle {
@@ -272,14 +386,14 @@ code {
 }
 
 .header-tool-toggle[aria-pressed='true'] {
-  background: var(--accent-strong);
-  color: #08101f;
+  background: var(--control-primary);
+  color: var(--control-primary-text);
   border-color: transparent;
 }
 
 .header-tool-toggle[aria-pressed='true']:hover {
   border-color: transparent;
-  color: #08101f;
+  color: var(--control-primary-text);
 }
 
 .status {
@@ -293,17 +407,17 @@ code {
 
 .status-connected {
   color: var(--success);
-  border-color: rgba(116, 211, 156, 0.5);
+  border-color: color-mix(in srgb, var(--success) 50%, transparent);
 }
 
 .status-connecting {
   color: var(--warn);
-  border-color: rgba(243, 201, 108, 0.5);
+  border-color: color-mix(in srgb, var(--warn) 50%, transparent);
 }
 
 .status-error {
   color: var(--fail);
-  border-color: rgba(255, 135, 149, 0.5);
+  border-color: color-mix(in srgb, var(--fail) 50%, transparent);
 }
 
 .draft-bar {
@@ -313,7 +427,7 @@ code {
   align-items: stretch;
   padding: 10px 14px;
   border-bottom: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--text) 3%, transparent), transparent);
 }
 
 .draft-status {
@@ -477,7 +591,7 @@ code {
 }
 
 .report-token-toggle[aria-pressed='true'] {
-  border-color: #ff7ab6;
+  border-color: var(--accent);
 }
 
 .alias-row {
@@ -500,8 +614,8 @@ code {
   gap: 10px;
   padding: 10px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: color-mix(in srgb, var(--text) 4%, var(--bg-elev));
+  border: 1px solid var(--border-subtle);
 }
 
 .editor-block h3 {
@@ -554,7 +668,7 @@ code {
 }
 
 .picker-panel:focus-visible {
-  outline: 2px solid rgba(120, 166, 255, 0.55);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -564,10 +678,10 @@ code {
   height: 16px;
   transform: translate(-50%, -50%);
   border-radius: 999px;
-  background: white;
+  background: var(--bg-elev);
   box-shadow:
-    0 0 0 1px rgba(15, 23, 42, 0.18),
-    0 2px 8px rgba(15, 23, 42, 0.22);
+    0 0 0 1px color-mix(in srgb, var(--text) 18%, transparent),
+    0 2px 8px color-mix(in srgb, var(--text) 22%, transparent);
   pointer-events: none;
 }
 

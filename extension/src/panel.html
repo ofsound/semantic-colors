@@ -9,7 +9,18 @@
   <body>
     <header class="app-header">
       <div class="header-status">
-        <span id="bridge-status" class="status status-idle">idle</span>
+        <div class="status-cluster">
+          <span id="bridge-status" class="status status-idle">idle</span>
+          <div
+            id="panel-theme-switch"
+            class="panel-theme-switch"
+            role="group"
+            aria-label="Extension panel theme"
+          >
+            <button type="button" data-panel-theme="light">Light</button>
+            <button type="button" data-panel-theme="dark" class="is-active">Dark</button>
+          </div>
+        </div>
         <button
           id="toggle-inpage-drawer"
           type="button"
