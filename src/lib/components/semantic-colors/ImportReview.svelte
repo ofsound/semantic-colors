@@ -48,7 +48,7 @@
   </Card.Header>
 
   <Card.Content class="space-y-4 px-4">
-    <label class="grid gap-2 text-sm font-medium text-slate-700">
+    <label class="grid gap-2 text-sm font-medium text-[color:var(--shell-color-text-secondary)]">
       <span>Source CSS path</span>
       <Input
         bind:value={config.importSourcePath}
@@ -70,13 +70,18 @@
       <div class="grid gap-3">
         {#each importProposal.candidates as candidate (candidate.sourceName)}
           <article
-            class="grid gap-3 rounded-xl bg-slate-900/4 p-3 lg:grid-cols-[1.3fr_1fr_auto] lg:items-center"
+            class="grid gap-3 rounded-xl bg-[color:var(--shell-color-surface-subtle)] p-3 lg:grid-cols-[1.3fr_1fr_auto] lg:items-center"
           >
             <div class="min-w-0 space-y-1">
-              <strong class="block truncate text-sm text-slate-900">--{candidate.sourceName}</strong
+              <strong class="block truncate text-sm text-[color:var(--shell-color-text)]"
+                >--{candidate.sourceName}</strong
               >
-              <p class="text-sm text-slate-600">{candidate.rawValue}</p>
-              <small class="text-xs leading-5 text-slate-500">{candidate.reason}</small>
+              <p class="text-sm text-[color:var(--shell-color-text-secondary)]">
+                {candidate.rawValue}
+              </p>
+              <small class="text-xs leading-5 text-[color:var(--shell-color-text-muted)]">
+                {candidate.reason}
+              </small>
             </div>
             <ShellSelect
               bind:value={importSelection[candidate.sourceName]}
@@ -85,13 +90,13 @@
             />
             <div class="flex gap-2">
               <span
-                class="inline-grid h-8 w-8 place-items-center rounded-md border border-slate-900/12 text-[0.7rem] font-bold"
+                class="inline-grid h-8 w-8 place-items-center rounded-md border border-[color:var(--shell-color-border)] text-[0.7rem] font-bold"
                 style={`background:${candidate.light ? toCssColor(candidate.light) : 'transparent'}`}
               >
                 L
               </span>
               <span
-                class="inline-grid h-8 w-8 place-items-center rounded-md border border-slate-900/12 text-[0.7rem] font-bold"
+                class="inline-grid h-8 w-8 place-items-center rounded-md border border-[color:var(--shell-color-border)] text-[0.7rem] font-bold"
                 style={`background:${candidate.dark ? toCssColor(candidate.dark) : 'transparent'}`}
               >
                 D
@@ -101,7 +106,9 @@
         {/each}
       </div>
     {:else}
-      <p class="empty-state mt-0 rounded-xl bg-slate-900/4 px-4 py-4 text-sm">
+      <p
+        class="empty-state mt-0 rounded-xl bg-[color:var(--shell-color-surface-subtle)] px-4 py-4 text-sm"
+      >
         Add a source CSS file to scan your current variables, then review the suggested token
         mappings here before applying them.
       </p>

@@ -39,7 +39,9 @@
 
   <Card.Content class="px-4">
     {#if manifest.aliases.length === 0}
-      <p class="empty-state mt-0 rounded-xl bg-slate-900/4 px-4 py-4 text-sm">
+      <p
+        class="empty-state mt-0 rounded-xl bg-[color:var(--shell-color-surface-subtle)] px-4 py-4 text-sm"
+      >
         No project aliases yet. Add aliases when you need local CSS variable names mapped to the
         shared semantic tokens.
       </p>
@@ -47,7 +49,7 @@
       <div class="grid gap-3">
         {#each manifest.aliases as alias, index (`${alias.name}-${index}`)}
           <div
-            class="grid gap-3 rounded-xl bg-slate-900/4 p-3 md:grid-cols-[1.4fr_1fr_auto] md:items-center"
+            class="grid gap-3 rounded-xl bg-[color:var(--shell-color-surface-subtle)] p-3 md:grid-cols-[1.4fr_1fr_auto] md:items-center"
           >
             <Input
               value={alias.name}

@@ -209,7 +209,7 @@
     min-width: 0;
     min-height: 0;
     border-radius: var(--shell-radius-inner);
-    border: 1px solid rgba(15, 23, 42, 0.12);
+    border: 1px solid var(--shell-color-border);
   }
 
   .picker-panel {
@@ -219,7 +219,7 @@
     min-height: 0;
     overflow: hidden;
     border-radius: var(--shell-radius-inner);
-    border: 1px solid rgba(15, 23, 42, 0.12);
+    border: 1px solid var(--shell-color-border);
     cursor: crosshair;
     touch-action: none;
   }
@@ -230,10 +230,10 @@
     height: 1rem;
     transform: translate(-50%, -50%);
     border-radius: 999px;
-    background: white;
+    background: var(--shell-color-surface-raised);
     box-shadow:
-      0 0 0 1px rgba(15, 23, 42, 0.18),
-      0 2px 8px rgba(15, 23, 42, 0.18);
+      0 0 0 1px var(--shell-color-border-strong),
+      0 2px 8px color-mix(in srgb, var(--shell-color-text) 18%, transparent);
     pointer-events: none;
   }
 </style>

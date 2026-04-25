@@ -49,12 +49,14 @@
       <div class="flex items-start justify-between gap-3">
         <Card.Title class="leading-snug">{selectedToken.label}</Card.Title>
         <span
-          class="shrink-0 rounded-full bg-slate-900/8 px-2.5 py-1 text-xs font-semibold text-slate-700 capitalize"
+          class="shrink-0 rounded-full bg-[color:var(--shell-color-surface-subtle)] px-2.5 py-1 text-xs font-semibold text-[color:var(--shell-color-text-secondary)] capitalize"
         >
           {selectedToken.group}
         </span>
       </div>
-      <p class="mt-1 text-sm leading-snug text-slate-600">{selectedToken.description}</p>
+      <p class="mt-1 text-sm leading-snug text-[color:var(--shell-color-text-secondary)]">
+        {selectedToken.description}
+      </p>
     </div>
   </Card.Header>
 
@@ -89,9 +91,13 @@
     {/if}
 
     {#if activeMode === 'alt'}
-      <section class="space-y-4 rounded-xl border border-sky-500/35 bg-sky-500/7 p-4">
+      <section
+        class="space-y-4 rounded-xl border border-[color:var(--shell-color-control-active-border)] bg-[color:var(--shell-color-control-active)] p-4"
+      >
         <div class="flex items-center justify-between gap-3">
-          <strong class="text-sm font-semibold text-slate-900">Alt exception</strong>
+          <strong class="text-sm font-semibold text-[color:var(--shell-color-text)]"
+            >Alt exception</strong
+          >
         </div>
         <div class="flex flex-col gap-4">
           <div class="alt-anchor-top-row" aria-label="Alt color and exception controls">
@@ -101,7 +107,9 @@
               style={`background-color: ${toCssColor(currentTokenAlt)};`}
             ></div>
             <div class="alt-anchor-side flex min-h-0 min-w-0 flex-1 flex-col justify-center gap-3">
-              <label class="grid min-w-0 gap-2 text-sm font-medium text-slate-700">
+              <label
+                class="grid min-w-0 gap-2 text-sm font-medium text-[color:var(--shell-color-text-secondary)]"
+              >
                 <span>Alt behavior</span>
                 <ShellSelect
                   bind:value={selectedToken.exception.altBehavior}
@@ -110,7 +118,9 @@
                   onChange={onPersistChange}
                 />
               </label>
-              <label class="grid min-w-0 gap-2 text-sm font-medium text-slate-700">
+              <label
+                class="grid min-w-0 gap-2 text-sm font-medium text-[color:var(--shell-color-text-secondary)]"
+              >
                 <span>Max chroma</span>
                 <Input
                   bind:value={selectedToken.exception.maxChroma}
@@ -125,7 +135,7 @@
           </div>
 
           {#if selectedToken.altParent}
-            <p class="text-sm text-slate-600">
+            <p class="text-sm text-[color:var(--shell-color-text-secondary)]">
               Alt derives from parent token: <strong>{tokenLabel(selectedToken.altParent)}</strong>
             </p>
           {/if}
@@ -140,21 +150,21 @@
         <p class="eyebrow mb-0">Validation</p>
         {#if selectedTokenNotes.length > 0}
           <span
-            class="rounded-full bg-red-500/14 px-2.5 py-1 text-[0.72rem] font-bold tracking-[0.08em] text-red-700 uppercase"
+            class="rounded-full bg-[color:var(--shell-color-danger-surface)] px-2.5 py-1 text-[0.72rem] font-bold tracking-[0.08em] text-[color:var(--shell-color-danger)] uppercase"
           >
             {selectedTokenNotes.length} warning(s)
           </span>
         {/if}
       </div>
       {#if selectedTokenNotes.length === 0}
-        <p class="text-sm font-medium text-emerald-700">
+        <p class="text-sm font-medium text-[color:var(--shell-color-success)]">
           No warnings for this token in {activeMode} mode.
         </p>
       {:else}
         <div class="grid gap-2">
           {#each selectedTokenNotes as note (note)}
             <p
-              class="rounded-lg border border-red-500/15 bg-red-500/6 px-3 py-2 text-sm text-red-900"
+              class="rounded-lg border border-[color:var(--shell-color-danger-border)] bg-[color:var(--shell-color-danger-surface)] px-3 py-2 text-sm text-[color:var(--shell-color-danger)]"
             >
               {note}
             </p>
@@ -180,6 +190,6 @@
     min-width: 0;
     min-height: 0;
     border-radius: var(--shell-radius-inner);
-    border: 1px solid rgba(15, 23, 42, 0.12);
+    border: 1px solid var(--shell-color-border);
   }
 </style>

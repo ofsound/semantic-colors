@@ -228,7 +228,7 @@
 </script>
 
 <div class={cn('grid grid-cols-[5rem_minmax(0,1fr)_5rem] items-center gap-3', className)}>
-  <span class="text-sm font-medium text-slate-700">{label}</span>
+  <span class="text-sm font-medium text-[color:var(--shell-color-text-secondary)]">{label}</span>
   <div
     aria-label={label}
     aria-orientation="horizontal"

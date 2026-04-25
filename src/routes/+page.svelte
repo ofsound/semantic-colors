@@ -34,6 +34,11 @@
     { id: 'preview', label: 'Preview' },
     { id: 'inventory', label: 'Tokens' }
   ] as const;
+  const SHELL_THEME_TABS = [
+    { id: 'light', label: 'Light' },
+    { id: 'dark', label: 'Dark' },
+    { id: 'alt', label: 'Alt' }
+  ] as const;
   const BORDER_PREVIEW_MODES = ['none', 'border', 'border-subtle', 'border-strong'] as const;
   const BORDER_PREVIEW_LABELS = {
     none: 'No Border',
@@ -60,6 +65,7 @@
   let grayscalePreview = $state(false);
   let selectedTokenId = $state<TokenId>('surface');
   let activeMode = $state<ThemeMode>('light');
+  let shellMode = $state<ThemeMode>('light');
   let holdPreviewStartedAt = 0;
   let holdPreviewReturnMode: ThemeMode | null = null;
 
@@ -130,11 +136,12 @@
   );
   const currentTokenAlt = $derived(altTheme.colors[selectedTokenId]);
 
-  $effect(() => {
-    document.documentElement.dataset.theme = activeMode;
-  });
-
   onMount(() => {
+    const storedShellMode = localStorage.getItem('semantic-colors-shell-theme');
+    if (storedShellMode === 'light' || storedShellMode === 'dark' || storedShellMode === 'alt') {
+      shellMode = storedShellMode;
+    }
+
     return workspace.connect();
   });
 
@@ -159,6 +166,11 @@
 
   function setTheme(mode: ThemeMode): void {
     activeMode = mode;
+  }
+
+  function setShellTheme(mode: ThemeMode): void {
+    shellMode = mode;
+    localStorage.setItem('semantic-colors-shell-theme', mode);
   }
 
   function handleKeydown(event: KeyboardEvent): void {
@@ -300,14 +312,14 @@
 
   function headerControlClass(selected: boolean): string {
     return selected
-      ? 'border-sky-500/35 bg-sky-500/12 text-slate-950 shadow-[0_0_0_3px_rgba(59,130,246,0.12)] hover:bg-sky-500/16'
-      : 'border-slate-900/10 bg-white/70 text-slate-900 shadow-none hover:bg-white';
+      ? 'border-[color:var(--shell-color-control-active-border)] bg-[color:var(--shell-color-control-active)] text-[color:var(--shell-color-control-active-text)] shadow-[var(--shell-control-active-shadow)] hover:bg-[color:var(--shell-color-control-active-hover)]'
+      : 'border-[color:var(--shell-color-control-border)] bg-[color:var(--shell-color-control)] text-[color:var(--shell-color-text)] shadow-none hover:bg-[color:var(--shell-color-control-hover)]';
   }
 
   function headerShortcutClass(selected: boolean): string {
     return selected
-      ? 'border-sky-200 bg-white/85 text-sky-900'
-      : 'border-black/10 bg-white/70 text-slate-500';
+      ? 'border-[color:var(--shell-color-accent-surface)] bg-[color:var(--shell-color-surface-raised)] text-[color:var(--shell-color-accent)]'
+      : 'border-[color:var(--shell-color-border)] bg-[color:var(--shell-color-surface-subtle)] text-[color:var(--shell-color-text-muted)]';
   }
 </script>
 
@@ -317,27 +329,46 @@
   <title>Semantic Colors</title>
 </svelte:head>
 
-{#if workspace.saveState !== 'idle'}
-  <div
-    aria-atomic="true"
-    aria-live={workspace.saveState === 'error' ? 'assertive' : 'polite'}
-    class={`save-toast ${saveToastTone}`}
-    role={workspace.saveState === 'error' ? 'alert' : 'status'}
-  >
-    <strong>{saveHeading}</strong>
-    <span>{workspace.saveMessage}</span>
-  </div>
-{/if}
-
 <div
   class={`semantic-colors-app workspace ${sidebarCollapsed ? 'workspace-sidebar-collapsed' : ''}`}
+  data-shell-theme={shellMode}
 >
+  {#if workspace.saveState !== 'idle'}
+    <div
+      aria-atomic="true"
+      aria-live={workspace.saveState === 'error' ? 'assertive' : 'polite'}
+      class={`save-toast ${saveToastTone}`}
+      role={workspace.saveState === 'error' ? 'alert' : 'status'}
+    >
+      <strong>{saveHeading}</strong>
+      <span>{workspace.saveMessage}</span>
+    </div>
+  {/if}
+
+  <div
+    class="shell-theme-switcher flex flex-wrap items-center gap-1 rounded-[var(--shell-radius-outer)] border border-[color:var(--shell-color-border-subtle)] bg-[color:var(--shell-color-shell)] p-1 shadow-[var(--shell-shadow)] backdrop-blur-xl"
+    role="toolbar"
+    aria-label="Shell theme"
+  >
+    {#each SHELL_THEME_TABS as tab (tab.id)}
+      <Button
+        aria-label={`${tab.label} shell theme`}
+        aria-pressed={shellMode === tab.id}
+        class={`h-8 min-h-8 px-2.5 text-xs ${headerControlClass(shellMode === tab.id)}`}
+        onclick={() => setShellTheme(tab.id)}
+        variant="outline"
+      >
+        {tab.label}
+      </Button>
+    {/each}
+  </div>
+
   <aside class={`sidebar ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
     {#if sidebarCollapsed}
       <div class="sidebar-toolbar">
         <Button
           aria-label="Show authoring panels"
-          class="shrink-0 border-slate-900/10 bg-white/70 shadow-none hover:bg-white"
+          class={`shrink-0 ${headerControlClass(false)}`}
           onclick={toggleSidebar}
           size="icon"
           variant="outline"
@@ -360,7 +391,7 @@
       <div class="flex w-full min-w-0 items-center gap-2">
         <Button
           aria-label="Hide authoring panels"
-          class="shrink-0 border-slate-900/10 bg-white/70 shadow-none hover:bg-white"
+          class={`shrink-0 ${headerControlClass(false)}`}
           onclick={toggleSidebar}
           size="icon"
           variant="outline"
@@ -458,7 +489,7 @@
 
   <main class="stage-shell">
     <div
-      class="stage-header-fixed rounded-t-none rounded-b-xl border-x border-t-0 border-b border-[color:var(--shell-border)] bg-white/90 p-[var(--stage-header-pad-block-start)_1.1rem_1rem] shadow-[var(--shell-shadow)] backdrop-blur-xl"
+      class="stage-header-fixed rounded-t-none rounded-b-xl border-x border-t-0 border-b border-[color:var(--shell-color-border-subtle)] bg-[color:var(--shell-color-shell)] p-[var(--stage-header-pad-block-start)_1.1rem_1rem] text-[color:var(--shell-color-text)] shadow-[var(--shell-shadow)] backdrop-blur-xl"
     >
       <div
         class="stage-header-toolbar flex w-full min-w-0 flex-wrap items-center gap-2"
@@ -605,11 +636,9 @@
     min-width: min(20rem, calc(100vw - 2rem));
     max-width: min(24rem, calc(100vw - 2rem));
     padding: 0.85rem 1rem;
-    border: 1px solid rgba(15, 23, 42, 0.08);
+    border: 1px solid var(--shell-color-border-subtle);
     border-radius: 1rem;
-    box-shadow:
-      0 18px 38px rgba(15, 23, 42, 0.12),
-      0 8px 18px rgba(15, 23, 42, 0.08);
+    box-shadow: var(--shell-toast-shadow);
     backdrop-filter: blur(18px);
     pointer-events: none;
   }
@@ -627,21 +656,21 @@
   }
 
   .save-toast-saving {
-    background: rgba(239, 246, 255, 0.92);
-    border-color: rgba(56, 189, 248, 0.26);
-    color: rgb(12, 74, 110);
+    background: var(--shell-color-info-surface);
+    border-color: var(--shell-color-info-border);
+    color: var(--shell-color-info);
   }
 
   .save-toast-saved {
-    background: rgba(236, 253, 245, 0.92);
-    border-color: rgba(52, 211, 153, 0.28);
-    color: rgb(6, 95, 70);
+    background: var(--shell-color-success-surface);
+    border-color: var(--shell-color-success-border);
+    color: var(--shell-color-success);
   }
 
   .save-toast-error {
-    background: rgba(254, 242, 242, 0.95);
-    border-color: rgba(248, 113, 113, 0.26);
-    color: rgb(153, 27, 27);
+    background: var(--shell-color-danger-surface);
+    border-color: var(--shell-color-danger-border);
+    color: var(--shell-color-danger);
   }
 
   @media (max-width: 640px) {

@@ -53,7 +53,7 @@
   </Card.Header>
 
   <Card.Content class="space-y-4 px-4">
-    <label class="grid gap-2 text-sm font-medium text-slate-700">
+    <label class="grid gap-2 text-sm font-medium text-[color:var(--shell-color-text-secondary)]">
       <span>Alt base</span>
       <ShellSelect
         bind:value={manifest.alt.source}
@@ -64,7 +64,7 @@
     </label>
 
     <section
-      class={`space-y-3 rounded-xl border p-4 ${activeMode === 'alt' ? 'border-sky-500/35 bg-sky-500/7' : 'border-[color:var(--shell-border)] bg-[color:var(--shell-subtle-panel-bg)]'}`}
+      class={`space-y-3 rounded-xl border p-4 ${activeMode === 'alt' ? 'border-[color:var(--shell-color-control-active-border)] bg-[color:var(--shell-color-control-active)]' : 'border-[color:var(--shell-color-border-subtle)] bg-[color:var(--shell-color-surface-subtle)]'}`}
     >
       <NumberSliderField
         label="Hue"
@@ -99,8 +99,8 @@
       <label class="flex items-start gap-3 rounded-lg px-1 py-1 text-left">
         <Checkbox bind:checked={manifest.alt.harmonyLock} onchange={persistAltChange} />
         <span class="grid gap-1">
-          <span class="text-sm font-medium text-slate-900">Lock harmony</span>
-          <small class="text-sm leading-5 text-slate-600">
+          <span class="text-sm font-medium text-[color:var(--shell-color-text)]">Lock harmony</span>
+          <small class="text-sm leading-5 text-[color:var(--shell-color-text-secondary)]">
             Keep accent, links, and focus ring on one shared hue in Alt mode.
           </small>
         </span>

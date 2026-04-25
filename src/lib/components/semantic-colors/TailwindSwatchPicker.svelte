@@ -151,25 +151,25 @@
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: rgb(71 85 105);
+    color: var(--shell-color-text-secondary);
   }
 
   .palette-note {
     margin: 0.2rem 0 0;
     font-size: 0.84rem;
     line-height: 1.4;
-    color: rgb(100 116 139);
+    color: var(--shell-color-text-muted);
   }
 
   .palette-current {
     margin: 0;
     border-radius: 999px;
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid var(--shell-color-border-subtle);
+    background: var(--shell-color-surface-raised);
     padding: 0.28rem 0.6rem;
     font-size: 0.72rem;
     font-weight: 700;
-    color: rgb(15 23 42);
+    color: var(--shell-color-text);
   }
 
   .palette-scroll {
@@ -191,7 +191,7 @@
   .family-label {
     font-size: 0.8rem;
     font-weight: 600;
-    color: rgb(51 65 85);
+    color: var(--shell-color-text-secondary);
   }
 
   .shade-grid {
@@ -204,17 +204,17 @@
     font-size: 0.67rem;
     font-weight: 700;
     text-align: center;
-    color: rgb(100 116 139);
+    color: var(--shell-color-text-muted);
   }
 
   .swatch-button {
     aspect-ratio: 1;
     width: 100%;
     border-radius: 0.55rem;
-    border: 1px solid rgba(15, 23, 42, 0.12);
+    border: 1px solid var(--shell-color-border);
     box-shadow:
-      inset 0 0 0 1px rgba(255, 255, 255, 0.22),
-      0 1px 2px rgba(15, 23, 42, 0.08);
+      inset 0 0 0 1px color-mix(in srgb, var(--shell-color-surface-raised) 28%, transparent),
+      var(--shell-field-shadow);
     transition:
       transform 120ms ease,
       box-shadow 120ms ease,
@@ -224,20 +224,20 @@
   .swatch-button:hover {
     transform: translateY(-1px);
     box-shadow:
-      inset 0 0 0 1px rgba(255, 255, 255, 0.28),
-      0 3px 10px rgba(15, 23, 42, 0.12);
+      inset 0 0 0 1px color-mix(in srgb, var(--shell-color-surface-raised) 32%, transparent),
+      0 3px 10px color-mix(in srgb, var(--shell-color-text) 12%, transparent);
   }
 
   .swatch-button:focus-visible {
-    outline: 2px solid rgba(14, 165, 233, 0.5);
+    outline: 2px solid color-mix(in srgb, var(--shell-color-focus-ring) 55%, transparent);
     outline-offset: 2px;
   }
 
   .swatch-button-selected {
-    border-color: rgba(15, 23, 42, 0.4);
+    border-color: var(--shell-color-border-strong);
     box-shadow:
-      0 0 0 2px rgba(255, 255, 255, 0.96),
-      0 0 0 4px rgba(15, 23, 42, 0.88),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+      0 0 0 2px var(--shell-color-surface-raised),
+      0 0 0 4px var(--shell-color-text),
+      inset 0 0 0 1px color-mix(in srgb, var(--shell-color-surface-raised) 32%, transparent);
   }
 </style>

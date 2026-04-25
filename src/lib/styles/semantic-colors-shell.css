@@ -4,21 +4,170 @@
   --stage-header-pad-block-start: 0.85rem;
   --shell-radius-outer: 10px;
   --shell-radius-inner: 6px;
-  --shell-border: rgba(15, 23, 42, 0.08);
-  --shell-panel-bg: rgba(255, 255, 255, 0.88);
-  --shell-shadow: 0 20px 40px -28px rgba(15, 23, 42, 0.25);
-  --shell-muted: #4b5563;
-  --shell-subtle-panel-bg: rgba(248, 250, 252, 0.92);
-  --shell-field-bg: rgba(255, 255, 255, 0.98);
-  --shell-field-bg-hover: rgba(255, 255, 255, 1);
-  --shell-field-border: rgba(51, 65, 85, 0.18);
-  --shell-field-border-strong: rgba(51, 65, 85, 0.26);
-  --shell-field-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
-  --shell-popover-bg: rgba(255, 255, 255, 0.98);
-  --shell-slider-track: rgba(148, 163, 184, 0.35);
+}
+
+.semantic-colors-app[data-shell-theme='light'] {
+  --shell-color-app: oklch(0.982 0.006 95);
+  --shell-color-shell: oklch(0.998 0.002 95 / 0.9);
+  --shell-color-surface: oklch(0.998 0.002 95 / 0.88);
+  --shell-color-surface-raised: oklch(0.992 0.006 95 / 0.96);
+  --shell-color-surface-subtle: oklch(0.965 0.008 95 / 0.92);
+  --shell-color-field: oklch(0.998 0.002 95 / 0.98);
+  --shell-color-field-hover: oklch(1 0 0);
+  --shell-color-popover: oklch(0.998 0.002 95 / 0.98);
+  --shell-color-text: oklch(0.22 0.016 260);
+  --shell-color-text-secondary: oklch(0.43 0.014 260);
+  --shell-color-text-muted: oklch(0.54 0.012 260);
+  --shell-color-border: oklch(0.82 0.012 95 / 0.42);
+  --shell-color-border-subtle: oklch(0.82 0.012 95 / 0.28);
+  --shell-color-border-strong: oklch(0.72 0.014 95 / 0.48);
+  --shell-color-focus-ring: oklch(0.69 0.16 246);
+  --shell-color-accent: oklch(0.57 0.18 252);
+  --shell-color-accent-surface: oklch(0.92 0.045 246);
+  --shell-color-control: oklch(1 0 0 / 0.7);
+  --shell-color-control-hover: oklch(1 0 0);
+  --shell-color-control-border: oklch(0.22 0.016 260 / 0.1);
+  --shell-color-control-active: oklch(0.69 0.16 246 / 0.12);
+  --shell-color-control-active-hover: oklch(0.69 0.16 246 / 0.16);
+  --shell-color-control-active-border: oklch(0.69 0.16 246 / 0.35);
+  --shell-color-control-active-text: oklch(0.22 0.016 260);
+  --shell-color-control-ghost-hover: oklch(0.925 0.011 95);
+  --shell-color-success: oklch(0.45 0.14 153);
+  --shell-color-success-surface: oklch(0.96 0.04 153 / 0.92);
+  --shell-color-success-border: oklch(0.65 0.17 153 / 0.28);
+  --shell-color-info: oklch(0.44 0.13 232);
+  --shell-color-info-surface: oklch(0.96 0.04 232 / 0.92);
+  --shell-color-info-border: oklch(0.67 0.13 232 / 0.26);
+  --shell-color-danger: oklch(0.45 0.18 28);
+  --shell-color-danger-surface: oklch(0.96 0.05 28 / 0.95);
+  --shell-color-danger-border: oklch(0.62 0.21 28 / 0.26);
+  --shell-shadow: 0 20px 40px -28px oklch(0.22 0.016 260 / 0.25);
+  --shell-field-shadow: 0 1px 2px oklch(0.22 0.016 260 / 0.06);
+  --shell-control-active-shadow: 0 0 0 3px oklch(0.69 0.16 246 / 0.12);
+  --shell-toast-shadow:
+    0 18px 38px oklch(0.22 0.016 260 / 0.12), 0 8px 18px oklch(0.22 0.016 260 / 0.08);
+  color-scheme: light;
+}
+
+.semantic-colors-app[data-shell-theme='dark'] {
+  --shell-color-app: oklch(0.16 0.015 265);
+  --shell-color-shell: oklch(0.205 0.016 265 / 0.92);
+  --shell-color-surface: oklch(0.235 0.013 265 / 0.9);
+  --shell-color-surface-raised: oklch(0.29 0.014 265 / 0.96);
+  --shell-color-surface-subtle: oklch(0.33 0.016 265 / 0.78);
+  --shell-color-field: oklch(0.18 0.013 265 / 0.98);
+  --shell-color-field-hover: oklch(0.235 0.013 265);
+  --shell-color-popover: oklch(0.235 0.013 265 / 0.98);
+  --shell-color-text: oklch(0.94 0.01 95);
+  --shell-color-text-secondary: oklch(0.78 0.012 95);
+  --shell-color-text-muted: oklch(0.68 0.012 95);
+  --shell-color-border: oklch(0.45 0.012 265 / 0.7);
+  --shell-color-border-subtle: oklch(0.34 0.011 265 / 0.72);
+  --shell-color-border-strong: oklch(0.58 0.013 265 / 0.82);
+  --shell-color-focus-ring: oklch(0.76 0.14 246);
+  --shell-color-accent: oklch(0.82 0.16 252);
+  --shell-color-accent-surface: oklch(0.29 0.07 230);
+  --shell-color-control: oklch(0.29 0.014 265 / 0.72);
+  --shell-color-control-hover: oklch(0.37 0.016 265 / 0.78);
+  --shell-color-control-border: oklch(0.58 0.013 265 / 0.52);
+  --shell-color-control-active: oklch(0.76 0.14 246 / 0.2);
+  --shell-color-control-active-hover: oklch(0.76 0.14 246 / 0.26);
+  --shell-color-control-active-border: oklch(0.76 0.14 246 / 0.55);
+  --shell-color-control-active-text: oklch(0.94 0.01 95);
+  --shell-color-control-ghost-hover: oklch(0.37 0.016 265);
+  --shell-color-success: oklch(0.77 0.14 153);
+  --shell-color-success-surface: oklch(0.28 0.06 153 / 0.92);
+  --shell-color-success-border: oklch(0.77 0.14 153 / 0.32);
+  --shell-color-info: oklch(0.8 0.11 232);
+  --shell-color-info-surface: oklch(0.28 0.05 232 / 0.92);
+  --shell-color-info-border: oklch(0.8 0.11 232 / 0.3);
+  --shell-color-danger: oklch(0.75 0.17 28);
+  --shell-color-danger-surface: oklch(0.28 0.06 28 / 0.94);
+  --shell-color-danger-border: oklch(0.75 0.17 28 / 0.32);
+  --shell-shadow: 0 24px 46px -30px oklch(0 0 0 / 0.65);
+  --shell-field-shadow: 0 1px 2px oklch(0 0 0 / 0.24);
+  --shell-control-active-shadow: 0 0 0 3px oklch(0.76 0.14 246 / 0.16);
+  --shell-toast-shadow: 0 18px 38px oklch(0 0 0 / 0.34), 0 8px 18px oklch(0 0 0 / 0.24);
+  color-scheme: dark;
+}
+
+.semantic-colors-app[data-shell-theme='alt'] {
+  --shell-color-app: oklch(0.18 0.045 293);
+  --shell-color-shell: oklch(0.225 0.046 293 / 0.92);
+  --shell-color-surface: oklch(0.255 0.043 293 / 0.9);
+  --shell-color-surface-raised: oklch(0.31 0.044 293 / 0.96);
+  --shell-color-surface-subtle: oklch(0.35 0.046 293 / 0.78);
+  --shell-color-field: oklch(0.2 0.043 293 / 0.98);
+  --shell-color-field-hover: oklch(0.255 0.043 293);
+  --shell-color-popover: oklch(0.255 0.043 293 / 0.98);
+  --shell-color-text: oklch(0.96 0.04 123);
+  --shell-color-text-secondary: oklch(0.8 0.042 123);
+  --shell-color-text-muted: oklch(0.7 0.042 123);
+  --shell-color-border: oklch(0.47 0.042 293 / 0.72);
+  --shell-color-border-subtle: oklch(0.36 0.041 293 / 0.74);
+  --shell-color-border-strong: oklch(0.6 0.043 293 / 0.82);
+  --shell-color-focus-ring: oklch(0.78 0.112 258);
+  --shell-color-accent: oklch(0.84 0.08 258);
+  --shell-color-accent-surface: oklch(0.31 0.1 258);
+  --shell-color-control: oklch(0.31 0.044 293 / 0.72);
+  --shell-color-control-hover: oklch(0.39 0.046 293 / 0.78);
+  --shell-color-control-border: oklch(0.6 0.043 293 / 0.52);
+  --shell-color-control-active: oklch(0.78 0.112 258 / 0.22);
+  --shell-color-control-active-hover: oklch(0.78 0.112 258 / 0.28);
+  --shell-color-control-active-border: oklch(0.78 0.112 258 / 0.56);
+  --shell-color-control-active-text: oklch(0.96 0.04 123);
+  --shell-color-control-ghost-hover: oklch(0.39 0.046 293);
+  --shell-color-success: oklch(0.77 0.14 153);
+  --shell-color-success-surface: oklch(0.28 0.06 153 / 0.92);
+  --shell-color-success-border: oklch(0.77 0.14 153 / 0.32);
+  --shell-color-info: oklch(0.8 0.11 232);
+  --shell-color-info-surface: oklch(0.28 0.05 232 / 0.92);
+  --shell-color-info-border: oklch(0.8 0.11 232 / 0.3);
+  --shell-color-danger: oklch(0.75 0.17 28);
+  --shell-color-danger-surface: oklch(0.28 0.06 28 / 0.94);
+  --shell-color-danger-border: oklch(0.75 0.17 28 / 0.32);
+  --shell-shadow: 0 24px 46px -30px oklch(0 0 0 / 0.68);
+  --shell-field-shadow: 0 1px 2px oklch(0 0 0 / 0.25);
+  --shell-control-active-shadow: 0 0 0 3px oklch(0.78 0.112 258 / 0.18);
+  --shell-toast-shadow: 0 18px 38px oklch(0 0 0 / 0.34), 0 8px 18px oklch(0 0 0 / 0.24);
+  color-scheme: dark;
+}
+
+.semantic-colors-app {
+  --background: var(--shell-color-field);
+  --foreground: var(--shell-color-text);
+  --card: var(--shell-color-surface);
+  --card-foreground: var(--shell-color-text);
+  --popover: var(--shell-color-popover);
+  --popover-foreground: var(--shell-color-text);
+  --primary: var(--shell-color-accent);
+  --primary-foreground: var(--shell-color-app);
+  --secondary: var(--shell-color-surface-subtle);
+  --secondary-foreground: var(--shell-color-text);
+  --muted: var(--shell-color-surface-subtle);
+  --muted-foreground: var(--shell-color-text-muted);
+  --accent: var(--shell-color-control-ghost-hover);
+  --accent-foreground: var(--shell-color-text);
+  --destructive: var(--shell-color-danger);
+  --border: var(--shell-color-border);
+  --input: var(--shell-color-border);
+  --ring: var(--shell-color-focus-ring);
+  --shell-border: var(--shell-color-border-subtle);
+  --shell-panel-bg: var(--shell-color-surface);
+  --shell-muted: var(--shell-color-text-muted);
+  --shell-subtle-panel-bg: var(--shell-color-surface-subtle);
+  --shell-field-bg: var(--shell-color-field);
+  --shell-field-bg-hover: var(--shell-color-field-hover);
+  --shell-field-border: var(--shell-color-border);
+  --shell-field-border-strong: var(--shell-color-border-strong);
+  --shell-popover-bg: var(--shell-color-popover);
+  --shell-slider-track: color-mix(in srgb, var(--shell-color-border-strong) 62%, transparent);
+  background: var(--shell-color-app);
+  color: var(--shell-color-text);
 }
 
 .semantic-colors-app.workspace {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(22rem, 30rem) 1fr;
   height: 100dvh;
@@ -26,6 +175,13 @@
   padding: 0 var(--shell-page-padding) var(--shell-page-padding);
   box-sizing: border-box;
   overflow: hidden;
+}
+
+.semantic-colors-app .shell-theme-switcher {
+  position: absolute;
+  top: var(--stage-header-pad-block-start);
+  left: var(--shell-page-padding);
+  z-index: 30;
 }
 
 .semantic-colors-app.workspace-sidebar-collapsed {
@@ -101,12 +257,12 @@
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    rgba(15, 23, 42, 0.1) 22%,
-    rgba(15, 23, 42, 0.2) 50%,
-    rgba(15, 23, 42, 0.1) 78%,
+    color-mix(in srgb, var(--shell-color-border) 45%, transparent) 22%,
+    color-mix(in srgb, var(--shell-color-border-strong) 70%, transparent) 50%,
+    color-mix(in srgb, var(--shell-color-border) 45%, transparent) 78%,
     transparent 100%
   );
-  box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--shell-color-surface-raised) 75%, transparent);
 }
 
 .semantic-colors-app .stage-content-shell {

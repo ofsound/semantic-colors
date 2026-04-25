@@ -19,9 +19,11 @@
   } = $props();
 </script>
 
-<section class="space-y-4 rounded-xl border border-sky-500/35 bg-sky-500/7 p-4">
+<section
+  class="space-y-4 rounded-xl border border-[color:var(--shell-color-control-active-border)] bg-[color:var(--shell-color-control-active)] p-4"
+>
   <div class="flex items-center justify-between gap-3">
-    <strong class="text-sm font-semibold text-slate-900">{title}</strong>
+    <strong class="text-sm font-semibold text-[color:var(--shell-color-text)]">{title}</strong>
   </div>
   <div class="flex flex-col gap-4">
     <AnchorColorPicker bind:color {label} {onPersistChange} {onPreviewChange} />
