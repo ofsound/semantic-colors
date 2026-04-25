@@ -1,4 +1,5 @@
 <script lang="ts">
+  import TokenPreviewButton from './TokenPreviewButton.svelte';
   import WarningBadge from './WarningBadge.svelte';
   import { TOKENS_BY_GROUP } from '$lib/theme/schema';
   import type { ThemeMode, TokenId } from '$lib/theme/schema';
@@ -84,29 +85,31 @@
   style={stageStyle}
 >
   <div class="hero-grid">
-    <button
-      aria-pressed={selectedTokenId === 'app'}
-      class:selected-usage={isSelectedUsage(['app'])}
-      class:warning={hasWarnings(['app'])}
+    <TokenPreviewButton
       class="surface-card surface-card-app"
-      onclick={() => selectToken('app')}
-      type="button"
+      {hasWarnings}
+      {isSelectedUsage}
+      {selectedTokenId}
+      {selectToken}
+      tokenId="app"
+      tokenIds={['app']}
+      {warningSummary}
     >
-      <WarningBadge summary={warningSummary(['app'])} visible={hasWarnings(['app'])} />
       <span class="fixture-label">App</span>
-    </button>
+    </TokenPreviewButton>
 
-    <button
-      aria-pressed={selectedTokenId === 'shell'}
-      class:selected-usage={isSelectedUsage(['shell'])}
-      class:warning={hasWarnings(['shell'])}
+    <TokenPreviewButton
       class="surface-card surface-card-shell"
-      onclick={() => selectToken('shell')}
-      type="button"
+      {hasWarnings}
+      {isSelectedUsage}
+      {selectedTokenId}
+      {selectToken}
+      tokenId="shell"
+      tokenIds={['shell']}
+      {warningSummary}
     >
-      <WarningBadge summary={warningSummary(['shell'])} visible={hasWarnings(['shell'])} />
       <span class="fixture-label">Shell</span>
-    </button>
+    </TokenPreviewButton>
 
     <div
       aria-pressed={selectedTokenId === 'surface'}
@@ -172,18 +175,19 @@
         </div>
         <div class="text-stack">
           {#each textInventory as tokenId (tokenId)}
-            <button
-              aria-pressed={selectedTokenId === tokenId}
-              class:selected-usage={isSelectedUsage([tokenId])}
-              class:warning={hasWarnings([tokenId])}
+            <TokenPreviewButton
               class={`text-sample text-sample-${tokenId}`}
-              onclick={() => selectToken(tokenId)}
-              type="button"
+              {hasWarnings}
+              {isSelectedUsage}
+              {selectedTokenId}
+              {selectToken}
+              {tokenId}
+              tokenIds={[tokenId]}
+              {warningSummary}
             >
-              <WarningBadge summary={warningSummary([tokenId])} visible={hasWarnings([tokenId])} />
               <span>{tokenLabel(tokenId)}</span>
               <strong>The quick brown fox jumps over the lazy dog.</strong>
-            </button>
+            </TokenPreviewButton>
           {/each}
         </div>
       </article>
@@ -194,17 +198,18 @@
         </div>
         <div class="accent-grid">
           {#each accentInventory as tokenId (tokenId)}
-            <button
-              aria-pressed={selectedTokenId === tokenId}
-              class:selected-usage={isSelectedUsage([tokenId])}
-              class:warning={hasWarnings([tokenId])}
+            <TokenPreviewButton
               class={`accent-sample accent-sample-${tokenId}`}
-              onclick={() => selectToken(tokenId)}
-              type="button"
+              {hasWarnings}
+              {isSelectedUsage}
+              {selectedTokenId}
+              {selectToken}
+              {tokenId}
+              tokenIds={[tokenId]}
+              {warningSummary}
             >
-              <WarningBadge summary={warningSummary([tokenId])} visible={hasWarnings([tokenId])} />
               <span>{tokenLabel(tokenId)}</span>
-            </button>
+            </TokenPreviewButton>
           {/each}
         </div>
       </article>
@@ -218,64 +223,42 @@
             <h3>Controls</h3>
           </div>
           <div class="control-grid">
-            <button
-              aria-pressed={selectedTokenId === 'control-primary'}
-              class:selected-usage={isSelectedUsage(['control-primary', 'control-primary-text'])}
-              class:warning={hasWarnings(['control-primary', 'control-primary-text'])}
+            <TokenPreviewButton
               class="control-primary"
-              onclick={() => selectToken('control-primary')}
-              type="button"
+              {hasWarnings}
+              {isSelectedUsage}
+              {selectedTokenId}
+              {selectToken}
+              tokenId="control-primary"
+              tokenIds={['control-primary', 'control-primary-text']}
+              {warningSummary}
             >
-              <WarningBadge
-                summary={warningSummary(['control-primary', 'control-primary-text'])}
-                visible={hasWarnings(['control-primary', 'control-primary-text'])}
-              />
               Primary action
-            </button>
-            <button
-              aria-pressed={selectedTokenId === 'control-secondary'}
-              class:selected-usage={isSelectedUsage([
-                'control-secondary',
-                'control-secondary-border',
-                'control-secondary-text'
-              ])}
-              class:warning={hasWarnings([
-                'control-secondary',
-                'control-secondary-border',
-                'control-secondary-text'
-              ])}
+            </TokenPreviewButton>
+            <TokenPreviewButton
               class="control-secondary"
-              onclick={() => selectToken('control-secondary')}
-              type="button"
+              {hasWarnings}
+              {isSelectedUsage}
+              {selectedTokenId}
+              {selectToken}
+              tokenId="control-secondary"
+              tokenIds={['control-secondary', 'control-secondary-border', 'control-secondary-text']}
+              {warningSummary}
             >
-              <WarningBadge
-                summary={warningSummary([
-                  'control-secondary',
-                  'control-secondary-border',
-                  'control-secondary-text'
-                ])}
-                visible={hasWarnings([
-                  'control-secondary',
-                  'control-secondary-border',
-                  'control-secondary-text'
-                ])}
-              />
               Secondary
-            </button>
-            <button
-              aria-pressed={selectedTokenId === 'control-ghost-hover'}
-              class:selected-usage={isSelectedUsage(['control-ghost-hover'])}
-              class:warning={hasWarnings(['control-ghost-hover'])}
+            </TokenPreviewButton>
+            <TokenPreviewButton
               class="control-ghost"
-              onclick={() => selectToken('control-ghost-hover')}
-              type="button"
+              {hasWarnings}
+              {isSelectedUsage}
+              {selectedTokenId}
+              {selectToken}
+              tokenId="control-ghost-hover"
+              tokenIds={['control-ghost-hover']}
+              {warningSummary}
             >
-              <WarningBadge
-                summary={warningSummary(['control-ghost-hover'])}
-                visible={hasWarnings(['control-ghost-hover'])}
-              />
               Ghost hover
-            </button>
+            </TokenPreviewButton>
             <label
               class:selected-usage={isSelectedUsage(['input', 'input-border', 'input-placeholder'])}
               class:warning={hasWarnings(['input', 'input-border', 'input-placeholder'])}
@@ -301,20 +284,18 @@
           </div>
           <div class="border-grid">
             {#each borderInventory as tokenId (tokenId)}
-              <button
-                aria-pressed={selectedTokenId === tokenId}
-                class:selected-usage={isSelectedUsage([tokenId])}
-                class:warning={hasWarnings([tokenId])}
+              <TokenPreviewButton
                 class={`border-sample border-sample-${tokenId}`}
-                onclick={() => selectToken(tokenId)}
-                type="button"
+                {hasWarnings}
+                {isSelectedUsage}
+                {selectedTokenId}
+                {selectToken}
+                {tokenId}
+                tokenIds={[tokenId]}
+                {warningSummary}
               >
-                <WarningBadge
-                  summary={warningSummary([tokenId])}
-                  visible={hasWarnings([tokenId])}
-                />
                 {tokenLabel(tokenId)}
-              </button>
+              </TokenPreviewButton>
             {/each}
           </div>
         </article>
@@ -363,21 +344,19 @@
           </div>
           <div class="overlay-demo">
             <div class="scrim"></div>
-            <button
-              aria-pressed={selectedTokenId === 'surface-overlay'}
-              class:selected-usage={isSelectedUsage(['surface-overlay', 'text', 'border'])}
-              class:warning={hasWarnings(['surface-overlay', 'text', 'border'])}
+            <TokenPreviewButton
               class="overlay-card"
-              onclick={() => selectToken('surface-overlay')}
-              type="button"
+              {hasWarnings}
+              {isSelectedUsage}
+              {selectedTokenId}
+              {selectToken}
+              tokenId="surface-overlay"
+              tokenIds={['surface-overlay', 'text', 'border']}
+              {warningSummary}
             >
-              <WarningBadge
-                summary={warningSummary(['surface-overlay', 'text', 'border'])}
-                visible={hasWarnings(['surface-overlay', 'text', 'border'])}
-              />
               <strong>Overlay surface</strong>
               <p>Modal, popover, or detached chrome should read from the same semantic surface.</p>
-            </button>
+            </TokenPreviewButton>
           </div>
         </article>
       </div>

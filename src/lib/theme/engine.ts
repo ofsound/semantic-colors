@@ -178,27 +178,67 @@ export function resolveTheme(manifestInput: ThemeManifest, mode: ThemeMode): Res
   return { mode, colors };
 }
 
-function contrastIssue(text: OklchColor, background: OklchColor, label: string): string | null {
-  const contrast = Math.abs(
-    APCAcontrast(sRGBtoY(toRgbChannels(text)), sRGBtoY(toRgbChannels(background)))
-  );
-  if (contrast >= 60) {
-    return null;
-  }
-  return `${label} contrast is ${contrast.toFixed(1)}Lc`;
+type ContrastPolicyId = 'body' | 'supporting' | 'control' | 'status' | 'placeholder';
+
+interface ContrastPolicy {
+  label: string;
+  minimumLc: number;
 }
 
-const CONTRAST_PAIRS: Array<[TokenId, TokenId, string]> = [
-  ['text', 'surface', 'Body text on surface'],
-  ['text-secondary', 'surface-muted', 'Secondary text on muted surface'],
-  ['text-inverse', 'accent-strong', 'Inverse text on accent strong'],
-  ['control-primary-text', 'control-primary', 'Primary control text'],
-  ['control-secondary-text', 'control-secondary', 'Secondary control text'],
-  ['input-placeholder', 'input', 'Input placeholder'],
-  ['success', 'success-surface', 'Success text'],
-  ['warning', 'warning-surface', 'Warning text'],
-  ['danger', 'danger-surface', 'Danger text'],
-  ['info', 'info-surface', 'Info text']
+const CONTRAST_POLICIES: Record<ContrastPolicyId, ContrastPolicy> = {
+  body: {
+    label: 'body text',
+    minimumLc: 75
+  },
+  supporting: {
+    label: 'supporting text',
+    minimumLc: 60
+  },
+  control: {
+    label: 'control text',
+    minimumLc: 60
+  },
+  status: {
+    label: 'status text',
+    minimumLc: 60
+  },
+  placeholder: {
+    label: 'placeholder text',
+    minimumLc: 45
+  }
+};
+
+function formatLc(value: number): string {
+  return `${value > 0 ? '+' : ''}${value.toFixed(1)}Lc`;
+}
+
+function contrastIssue(
+  text: OklchColor,
+  background: OklchColor,
+  label: string,
+  policyId: ContrastPolicyId
+): string | null {
+  const signedLc = APCAcontrast(sRGBtoY(toRgbChannels(text)), sRGBtoY(toRgbChannels(background)));
+  const policy = CONTRAST_POLICIES[policyId];
+
+  if (Math.abs(signedLc) >= policy.minimumLc) {
+    return null;
+  }
+
+  return `${label} APCA contrast is ${formatLc(signedLc)}; ${policy.label} target is ${policy.minimumLc}Lc.`;
+}
+
+const CONTRAST_PAIRS: Array<[TokenId, TokenId, string, ContrastPolicyId]> = [
+  ['text', 'surface', 'Body text on surface', 'body'],
+  ['text-secondary', 'surface-muted', 'Secondary text on muted surface', 'supporting'],
+  ['text-inverse', 'accent-strong', 'Inverse text on accent strong', 'control'],
+  ['control-primary-text', 'control-primary', 'Primary control text', 'control'],
+  ['control-secondary-text', 'control-secondary', 'Secondary control text', 'control'],
+  ['input-placeholder', 'input', 'Input placeholder', 'placeholder'],
+  ['success', 'success-surface', 'Success text', 'status'],
+  ['warning', 'warning-surface', 'Warning text', 'status'],
+  ['danger', 'danger-surface', 'Danger text', 'status'],
+  ['info', 'info-surface', 'Info text', 'status']
 ];
 
 export function validateManifest(manifestInput: ThemeManifest): Record<ThemeMode, ThemeValidation> {
@@ -230,11 +270,12 @@ export function validateManifest(manifestInput: ThemeManifest): Record<ThemeMode
       };
     }
 
-    for (const [foregroundId, backgroundId, label] of CONTRAST_PAIRS) {
+    for (const [foregroundId, backgroundId, label, policyId] of CONTRAST_PAIRS) {
       const issue = contrastIssue(
         resolved.colors[foregroundId],
         resolved.colors[backgroundId],
-        label
+        label,
+        policyId
       );
       if (issue) {
         validations[mode].perToken[foregroundId].contrastIssues.push(issue);

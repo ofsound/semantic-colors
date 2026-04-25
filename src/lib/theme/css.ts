@@ -13,25 +13,25 @@ export function generateThemeCss(manifest: ThemeManifest): string {
   const aliases = manifest.aliases
     .map((alias) => `  --${alias.name}: var(--color-${alias.tokenId});`)
     .join('\n');
+  const altColorScheme = manifest.alt.source === 'light' ? 'light' : 'dark';
 
-  return `@theme {
-${bridge}
-}
-
-:root,
+  return `:root,
 :root[data-theme='light'] {
 ${themeCssVariables(light)}
+${bridge}
   color-scheme: light;
 }
 
 :root[data-theme='dark'] {
 ${themeCssVariables(dark)}
+${bridge}
   color-scheme: dark;
 }
 
 :root[data-theme='alt'] {
 ${themeCssVariables(alt)}
-  color-scheme: dark;
+${bridge}
+  color-scheme: ${altColorScheme};
 }
 
 :root {

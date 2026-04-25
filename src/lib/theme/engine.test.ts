@@ -70,10 +70,21 @@ describe('theme engine', () => {
   it('emits explicit data-theme blocks for the generated css contract', () => {
     const css = generateThemeCss(createDefaultManifest());
 
-    expect(css).toContain('@theme');
+    expect(css).not.toContain('@theme');
+    expect(css).toMatchSnapshot();
     expect(css).toContain(":root[data-theme='dark']");
     expect(css).toContain(":root[data-theme='alt']");
     expect(css).toContain('--color-surface: var(--theme-surface);');
+  });
+
+  it('uses the alt source anchor for generated color-scheme', () => {
+    const manifest = createDefaultManifest();
+    manifest.alt.source = 'light';
+
+    const css = generateThemeCss(manifest);
+    const altBlock = css.slice(css.indexOf(":root[data-theme='alt']"));
+
+    expect(altBlock).toContain('color-scheme: light;');
   });
 
   it('flags low contrast tokens in validation results', () => {
@@ -81,9 +92,25 @@ describe('theme engine', () => {
     manifest.tokens['control-primary-text'].dark = { ...manifest.tokens['control-primary'].dark };
 
     const validation = validateManifest(manifest);
-    expect(validation.dark.perToken['control-primary-text'].contrastIssues.length).toBeGreaterThan(
-      0
-    );
+    const issues = validation.dark.perToken['control-primary-text'].contrastIssues;
+
+    expect(issues.length).toBeGreaterThan(0);
+    expect(issues[0]).toContain('APCA contrast is');
+    expect(issues[0]).toContain('control text target is 60Lc');
+  });
+
+  it('reports signed APCA contrast instead of only absolute magnitude', () => {
+    const manifest = createDefaultManifest();
+    manifest.tokens['control-primary-text'].dark = {
+      ...manifest.tokens['control-primary'].dark,
+      l: manifest.tokens['control-primary'].dark.l - 0.2
+    };
+
+    const validation = validateManifest(manifest);
+    const issue = validation.dark.perToken['control-primary-text'].contrastIssues[0];
+
+    expect(issue).toContain('+');
+    expect(issue).toContain('Lc');
   });
 });
 

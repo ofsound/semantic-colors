@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "projectRoot": "/Users/ben/Dev/REACT/app-portfolio",
-  "bridgeEnabled": true,
+  "projectRoot": "../REACT/app-portfolio",
+  "bridgeEnabled": false,
   "manifestPath": "semantic-colors/theme.manifest.json",
   "cssOutputPath": "app/semantic-theme.generated.css",
   "importSourcePath": "app/globals.css",

@@ -82,7 +82,9 @@ The app is organized around a small set of modules:
 
 ## Data Model and Persisted Files
 
-The tool persists state across three files:
+The tool persists state across three local files. Project configs and session
+state are intentionally ignored by git; use the checked-in
+`*.project.example.json` files as portable templates.
 
 1. semantic-colors.project.json
    Main project config. Important fields:
@@ -200,7 +202,7 @@ Useful secondary files:
 
 ## Known Cautions for Maintainers
 
-- Bridge writes are disabled by default in semantic-colors.project.json.
+- Bridge writes are disabled by default in the example project configs.
 - The stage is a built-in fixture harness, not a real imported product UI.
 - Generated CSS output location is controlled by cssOutputPath and resolved
   relative to projectRoot or the config file location.
@@ -216,8 +218,10 @@ This README is aligned with the current repo structure and scripts:
 
 - package.json scripts: dev, build, preview, check, test
 - routes present: +page, +page.server, and the project load/save/import APIs
-- persisted files present: semantic-colors.project.json,
-  semantic-colors/theme.manifest.json, .semantic-colors/session.json
+- example configs present: semantic-colors.project.example.json,
+  app-portfolio.project.example.json
+- persisted local files are ignored: semantic-colors.project.json,
+  app-portfolio.project.json, .semantic-colors/session.json
 
 For a quick sanity check after future changes, run:
 npm test

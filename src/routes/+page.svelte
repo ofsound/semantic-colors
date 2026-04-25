@@ -17,6 +17,7 @@
     themeCssVariables,
     validateManifest
   } from '$lib/theme/engine';
+  import { createPreviewShortcutController } from '$lib/theme/keyboard-shortcuts';
   import { createWorkspaceController } from '$lib/theme/workspace-controller.svelte';
   import { DEFAULT_PROJECT_CONFIG } from '$lib/theme/schema';
   import type { LocalAlias, ProjectConfig, ThemeMode, TokenId } from '$lib/theme/schema';
@@ -66,8 +67,6 @@
   let selectedTokenId = $state<TokenId>('surface');
   let activeMode = $state<ThemeMode>('light');
   let shellMode = $state<ThemeMode>('light');
-  let holdPreviewStartedAt = 0;
-  let holdPreviewReturnMode: ThemeMode | null = null;
 
   const workspace = createWorkspaceController({
     applyPageData,
@@ -135,6 +134,19 @@
     `${stageStyle}  --preview-border-color: ${borderPreviewMode === 'none' ? 'transparent' : `var(--theme-${borderPreviewMode})`};\n  --preview-border-width: 1px;\n`
   );
   const currentTokenAlt = $derived(altTheme.colors[selectedTokenId]);
+  const shortcuts = createPreviewShortcutController({
+    cycleBorderPreviewMode,
+    getActiveMode: () => activeMode,
+    setActiveMode: (mode) => {
+      activeMode = mode;
+    },
+    setMainTab: (tab) => {
+      activeMainTab = tab;
+    },
+    toggleGrayscale: () => {
+      grayscalePreview = !grayscalePreview;
+    }
+  });
 
   onMount(() => {
     const storedShellMode = localStorage.getItem('semantic-colors-shell-theme');
@@ -171,66 +183,6 @@
   function setShellTheme(mode: ThemeMode): void {
     shellMode = mode;
     localStorage.setItem('semantic-colors-shell-theme', mode);
-  }
-
-  function handleKeydown(event: KeyboardEvent): void {
-    if (event.target instanceof HTMLElement && event.target.isContentEditable) {
-      return;
-    }
-
-    if (
-      event.target instanceof HTMLInputElement ||
-      event.target instanceof HTMLTextAreaElement ||
-      event.target instanceof HTMLSelectElement
-    ) {
-      return;
-    }
-
-    if (event.key === '1') {
-      activeMode = 'light';
-      return;
-    }
-
-    if (event.key === '2') {
-      activeMode = 'dark';
-      return;
-    }
-
-    if (event.key === '3' && !event.repeat) {
-      holdPreviewReturnMode = activeMode === 'alt' ? null : activeMode;
-      holdPreviewStartedAt = performance.now();
-      activeMode = 'alt';
-      return;
-    }
-
-    if (event.key.toLowerCase() === 'p') {
-      activeMainTab = 'preview';
-      return;
-    }
-
-    if (event.key.toLowerCase() === 't') {
-      activeMainTab = 'inventory';
-      return;
-    }
-
-    if (event.key.toLowerCase() === 'g') {
-      grayscalePreview = !grayscalePreview;
-      return;
-    }
-
-    if (event.key.toLowerCase() === 'b') {
-      cycleBorderPreviewMode();
-    }
-  }
-
-  function handleKeyup(event: KeyboardEvent): void {
-    if (event.key === '3' && holdPreviewReturnMode) {
-      const heldFor = performance.now() - holdPreviewStartedAt;
-      if (heldFor > 180) {
-        activeMode = holdPreviewReturnMode;
-      }
-      holdPreviewReturnMode = null;
-    }
   }
 
   function addAlias(): void {
@@ -323,7 +275,11 @@
   }
 </script>
 
-<svelte:window onkeydown={handleKeydown} onkeyup={handleKeyup} />
+<svelte:window
+  onblur={shortcuts.cancelHoldPreview}
+  onkeydown={shortcuts.handleKeydown}
+  onkeyup={shortcuts.handleKeyup}
+/>
 
 <svelte:head>
   <title>Semantic Colors</title>
