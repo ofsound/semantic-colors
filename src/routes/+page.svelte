@@ -1,14 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Button } from '$lib/components/ui/button';
-  import { Kbd } from '$lib/components/ui/kbd';
-  import AliasPanel from '$lib/components/semantic-colors/AliasPanel.svelte';
-  import FixtureStage from '$lib/components/semantic-colors/FixtureStage.svelte';
-  import ImportReview from '$lib/components/semantic-colors/ImportReview.svelte';
-  import ModeControls from '$lib/components/semantic-colors/ModeControls.svelte';
-  import ProjectPanel from '$lib/components/semantic-colors/ProjectPanel.svelte';
-  import TokenEditor from '$lib/components/semantic-colors/TokenEditor.svelte';
-  import TokenInventory from '$lib/components/semantic-colors/TokenInventory.svelte';
+  import WorkspaceMainStage from '$lib/components/semantic-colors/workspace/WorkspaceMainStage.svelte';
+  import WorkspaceSaveToast from '$lib/components/semantic-colors/workspace/WorkspaceSaveToast.svelte';
+  import WorkspaceShellThemeBar from '$lib/components/semantic-colors/workspace/WorkspaceShellThemeBar.svelte';
+  import WorkspaceSidebar from '$lib/components/semantic-colors/workspace/WorkspaceSidebar.svelte';
   import { createDefaultManifest } from '$lib/theme/defaults';
   import {
     ensureManifest,
@@ -18,39 +13,19 @@
     validateManifest
   } from '$lib/theme/engine';
   import { createPreviewShortcutController } from '$lib/theme/keyboard-shortcuts';
-  import { createWorkspaceController } from '$lib/theme/workspace-controller.svelte';
   import { DEFAULT_PROJECT_CONFIG } from '$lib/theme/schema';
   import type { LocalAlias, ProjectConfig, ThemeMode, TokenId } from '$lib/theme/schema';
+  import {
+    BORDER_PREVIEW_LABELS,
+    BORDER_PREVIEW_MODES,
+    type BorderPreviewMode,
+    type MainTabId,
+    type SidebarTabId
+  } from '$lib/theme/workspace-page-constants';
+  import { createWorkspaceController } from '$lib/theme/workspace-controller.svelte';
   import type { PageData } from './$types';
+
   import '$lib/styles/semantic-colors-shell.css';
-
-  const SIDEBAR_TABS = [
-    { id: 'token', label: 'Token' },
-    { id: 'modes', label: 'Alt' },
-    { id: 'aliases', label: 'Aliases' },
-    { id: 'import', label: 'Import' },
-    { id: 'project', label: 'Project' }
-  ] as const;
-  const MAIN_TABS = [
-    { id: 'preview', label: 'Preview' },
-    { id: 'inventory', label: 'Tokens' }
-  ] as const;
-  const SHELL_THEME_TABS = [
-    { id: 'light', label: 'Light' },
-    { id: 'dark', label: 'Dark' },
-    { id: 'alt', label: 'Alt' }
-  ] as const;
-  const BORDER_PREVIEW_MODES = ['none', 'border', 'border-subtle', 'border-strong'] as const;
-  const BORDER_PREVIEW_LABELS = {
-    none: 'No Border',
-    border: 'Border',
-    'border-subtle': 'Border Subtle',
-    'border-strong': 'Border Strong'
-  } as const;
-
-  type SidebarTabId = (typeof SIDEBAR_TABS)[number]['id'];
-  type MainTabId = (typeof MAIN_TABS)[number]['id'];
-  type BorderPreviewMode = (typeof BORDER_PREVIEW_MODES)[number];
 
   let { data }: { data: PageData } = $props();
 
@@ -63,7 +38,6 @@
   let activeSidebarTab = $state<SidebarTabId>('token');
   let activeMainTab = $state<MainTabId>('preview');
   let borderPreviewMode = $state<BorderPreviewMode>('none');
-  let grayscalePreview = $state(false);
   let selectedTokenId = $state<TokenId>('surface');
   let activeMode = $state<ThemeMode>('light');
   let shellMode = $state<ThemeMode>('light');
@@ -106,7 +80,6 @@
 
   function applyPageData(value: PageData): void {
     manifest = ensureManifest(value.manifest);
-    grayscalePreview = value.manifest.alt.grayscalePreview;
     config = {
       ...DEFAULT_PROJECT_CONFIG,
       ...value.config,
@@ -129,11 +102,17 @@
     summarizeTokenValidation(validations[activeMode].perToken[selectedTokenId])
   );
   const stageStyle = $derived(`${themeCssVariables(currentTheme)}\n`);
-  const borderPreviewLabel = $derived(BORDER_PREVIEW_LABELS[borderPreviewMode]);
+  const borderPreviewLabelSync = $derived(BORDER_PREVIEW_LABELS[borderPreviewMode]);
   const previewStageStyle = $derived(
     `${stageStyle}  --preview-border-color: ${borderPreviewMode === 'none' ? 'transparent' : `var(--theme-${borderPreviewMode})`};\n  --preview-border-width: 1px;\n`
   );
   const currentTokenAlt = $derived(altTheme.colors[selectedTokenId]);
+
+  function toggleGrayscalePreview(): void {
+    manifest.alt.grayscalePreview = !manifest.alt.grayscalePreview;
+    workspace.markPersistDirty();
+  }
+
   const shortcuts = createPreviewShortcutController({
     cycleBorderPreviewMode,
     getActiveMode: () => activeMode,
@@ -143,9 +122,7 @@
     setMainTab: (tab) => {
       activeMainTab = tab;
     },
-    toggleGrayscale: () => {
-      grayscalePreview = !grayscalePreview;
-    }
+    toggleGrayscale: toggleGrayscalePreview
   });
 
   onMount(() => {
@@ -243,8 +220,7 @@
   }
 
   function resetManifest(): void {
-    manifest = createDefaultManifest();
-    grayscalePreview = manifest.alt.grayscalePreview;
+    manifest = ensureManifest(createDefaultManifest());
     selectedTokenId = 'surface';
   }
 
@@ -260,18 +236,6 @@
     const nextIndex =
       (BORDER_PREVIEW_MODES.indexOf(borderPreviewMode) + 1) % BORDER_PREVIEW_MODES.length;
     borderPreviewMode = BORDER_PREVIEW_MODES[nextIndex];
-  }
-
-  function headerControlClass(selected: boolean): string {
-    return selected
-      ? 'border-[color:var(--shell-color-control-active-border)] bg-[color:var(--shell-color-control-active)] text-[color:var(--shell-color-control-active-text)] shadow-[var(--shell-control-active-shadow)] hover:bg-[color:var(--shell-color-control-active-hover)]'
-      : 'border-[color:var(--shell-color-control-border)] bg-[color:var(--shell-color-control)] text-[color:var(--shell-color-text)] shadow-none hover:bg-[color:var(--shell-color-control-hover)]';
-  }
-
-  function headerShortcutClass(selected: boolean): string {
-    return selected
-      ? 'border-[color:var(--shell-color-accent-surface)] bg-[color:var(--shell-color-surface-raised)] text-[color:var(--shell-color-accent)]'
-      : 'border-[color:var(--shell-color-border)] bg-[color:var(--shell-color-surface-subtle)] text-[color:var(--shell-color-text-muted)]';
   }
 </script>
 
@@ -289,353 +253,65 @@
   class={`semantic-colors-app workspace ${sidebarCollapsed ? 'workspace-sidebar-collapsed' : ''}`}
   data-shell-theme={shellMode}
 >
-  {#if workspace.saveState !== 'idle'}
-    <div
-      aria-atomic="true"
-      aria-live={workspace.saveState === 'error' ? 'assertive' : 'polite'}
-      class={`save-toast ${saveToastTone}`}
-      role={workspace.saveState === 'error' ? 'alert' : 'status'}
-    >
-      <strong>{saveHeading}</strong>
-      <span>{workspace.saveMessage}</span>
-    </div>
-  {/if}
+  <WorkspaceSaveToast
+    {saveHeading}
+    saveMessage={workspace.saveMessage}
+    saveState={workspace.saveState}
+    {saveToastTone}
+  />
 
-  <div
-    class="shell-theme-switcher flex flex-wrap items-center gap-1 rounded-[var(--shell-radius-outer)] border border-[color:var(--shell-color-border-subtle)] bg-[color:var(--shell-color-shell)] p-1 shadow-[var(--shell-shadow)] backdrop-blur-xl"
-    role="toolbar"
-    aria-label="Shell theme"
-  >
-    {#each SHELL_THEME_TABS as tab (tab.id)}
-      <Button
-        aria-label={`${tab.label} shell theme`}
-        aria-pressed={shellMode === tab.id}
-        class={`h-8 min-h-8 px-2.5 text-xs ${headerControlClass(shellMode === tab.id)}`}
-        onclick={() => setShellTheme(tab.id)}
-        variant="outline"
-      >
-        {tab.label}
-      </Button>
-    {/each}
-  </div>
+  <WorkspaceShellThemeBar {setShellTheme} {shellMode} />
 
-  <aside class={`sidebar ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-    {#if sidebarCollapsed}
-      <div class="sidebar-toolbar">
-        <Button
-          aria-label="Show authoring panels"
-          class={`shrink-0 ${headerControlClass(false)}`}
-          onclick={toggleSidebar}
-          size="icon"
-          variant="outline"
-        >
-          <span aria-hidden="true" class="sidebar-toggle-icon sidebar-toggle-icon-collapsed">
-            <svg class="sidebar-toggle-chevron" viewBox="0 0 24 24">
-              <path
-                d="M14.5 7.5L9 12l5.5 4.5"
-                fill="none"
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1.75"
-              />
-            </svg>
-          </span>
-        </Button>
-      </div>
-    {:else}
-      <div class="flex w-full min-w-0 items-center gap-2">
-        <Button
-          aria-label="Hide authoring panels"
-          class={`shrink-0 ${headerControlClass(false)}`}
-          onclick={toggleSidebar}
-          size="icon"
-          variant="outline"
-        >
-          <span aria-hidden="true" class="sidebar-toggle-icon">
-            <svg class="sidebar-toggle-chevron" viewBox="0 0 24 24">
-              <path
-                d="M14.5 7.5L9 12l5.5 4.5"
-                fill="none"
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1.75"
-              />
-            </svg>
-          </span>
-        </Button>
-        <div
-          class="flex min-w-0 flex-1 flex-wrap items-center gap-2"
-          role="toolbar"
-          aria-label="Authoring panels: token, alt modes, aliases, import, project"
-        >
-          {#each SIDEBAR_TABS as tab (tab.id)}
-            <Button
-              aria-controls="sidebar-authoring-panel"
-              aria-label={`${tab.label} panel`}
-              aria-pressed={activeSidebarTab === tab.id}
-              class={`h-9 min-h-9 px-3 ${headerControlClass(activeSidebarTab === tab.id)}`}
-              onclick={() => {
-                activeSidebarTab = tab.id;
-              }}
-              variant="outline"
-            >
-              {tab.label}
-            </Button>
-          {/each}
-        </div>
-      </div>
+  <WorkspaceSidebar
+    bind:activeSidebarTab
+    {activeMode}
+    {addAlias}
+    bind:config
+    bind:configPath
+    {confirmResetManifest}
+    {currentTokenAlt}
+    importProposal={workspace.importProposal}
+    isImporting={workspace.isImporting}
+    bind:importSelection={workspace.importSelection}
+    bind:manifest
+    markPersistDirty={workspace.markPersistDirty}
+    onReloadProject={workspace.reloadProject}
+    onRetrySave={workspace.retrySave}
+    {removeAlias}
+    {saveHeading}
+    {saveHint}
+    saveMessage={workspace.saveMessage}
+    saveState={workspace.saveState}
+    {selectedTokenId}
+    {selectedTokenNotes}
+    {setTheme}
+    {sidebarCollapsed}
+    {tokenLabel}
+    {toggleSidebar}
+    {updateAlias}
+    {updateAltDelta}
+    applyImportReview={workspace.applyImportReview}
+    runImport={workspace.runImport}
+  />
 
-      <div
-        class="sidebar-panel-shell"
-        id="sidebar-authoring-panel"
-        role="tabpanel"
-        aria-label={SIDEBAR_TABS.find((t) => t.id === activeSidebarTab)?.label}
-      >
-        {#if activeSidebarTab === 'token'}
-          <TokenEditor
-            bind:manifest
-            {activeMode}
-            {currentTokenAlt}
-            onPersistChange={workspace.markPersistDirty}
-            {selectedTokenId}
-            {selectedTokenNotes}
-            {setTheme}
-            {tokenLabel}
-          />
-        {:else if activeSidebarTab === 'modes'}
-          <ModeControls
-            bind:manifest
-            onActivateAltPreview={() => setTheme('alt')}
-            onPersistChange={workspace.markPersistDirty}
-            {activeMode}
-            {updateAltDelta}
-          />
-        {:else if activeSidebarTab === 'aliases'}
-          <AliasPanel {addAlias} {manifest} {removeAlias} {tokenLabel} {updateAlias} />
-        {:else if activeSidebarTab === 'import'}
-          <ImportReview
-            bind:config
-            bind:importSelection={workspace.importSelection}
-            applyImportReview={workspace.applyImportReview}
-            {confirmResetManifest}
-            importProposal={workspace.importProposal}
-            isImporting={workspace.isImporting}
-            onPersistChange={workspace.markPersistDirty}
-            runImport={workspace.runImport}
-            {tokenLabel}
-          />
-        {:else if activeSidebarTab === 'project'}
-          <ProjectPanel
-            bind:config
-            bind:configPath
-            onPersistChange={workspace.markPersistDirty}
-            {saveHeading}
-            {saveHint}
-            saveMessage={workspace.saveMessage}
-            saveState={workspace.saveState}
-            onReload={workspace.reloadProject}
-            onRetrySave={workspace.retrySave}
-          />
-        {/if}
-      </div>
-    {/if}
-  </aside>
-
-  <main class="stage-shell">
-    <div
-      class="stage-header-fixed rounded-t-none rounded-b-xl border-x border-t-0 border-b border-[color:var(--shell-color-border-subtle)] bg-[color:var(--shell-color-shell)] p-[var(--stage-header-pad-block-start)_1.1rem_1rem] text-[color:var(--shell-color-text)] shadow-[var(--shell-shadow)] backdrop-blur-xl"
-    >
-      <div
-        class="stage-header-toolbar flex w-full min-w-0 flex-wrap items-center gap-2"
-        role="toolbar"
-        aria-label="Stage: viewport, preview tools, and theme mode"
-      >
-        <div class="flex shrink-0 flex-wrap items-center gap-2">
-          {#each MAIN_TABS as tab (tab.id)}
-            <Button
-              aria-controls="main-viewport-panel"
-              aria-keyshortcuts={tab.id === 'preview' ? 'P' : 'T'}
-              aria-label={`${tab.label} view${tab.id === 'preview' ? ' (shortcut P)' : ' (shortcut T)'}`}
-              aria-pressed={activeMainTab === tab.id}
-              class={headerControlClass(activeMainTab === tab.id)}
-              onclick={() => {
-                activeMainTab = tab.id;
-              }}
-              variant="outline"
-            >
-              <span>{tab.label}</span>
-              <Kbd class={headerShortcutClass(activeMainTab === tab.id)}
-                >{tab.id === 'preview' ? 'P' : 'T'}</Kbd
-              >
-            </Button>
-          {/each}
-        </div>
-
-        <div class="stage-header-toolbar-end flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
-          <div class="flex flex-wrap items-center gap-2">
-            <Button
-              aria-keyshortcuts="B"
-              aria-label={`Border preview mode: ${borderPreviewLabel} (shortcut B)`}
-              aria-pressed={borderPreviewMode !== 'none'}
-              class={headerControlClass(borderPreviewMode !== 'none')}
-              onclick={cycleBorderPreviewMode}
-              variant="outline"
-            >
-              <span>{borderPreviewLabel}</span>
-              <Kbd class={headerShortcutClass(borderPreviewMode !== 'none')}>B</Kbd>
-            </Button>
-            <Button
-              aria-keyshortcuts="G"
-              aria-label="Grayscale preview (shortcut G)"
-              aria-pressed={grayscalePreview}
-              class={headerControlClass(grayscalePreview)}
-              onclick={() => {
-                grayscalePreview = !grayscalePreview;
-              }}
-              variant="outline"
-            >
-              <span>Grayscale</span>
-              <Kbd class={headerShortcutClass(grayscalePreview)}>G</Kbd>
-            </Button>
-          </div>
-
-          <div
-            class="stage-header-toolbar-divider"
-            role="separator"
-            aria-orientation="vertical"
-            aria-hidden="true"
-          ></div>
-
-          <div class="flex flex-wrap items-center gap-2">
-            <Button
-              aria-keyshortcuts="1"
-              aria-pressed={activeMode === 'light'}
-              class={headerControlClass(activeMode === 'light')}
-              onclick={() => setTheme('light')}
-              variant="outline"
-            >
-              <span>Light</span>
-              <Kbd class={headerShortcutClass(activeMode === 'light')}>1</Kbd>
-            </Button>
-            <Button
-              aria-keyshortcuts="2"
-              aria-pressed={activeMode === 'dark'}
-              class={headerControlClass(activeMode === 'dark')}
-              onclick={() => setTheme('dark')}
-              variant="outline"
-            >
-              <span>Dark</span>
-              <Kbd class={headerShortcutClass(activeMode === 'dark')}>2</Kbd>
-            </Button>
-            <Button
-              aria-keyshortcuts="3"
-              aria-pressed={activeMode === 'alt'}
-              class={headerControlClass(activeMode === 'alt')}
-              onclick={() => setTheme('alt')}
-              variant="outline"
-            >
-              <span>Alt</span>
-              <Kbd class={headerShortcutClass(activeMode === 'alt')}>3</Kbd>
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div
-      class="stage-content-shell"
-      id="main-viewport-panel"
-      role="region"
-      aria-label={activeMainTab === 'preview' ? 'Fixture preview' : 'Token inventory'}
-    >
-      {#if activeMainTab === 'preview'}
-        <FixtureStage
-          {activeMode}
-          {grayscalePreview}
-          {hasWarnings}
-          {isSelectedUsage}
-          saveMessage={workspace.saveMessage}
-          saveState={workspace.saveState}
-          selectToken={selectPreviewToken}
-          {selectedTokenId}
-          stageStyle={previewStageStyle}
-          {tokenLabel}
-          {warningSummary}
-        />
-      {:else}
-        <TokenInventory
-          currentColors={currentTheme.colors}
-          {grayscalePreview}
-          {hasWarnings}
-          {isSelectedUsage}
-          selectToken={selectPreviewToken}
-          {selectedTokenId}
-          stageStyle={previewStageStyle}
-          {tokenLabel}
-          {warningSummary}
-        />
-      {/if}
-    </div>
-  </main>
+  <WorkspaceMainStage
+    bind:activeMainTab
+    {activeMode}
+    borderPreviewLabel={borderPreviewLabelSync}
+    {borderPreviewMode}
+    currentThemeColors={currentTheme.colors}
+    {cycleBorderPreviewMode}
+    grayscalePreview={manifest.alt.grayscalePreview}
+    {hasWarnings}
+    {isSelectedUsage}
+    saveMessage={workspace.saveMessage}
+    saveState={workspace.saveState}
+    {selectPreviewToken}
+    {selectedTokenId}
+    {previewStageStyle}
+    {setTheme}
+    {tokenLabel}
+    {toggleGrayscalePreview}
+    {warningSummary}
+  />
 </div>
-
-<style>
-  .save-toast {
-    position: fixed;
-    top: 1rem;
-    left: 1rem;
-    z-index: 60;
-    display: grid;
-    gap: 0.15rem;
-    min-width: min(20rem, calc(100vw - 2rem));
-    max-width: min(24rem, calc(100vw - 2rem));
-    padding: 0.85rem 1rem;
-    border: 1px solid var(--shell-color-border-subtle);
-    border-radius: 1rem;
-    box-shadow: var(--shell-toast-shadow);
-    backdrop-filter: blur(18px);
-    pointer-events: none;
-  }
-
-  .save-toast strong {
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .save-toast span {
-    font-size: 0.92rem;
-    line-height: 1.35;
-  }
-
-  .save-toast-saving {
-    background: var(--shell-color-info-surface);
-    border-color: var(--shell-color-info-border);
-    color: var(--shell-color-info);
-  }
-
-  .save-toast-saved {
-    background: var(--shell-color-success-surface);
-    border-color: var(--shell-color-success-border);
-    color: var(--shell-color-success);
-  }
-
-  .save-toast-error {
-    background: var(--shell-color-danger-surface);
-    border-color: var(--shell-color-danger-border);
-    color: var(--shell-color-danger);
-  }
-
-  @media (max-width: 640px) {
-    .save-toast {
-      left: 0.75rem;
-      right: 0.75rem;
-      top: 0.75rem;
-      min-width: auto;
-      max-width: none;
-    }
-  }
-</style>

@@ -1,3 +1,7 @@
+import {
+  parseBridgeSnapshotResponse,
+  parseBridgeSseSnapshotEvent
+} from '$lib/theme/bridge-client-payloads';
 import { ensureManifest } from '$lib/theme/engine';
 import type { ImportProposal, ProjectConfig, ThemeManifest, TokenId } from '$lib/theme/schema';
 
@@ -175,26 +179,20 @@ export function createWorkspaceController(options: WorkspaceControllerOptions) {
     const source = new EventSource(`/api/bridge/events?${bridgeQuery(configPath)}`);
     source.addEventListener('snapshot', (event) => {
       try {
-        const message = JSON.parse((event as MessageEvent<string>).data) as {
-          snapshot?: {
-            configPath?: string;
-            draft?: { dirty?: boolean };
-            origin?: string;
-            manifest?: unknown;
-          };
-        };
+        const raw: unknown = JSON.parse((event as MessageEvent<string>).data);
+        const snapshot = parseBridgeSseSnapshotEvent(raw);
         if (
-          !message.snapshot ||
-          message.snapshot.origin === 'ui' ||
-          message.snapshot.configPath !== options.getConfigPath()
+          !snapshot ||
+          snapshot.origin === 'ui' ||
+          snapshot.configPath !== options.getConfigPath()
         ) {
           return;
         }
 
-        options.replaceManifest(ensureManifest(message.snapshot.manifest as never));
-        saveMessage = message.snapshot.draft?.dirty
-          ? `Applied staged update from ${message.snapshot.origin} via bridge.`
-          : `Applied committed update from ${message.snapshot.origin} via bridge.`;
+        options.replaceManifest(ensureManifest(snapshot.manifest));
+        saveMessage = snapshot.draft?.dirty
+          ? `Applied staged update from ${snapshot.origin} via bridge.`
+          : `Applied committed update from ${snapshot.origin} via bridge.`;
       } catch {
         // Ignore malformed snapshots.
       }
@@ -238,18 +236,10 @@ export function createWorkspaceController(options: WorkspaceControllerOptions) {
         return;
       }
 
-      const payload = (await response.json()) as {
-        configPath?: string;
-        draft?: { dirty?: boolean };
-        manifest?: ThemeManifest;
-      };
+      const raw: unknown = await response.json();
+      const payload = parseBridgeSnapshotResponse(raw);
 
-      if (
-        payload.draft?.dirty &&
-        payload.configPath &&
-        payload.configPath === options.getConfigPath() &&
-        payload.manifest
-      ) {
+      if (payload?.draft?.dirty && payload.configPath === options.getConfigPath()) {
         options.replaceManifest(ensureManifest(payload.manifest));
         saveMessage = 'Loaded staged bridge draft.';
         return;

@@ -1,229 +1,253 @@
 # Semantic Colors
 
+SvelteKit **2** app (Svelte **5** Runes) for editing a semantic OKLCH theme, plus an optional **Chromium MV3** extension that talks to the same server over HTTP. Dependency versions are summarized below from [`package.json`](package.json).
+
 ## Purpose
 
-This repo is a SvelteKit-based theme editing tool for a semantic color system.
-It lets an operator edit Light and Dark anchor tokens, derive an Alt theme from
-either anchor with OKLCH delta shifts, preview the result in a built-in fixture
-stage, validate the result, and optionally write generated theme CSS into a
-target project.
+This repo is a theme editing tool for a semantic color system. An operator edits
+Light and Dark anchor tokens, derives an **Alt** theme from either anchor with
+OKLCH delta shifts, previews the result in a built-in fixture stage, validates
+the outcome, and can write generated theme CSS into a target project.
 
-Current scope is the tool itself. The preview stage is a local fixture harness,
-not an imported external app. The bridge can write generated CSS to another
-path, but the tool UI and stage live in this repo.
+The preview stage is a **local fixture harness**, not an imported production app.
+The bridge can still write generated CSS to another path on disk; the operator
+UI and stage live here.
 
-For consumption-side workflows (live inspection, real-DOM APCA auditing, hot
-overrides on a shipped product page), see the companion Chromium extension in
-[extension/](./extension/README.md). It connects to the engine over a live
-HTTP + SSE bridge (`/api/bridge/*`) and treats this tool as the source of
+For **consumption-side** work (live inspection on real pages, DOM-level APCA
+auditing, hot overrides), use the companion Chromium extension in
+[`extension/`](./extension/README.md). It uses the same engine over HTTP and
+Server-Sent Events under `/api/bridge/*` and treats this tool as the source of
 truth for tokens and aliases.
 
-## Quick Start
+## Quick start
 
-Install dependencies:
+```bash
 npm install
-
-Run the dev server:
 npm run dev
+```
 
-Run tests:
-npm test
+Run checks: `npm run test`, `npm run check`, `npm run lint`, `npm run knip`.
+Production app: `npm run build` then `npm run preview`. Extension artifact:
+`npm run extension:build` (load unpacked `extension/dist/`).
 
-Run type and Svelte checks:
-npm run check
+## Main app stack
 
-Build production output:
-npm run build
+| Layer                    | Packages                                                                                                                                             |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework                | `svelte` ^5.53, `@sveltejs/kit` ^2.53, `@sveltejs/vite-plugin-svelte` ^7                                                                             |
+| Build / dev              | `vite` ^8, `typescript` ^5.9                                                                                                                         |
+| Production adapter       | `@sveltejs/adapter-node` ^5.5                                                                                                                        |
+| Styling (operator shell) | `tailwindcss` ^4.2, `@tailwindcss/vite` ^4.2, `tailwind-merge`, `tailwind-variants`, `tw-animate-css`, `@fontsource-variable/inter`                  |
+| UI primitives            | `bits-ui` ^2.18, `shadcn-svelte` ^1.2, `@lucide/svelte`, `@internationalized/date`, `clsx`                                                           |
+| Schemas / validation     | `zod` ^4.3                                                                                                                                           |
+| Color / contrast         | `culori` ^4, `apca-w3` ^0.1                                                                                                                          |
+| Tests                    | `vitest` ^4.1                                                                                                                                        |
+| Lint / format            | `eslint` ^10, `typescript-eslint` ^8, `eslint-plugin-svelte` ^3, `prettier` ^3 + `prettier-plugin-svelte` + `prettier-plugin-tailwindcss`, `knip` ^6 |
 
-Preview the production build locally:
-npm run preview
+The operator shell is styled with Tailwind; fixture and preview chrome use plain
+CSS (`src/app.css`, `src/lib/styles/`, scoped `<style>` in semantic-colors
+components).
 
-## High-Level Architecture
+## Scripts (`package.json`)
 
-The app is organized around a small set of modules:
+| Script            | Command                                         |
+| ----------------- | ----------------------------------------------- |
+| `dev`             | `vite dev` — SvelteKit dev server               |
+| `build`           | `vite build` — production Node bundle           |
+| `preview`         | `vite preview` — serve production build locally |
+| `check`           | `svelte-kit sync` + `svelte-check`              |
+| `test`            | `vitest run`                                    |
+| `lint`            | `prettier --check .` + `eslint .`               |
+| `lint:fix`        | `prettier --write .` + `eslint . --fix`         |
+| `knip`            | unused export / dependency analysis             |
+| `extension:build` | `node extension/build.mjs` — extension `dist/`  |
+| `extension:watch` | same with `--watch`                             |
 
-1. SvelteKit UI
-   - src/routes/+page.svelte is the main operator interface.
-   - It renders the sidebar controls, keyboard handling, token editor,
-     import review queue, and preview fixture stage.
+## Source layout (stack-relevant)
 
-2. Server endpoints
-   - src/routes/api/project/load/+server.ts loads config and manifest state.
-   - src/routes/api/project/save/+server.ts persists config and manifest and
-     optionally writes generated CSS.
-   - src/routes/api/project/import/+server.ts scans a CSS file and returns
-     proposed semantic mappings.
+| Path                                                                                             | Role                                                                                                  |
+| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| [`src/routes/+page.svelte`](src/routes/+page.svelte)                                             | Runes state, workspace controller wiring, shortcuts                                                   |
+| [`src/lib/components/semantic-colors/workspace/`](src/lib/components/semantic-colors/workspace/) | Split operator shell: sidebar, stage chrome, save toast                                               |
+| [`src/lib/components/ui/`](src/lib/components/ui/)                                               | shadcn-svelte / bits-ui primitives                                                                    |
+| [`src/lib/theme/`](src/lib/theme/)                                                               | Theme engine, CSS emit, Zod manifest schemas (`theme-manifest-zod.ts`), client bridge payload parsers |
+| [`src/lib/server/`](src/lib/server/)                                                             | **Server-only**: filesystem project access, bridge store, route Zod contracts                         |
+| [`src/hooks.server.ts`](src/hooks.server.ts)                                                     | CORS for `/api/bridge/*` only                                                                         |
 
-3. Theme engine
-   - src/lib/theme/engine.ts resolves light, dark, and alt theme colors.
-   - It also runs validation, including APCA-based contrast checks.
+## High-level architecture
 
-4. CSS generator
-   - src/lib/theme/css.ts emits the generated CSS contract.
-   - Output includes an @theme block and explicit :root[data-theme='...']
-     sections for light, dark, and alt.
+The app is organized around a small set of cooperating areas:
 
-5. Importer
-   - src/lib/theme/importer.ts regex-extracts CSS custom properties from a
-     source file and proposes mappings into canonical tokens.
+1. **SvelteKit UI** — [`src/routes/+page.svelte`](src/routes/+page.svelte) holds
+   page-level rune state, autosave/bridge wiring, and keyboard handling. Presentational
+   chunks live under
+   [`src/lib/components/semantic-colors/workspace/`](src/lib/components/semantic-colors/workspace/)
+   (sidebar, main stage chrome, save toast, shell theme bar).
 
-6. Persistence helpers
-   - src/lib/server/project-files.ts resolves file paths, loads state,
-     writes state, and stores the last-used config path in a session file.
+2. **Server endpoints** — Project APIs under `src/routes/api/project/` load and
+   save workspace state, run CSS import scanning, and optionally emit generated
+   CSS when the bridge is enabled.
 
-7. Bridge (consumption channel)
-   - src/lib/server/bridge-state.ts holds a singleton snapshot of the live
-     manifest plus a fan-out broadcaster.
-   - src/routes/api/bridge/{snapshot,events,publish,token}/+server.ts expose
-     the snapshot over HTTP and a push stream over Server-Sent Events.
-   - The SvelteKit page publishes every edit to the bridge so external
-     consumers (notably the Chromium extension in extension/) see changes
-     live; the page also listens for non-UI overrides and applies them.
+3. **Theme engine** — Resolves Light, Dark, and Alt from the manifest and runs
+   validation (including contrast checks).
 
-## Data Model and Persisted Files
+4. **CSS generator** — Emits the generated CSS contract (including `@theme` and
+   explicit `:root[data-theme='…']` sections for light, dark, and alt).
 
-The tool persists state across three local files. Project configs and session
-state are intentionally ignored by git; use the checked-in
-`*.project.example.json` files as portable templates.
+5. **Importer** — Scans a CSS file for custom properties and proposes mappings
+   into canonical tokens.
 
-1. semantic-colors.project.json
-   Main project config. Important fields:
-   - projectRoot: base path used to resolve relative manifest and CSS paths
-   - bridgeEnabled: whether generated CSS should be written on save
-   - manifestPath: path to the theme manifest JSON
-   - cssOutputPath: path to write generated CSS when the bridge is enabled
-   - importSourcePath: CSS file to scan for variable import proposals
-   - selectorStrategy: currently expects data-theme
+6. **Persistence** — Resolves paths on disk, reads/writes config and manifest,
+   and tracks the last-used project config in a small session file.
 
-2. semantic-colors/theme.manifest.json
-   Main theme manifest. Important concepts:
-   - alt settings: source anchor (light or dark), delta.l, delta.c, delta.h,
-     harmonyLock flag, grayscalePreview flag
-   - tokens: canonical semantic token records with light and dark OKLCH values
-   - aliases: project-specific custom property names mapped to canonical tokens
+7. **Bridge** — In-memory snapshot of the live manifest plus fan-out to SSE
+   subscribers. The page publishes edits to the bridge; it also listens for
+   non-UI updates (for example from the extension) and applies them when
+   appropriate.
 
-3. .semantic-colors/session.json
-   Stores the last used config path so reloads can reopen the same project
-   config without re-entering it.
+### Why REST + SSE instead of Remote Functions
 
-Token structure is defined in src/lib/theme/schema.ts. Each token has an id,
-label, description, group, role, light anchor, dark anchor, and exception data.
-Some tokens also define altParent or harmonyGroup metadata.
+Remote Functions are a strong fit for type-safe **in-app** calls. The bridge stays
+on explicit `+server.ts` routes because the extension is an **external origin**
+client: it needs plain `fetch`, CORS on `/api/bridge/*` (see
+[`src/hooks.server.ts`](src/hooks.server.ts)), and a long-lived **Server-Sent
+Events** stream (`/api/bridge/events`). Treat the bridge as a deliberate HTTP
+contract.
 
-## Runtime Workflow
+### Extension vs app color math
 
-At runtime the tool behaves as follows:
+The SvelteKit app and the extension each ship their own OKLCH / sRGB conversion
+helpers because the extension bundle is produced by a **separate** build step.
+When you change gamut, conversion, or clamping behavior in one tree, reconcile
+the other so in-page tooling does not drift.
 
-1. +page.server.ts loads workspace state through project-files.ts.
-2. The page initializes config and manifest state from the server load result.
-3. The operator edits token anchors or Alt settings in the sidebar.
-4. engine.ts resolves the active theme:
-   - Light uses each token's light anchor.
-   - Dark uses each token's dark anchor.
-   - Alt starts from the selected source anchor and applies delta shifts.
+### Bridge deployment assumptions
+
+- **Single Node process** — Bridge state lives in memory for one server process
+  (`adapter-node`). Multiple instances or serverless workers would not share
+  snapshots without a redesign.
+- **CORS** — Bridge routes allow a broad origin today so a local extension can
+  attach. If the app is exposed beyond localhost, tighten CORS to known origins.
+
+## Data model and persisted files
+
+State is spread across a few local files. Git ignores real project configs and
+session data; use the checked-in `*.project.example.json` files as templates.
+
+1. **`semantic-colors.project.json`** — Project config: `projectRoot`,
+   `bridgeEnabled`, `manifestPath`, `cssOutputPath`, `importSourcePath`,
+   `selectorStrategy` (expects `data-theme` today).
+
+2. **`semantic-colors/theme.manifest.json`** — Theme manifest: Alt settings
+   (source anchor, `delta` shifts, `harmonyLock`, `grayscalePreview`), canonical
+   `tokens`, and `aliases`.
+
+3. **`.semantic-colors/session.json`** — Remembers the last opened config path.
+
+Token shape is defined in `src/lib/theme/schema.ts` (ids, groups, anchors,
+exceptions, optional `altParent` / `harmonyGroup`).
+
+## Runtime workflow
+
+1. [`src/routes/+page.server.ts`](src/routes/+page.server.ts) loads workspace
+   state through the project persistence layer.
+2. The page hydrates config and manifest from that load result.
+3. The operator edits anchors, Alt settings, aliases, or import mappings in the
+   sidebar.
+4. The engine resolves the active theme (Light / Dark / Alt) from the manifest.
 5. Validation runs on the resolved themes.
-6. The UI debounces autosave and POSTs to /api/project/save.
-7. save/+server.ts writes config and manifest.
-8. If bridgeEnabled is true, generated CSS is also written to cssOutputPath.
+6. The UI debounces autosave and `POST`s to `/api/project/save`.
+7. The save handler writes config and manifest; when the bridge is enabled it
+   also writes generated CSS to the configured output path.
 
-## UI and Operator Workflow
+## UI and operator workflow
 
-Main UI behaviors:
+- **Theme modes** — Light, Dark, Alt preview in the fixture header.
+- **Keyboard shortcuts** — `1` / `2` / `3` switch modes; hold `3` for a momentary
+  Alt preview then return; `G` toggles grayscale (stored on
+  `manifest.alt.grayscalePreview`); `B` cycles border preview on the fixture;
+  `P` / `T` switch the main viewport between Preview and Tokens.
+- **Token editing** — Per-token Light/Dark OKLCH controls; Alt panel for source
+  anchor and delta sliders; exceptions for derive / pin / exclude and optional
+  max chroma.
+- **Import review** — Point at a CSS source path, review proposed variable → token
+  mappings, apply into the manifest and alias list.
+- **Bridge** — When enabled, saves also regenerate the target CSS file on disk.
+  When disabled, the tool still persists manifest and config.
 
-- Theme modes: Light, Dark, Alt
-- Keyboard shortcuts:
-  - 1: switch to Light
-  - 2: switch to Dark
-  - 3: switch to Alt
-  - hold 3: momentary Alt preview, then return to the previous mode
-  - L: toggle greyscale hierarchy preview
-- Token editing:
-  - the selected token shows manual Light and Dark OKLCH controls
-  - Alt controls expose source anchor selection and delta shifts for hue,
-    chroma, and lightness
-  - token exceptions allow Alt derive/pin/exclude behavior and max chroma
-- Import review:
-  - the operator supplies a CSS source path
-  - the importer scans custom properties and proposes token mappings
-  - reviewed mappings can be applied into the manifest and alias list
-- Bridge:
-  - when enabled, saves also regenerate the target CSS file
-  - when disabled, the tool still saves config and manifest state
+## Important implementation notes
 
-## Important Implementation Notes
+**APCA validation** — Contrast checks run in the theme engine using apca-w3 over
+a fixed set of foreground/background pairs; warnings surface for the active
+mode.
 
-APCA validation
-Validation is implemented in src/lib/theme/engine.ts using apca-w3. The tool
-checks a fixed set of foreground/background token pairs and surfaces warnings
-in the sidebar for the active mode.
+**Gamut clamping** — OKLCH math may land outside the displayable gamut; chroma is
+reduced until the color is in gamut. Per-token max chroma can cap saturation.
 
-Gamut clamping
-Color math uses OKLCH through culori. If a derived color is outside the
-displayable gamut, chroma is reduced until the color becomes displayable.
-Max chroma can also be capped per token.
+**Alt derivation** — Driven by `manifest.alt.source` and `manifest.alt.delta`.
+Pin/exclude tokens keep their anchor behavior in Alt; `altParent` reuses another
+token’s resolved Alt color.
 
-Alt derivation behavior
-Alt derivation is driven by manifest.alt.source and manifest.alt.delta.
-Tokens marked pin or exclude keep their source anchor in Alt. Tokens with
-altParent reuse another token's resolved Alt color.
+**Alias generation** — Generated CSS bridges canonical `--color-*` variables to
+theme variables, then emits alias variables from `manifest.aliases` so a host
+project can keep local custom property names.
 
-Alias generation
-Generated CSS maps canonical --color-\* bridge variables to theme variables,
-then emits alias variables from manifest.aliases so a consuming project can
-keep local custom property names.
+## Repo map: read these first
 
-## Repo Map: Read These First
+When changing behavior, start here:
 
-If you need to change behavior, start here:
+- [`src/routes/+page.svelte`](src/routes/+page.svelte) — Page runes, autosave and
+  bridge wiring, keyboard handling.
+- [`src/lib/components/semantic-colors/workspace/`](src/lib/components/semantic-colors/workspace/) —
+  Split operator UI (sidebar, stage shell, toasts).
+- [`src/lib/theme/engine.ts`](src/lib/theme/engine.ts) — Resolution and
+  validation.
+- [`src/lib/server/project-files.ts`](src/lib/server/project-files.ts) — Load,
+  save, path safety, bridge file writes.
 
-- src/routes/+page.svelte
-  Main UI, mode switching, autosave trigger, keyboard controls, stage fixture,
-  import review flow, and token editing experience.
+Useful next:
 
-- src/lib/theme/engine.ts
-  Theme resolution and validation logic.
+- [`src/lib/theme/css.ts`](src/lib/theme/css.ts) — Generated CSS contract.
+- [`src/lib/theme/importer.ts`](src/lib/theme/importer.ts) — CSS import heuristics.
+- [`src/lib/theme/schema.ts`](src/lib/theme/schema.ts) — Shared types and ids.
+- [`src/lib/theme/defaults.ts`](src/lib/theme/defaults.ts) — Default manifest.
 
-- src/lib/server/project-files.ts
-  State loading/saving, path resolution, session handling, and bridge writes.
+## Known cautions for maintainers
 
-Useful secondary files:
+- Bridge file writes are **off** by default in the example configs; enable
+  deliberately when pointing at a real target repo.
+- The fixture stage is a harness, not a snapshot of a shipped product UI.
+- `cssOutputPath` resolves relative to `projectRoot` or the config file location;
+  misconfiguration can overwrite unexpected files.
+- `selectorStrategy` currently assumes `data-theme` selectors on the host.
+- Autosave debounces writes; local manifest/config can change quickly during
+  active editing.
+- Session data only tracks the last-used config path, separate from manifest
+  content.
 
-- src/lib/theme/css.ts
-  Generated CSS output contract.
+## HTTP API (SvelteKit `+server.ts`)
 
-- src/lib/theme/importer.ts
-  CSS variable extraction and mapping heuristics.
+**Project** (same origin as the app): [`/api/project/load`](src/routes/api/project/load/+server.ts), [`/api/project/save`](src/routes/api/project/save/+server.ts), [`/api/project/import`](src/routes/api/project/import/+server.ts).
 
-- src/lib/theme/schema.ts
-  Shared types, token ids, groups, and config shape.
+**Bridge** (CORS-enabled for the extension; SSE on `events`): [`/api/bridge/snapshot`](src/routes/api/bridge/snapshot/+server.ts), [`/api/bridge/events`](src/routes/api/bridge/events/+server.ts), [`/api/bridge/publish`](src/routes/api/bridge/publish/+server.ts), [`/api/bridge/token`](src/routes/api/bridge/token/+server.ts), [`/api/bridge/draft`](src/routes/api/bridge/draft/+server.ts), [`/api/bridge/commit`](src/routes/api/bridge/commit/+server.ts), [`/api/bridge/discard`](src/routes/api/bridge/discard/+server.ts), [`/api/bridge/config`](src/routes/api/bridge/config/+server.ts).
 
-- src/lib/theme/defaults.ts
-  Default manifest and seeded token definitions.
+## Extension (second build)
 
-## Known Cautions for Maintainers
+- **Target:** Chromium MV3 (`extension/manifest.json`), built to `extension/dist/`.
+- **Pipeline:** [`extension/build.mjs`](extension/build.mjs) — **esbuild** bundles the extension entrypoints (`background`, `devtools`, `drawer`, `content-bridge`); **Vite** `build.lib` compiles the Svelte panel bundles with **`@sveltejs/vite-plugin-svelte`** and **Tailwind 4** (`@tailwindcss/vite`), sharing `vitePreprocess()` with the main app.
+- **Color math:** duplicated on purpose in [`extension/src/shared/color.ts`](extension/src/shared/color.ts) vs [`src/lib/theme/color.ts`](src/lib/theme/color.ts); keep them in sync when changing conversions.
+- **Docs:** feature behavior and load steps — [`extension/README.md`](extension/README.md).
 
-- Bridge writes are disabled by default in the example project configs.
-- The stage is a built-in fixture harness, not a real imported product UI.
-- Generated CSS output location is controlled by cssOutputPath and resolved
-  relative to projectRoot or the config file location.
-- selectorStrategy currently assumes data-theme selectors.
-- The tool autosaves after edits, so config and manifest changes can persist
-  quickly during development.
-- Session state is separate from the main config and only tracks the last-used
-  config path.
+From repo root: `npm install` then `npm run extension:build`, then load unpacked `extension/dist/` in the browser.
 
-## Verification Notes
+## Local data files (not in git)
 
-This README is aligned with the current repo structure and scripts:
+Templates: `*.project.example.json`. Live copies and session (see `.gitignore`): `semantic-colors.project.json`, `semantic-colors/theme.manifest.json`, `.semantic-colors/session.json`.
 
-- package.json scripts: dev, build, preview, check, test
-- routes present: +page, +page.server, and the project load/save/import APIs
-- example configs present: semantic-colors.project.example.json,
-  app-portfolio.project.example.json
-- persisted local files are ignored: semantic-colors.project.json,
-  app-portfolio.project.json, .semantic-colors/session.json
+## Quick verification
 
-For a quick sanity check after future changes, run:
-npm test
-npm run check
-npm run build
+```bash
+npm install
+npm run check && npm run lint && npm run knip && npm run test && npm run build
+npm run extension:build
+```
